@@ -1,0 +1,203 @@
+import { UserService } from '@api/user/user.service'
+import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common'
+import { JwtService } from '@nestjs/jwt'
+import { ConfigService } from '@nestjs/config'
+import { compareString, generateExpired, generateOtp } from '@utils/auth.util'
+import { ChangePasswordAuthDto, EmailDTO, ForgotPasswordDTO } from './dto/change-password-auth'
+import { VerifyOtpDTO } from './dto/verify-otp-payload'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Cache } from 'cache-manager'
+import { ValidationException } from '@exceptions/validation.exception'
+import { ErrorCode } from '@constants/error-code.constant'
+import { User } from '@api/user/entities/user.entity'
+import { MailService } from '@mail/mail.service'
+type PayLoadAuth = { id?: string; role?: string }
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private userService: UserService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+    private mailerService: MailService,
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache
+  ) {}
+
+  private async generateTokens(accountId: string, role: string) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(
+        { id: accountId, role },
+        {
+          secret: this.configService.get<string>('ACCESS_SECRET'),
+          expiresIn: this.configService.get<string>('ACCESS_EXPIRES_IN')
+        }
+      ),
+      this.jwtService.signAsync(
+        { id: accountId },
+        {
+          secret: this.configService.get<string>('REFRESH_SECRET'),
+          expiresIn: this.configService.get<string>('REFRESH_EXPIRES_IN')
+        }
+      )
+    ])
+
+    return { accessToken, refreshToken }
+  }
+
+  async validateAccount(email: string, pass: string): Promise<User> {
+    try {
+      const account = await this.userService.findByEmail(email)
+      if (!account) {
+        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+          {
+            property: 'email',
+            code: ErrorCode.E004
+          }
+        ])
+      }
+      const isCheckedPassword = await compareString(pass, account.password)
+      if (!isCheckedPassword) {
+        throw new ValidationException(ErrorCode.E005, 'Password not correct', [
+          {
+            property: 'password',
+            code: ErrorCode.E005
+          }
+        ])
+      }
+      return account
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async login(account: PayLoadAuth) {
+    try {
+      const tokens = await this.generateTokens(account.id, account.role)
+      if (!tokens.accessToken || !tokens.refreshToken) {
+        throw new Error('Login failed')
+      }
+      await this.userService.updateRefreshToken(account.id, tokens.refreshToken)
+      return tokens
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async refreshToken(accountId: string, refresh_token: string) {
+    try {
+      const account = await this.userService.findById(accountId)
+      const role = account?.role?.name
+
+      const refreshTokenRedis = (await this.cacheManager.get(`RT:${accountId}`)) as string
+      if (!refreshTokenRedis) {
+        throw new ForbiddenException('Access Denied')
+      }
+
+      const refreshTokenMatches = await compareString(refresh_token, refreshTokenRedis)
+      if (!refreshTokenMatches) throw new ForbiddenException('Access Denied')
+
+      // tao moi  at va rt, luu rt vao db
+      const tokens = await this.generateTokens(account.id, role)
+      if (!tokens.accessToken || !tokens.refreshToken) {
+        throw new ForbiddenException('Access Denied')
+      }
+      await this.userService.updateRefreshToken(account.id, tokens.refreshToken)
+      return tokens
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async logout(accountId: string) {
+    try {
+      await this.cacheManager.del(`RT:${accountId}`)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async changePassword(id: string, data: ChangePasswordAuthDto) {
+    try {
+      return await this.userService.changePassword(id, data)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async createOtp(payload: EmailDTO) {
+    try {
+      const otp = generateOtp(+this.configService.get<string>('OTP_LENGTH'))
+      const expired_otp = generateExpired(+this.configService.get<string>('OTP_EXPIRES_IN'))
+      const account = await this.userService.findByEmail(payload.email)
+      if (!account) {
+        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+          {
+            property: 'email',
+            code: ErrorCode.E004
+          }
+        ])
+      }
+      await this.userService.createOtp(account.id, otp, expired_otp)
+      console.log(`OTP: ${otp} - Expired: ${expired_otp}`)
+      this.mailerService.sendOtp(payload.email, otp, account.name)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async verifyOtp(payload: VerifyOtpDTO): Promise<User> {
+    try {
+      const { email, otp } = payload
+      const account = await this.userService.findByEmail(email)
+      if (!account) {
+        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+          {
+            property: 'email',
+            code: ErrorCode.E004
+          }
+        ])
+      }
+      const otpRedis = await this.cacheManager.get(`otp:${account.id}`)
+      if (!otpRedis) {
+        throw new ValidationException(ErrorCode.E007, 'OTP has expired', [
+          {
+            property: 'otp',
+            code: ErrorCode.E007
+          }
+        ])
+      }
+      if (otpRedis !== otp) {
+        throw new ValidationException(ErrorCode.E008, 'OTP not match', [
+          {
+            property: 'otp',
+            code: ErrorCode.E008
+          }
+        ])
+      }
+      return account
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async activeAccountOtp(account: User): Promise<void> {
+    try {
+      await this.userService.activeAccount(account.id)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async forgotPassword(payload: ForgotPasswordDTO): Promise<void> {
+    try {
+      const { newPassword, confirmNewPassword } = payload
+      if (newPassword !== confirmNewPassword) {
+        throw new BadRequestException('New password and confirm password do not match')
+      }
+      await this.userService.forgotPassword(payload)
+    } catch (error) {
+      throw error
+    }
+  }
+}
