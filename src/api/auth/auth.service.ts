@@ -1,5 +1,5 @@
 import { UserService } from '@api/user/user.service'
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { compareString, generateExpired, generateOtp } from '@utils/auth.util'
@@ -11,8 +11,18 @@ import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
 import { MailService } from '@mail/mail.service'
+import ms, { type StringValue as MsStringValue } from 'ms'
+import { JwtPayloadType } from '@api/auth/types/jwt-payload.type'
+import { CacheKey } from '@constants/cache.constant'
+import { createCacheKey } from '@utils/cache.util'
+import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util'
+import crypto from 'crypto'
 type PayLoadAuth = { id?: string; role?: string }
-
+type Token = {
+  accessToken: string
+  refreshToken: string
+  tokenExpires: number
+}
 @Injectable()
 export class AuthService {
   constructor(
@@ -24,25 +34,29 @@ export class AuthService {
     private cacheManager: Cache
   ) {}
 
-  private async generateTokens(accountId: string, role: string) {
+  private async generateTokens(accountId: string, role: string, hash: string): Promise<Token> {
+    const accessExpiresIn: MsStringValue = (this.configService.get<string>('ACCESS_EXPIRES_IN') ??
+      '15m') as MsStringValue
+    const tokenExpires = Date.now() + ms(accessExpiresIn)
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
         { id: accountId, role },
         {
           secret: this.configService.get<string>('ACCESS_SECRET'),
-          expiresIn: this.configService.get<string>('ACCESS_EXPIRES_IN')
+          expiresIn: accessExpiresIn
         }
       ),
       this.jwtService.signAsync(
         { id: accountId },
         {
           secret: this.configService.get<string>('REFRESH_SECRET'),
-          expiresIn: this.configService.get<string>('REFRESH_EXPIRES_IN')
+          expiresIn: this.configService.get<string>('REFRESH_EXPIRES_IN') ?? '7d'
         }
       )
     ])
 
-    return { accessToken, refreshToken }
+    return { accessToken, refreshToken, tokenExpires } as Token
   }
 
   async validateAccount(email: string, pass: string): Promise<User> {
@@ -73,7 +87,8 @@ export class AuthService {
 
   async login(account: PayLoadAuth) {
     try {
-      const tokens = await this.generateTokens(account.id, account.role)
+      const hash = crypto.createHash('sha256').update(randomStringGenerator()).digest('hex')
+      const tokens = await this.generateTokens(account.id, account.role, hash)
       if (!tokens.accessToken || !tokens.refreshToken) {
         throw new Error('Login failed')
       }
@@ -96,9 +111,10 @@ export class AuthService {
 
       const refreshTokenMatches = await compareString(refresh_token, refreshTokenRedis)
       if (!refreshTokenMatches) throw new ForbiddenException('Access Denied')
+      const hash = crypto.createHash('sha256').update(randomStringGenerator()).digest('hex')
 
       // tao moi  at va rt, luu rt vao db
-      const tokens = await this.generateTokens(account.id, role)
+      const tokens = await this.generateTokens(account.id, role, hash)
       if (!tokens.accessToken || !tokens.refreshToken) {
         throw new ForbiddenException('Access Denied')
       }
@@ -116,6 +132,37 @@ export class AuthService {
       throw error
     }
   }
+
+  async verifyAccessToken(token: string): Promise<JwtPayloadType> {
+    let payload: JwtPayloadType
+    try {
+      payload = this.jwtService.verify(token, {
+        secret: this.configService.getOrThrow('ACCESS_SECRET')
+      })
+    } catch {
+      throw new UnauthorizedException()
+    }
+
+    // Force logout if the session is in the blacklist
+    const isSessionBlacklisted = await this.cacheManager.get<boolean>(
+      createCacheKey(CacheKey.SESSION_BLACKLIST, payload.sessionId)
+    )
+
+    if (isSessionBlacklisted) {
+      throw new UnauthorizedException()
+    }
+
+    return payload
+  }
+
+  // async logout(userToken: JwtPayloadType): Promise<void> {
+  //   await this.cacheManager.store.set<boolean>(
+  //     createCacheKey(CacheKey.SESSION_BLACKLIST, userToken.sessionId),
+  //     true,
+  //     userToken.exp * 1000 - Date.now(),
+  //   );
+  //   await SessionEntity.delete(userToken.sessionId);
+  // }
 
   async changePassword(id: string, data: ChangePasswordAuthDto) {
     try {

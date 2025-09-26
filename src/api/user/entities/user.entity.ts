@@ -6,12 +6,14 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  Index
+  Index,
+  OneToMany
 } from 'typeorm'
 import { Role } from '@api/role/entities/role.entity'
 import { Exclude } from 'class-transformer'
 import { AccountStatus, Gender } from '@common/enums/account-role.enum'
 import { AbstractEntity } from '@database/entities/base.entity'
+import { SessionEntity } from '@api/user/entities/session.entity'
 
 @Entity('user')
 export class User extends AbstractEntity {
@@ -52,6 +54,9 @@ export class User extends AbstractEntity {
   @JoinColumn({ name: 'role_id' })
   role: Role | null
 
+  @OneToMany(() => SessionEntity, (session) => session.user)
+  sessions?: SessionEntity[]
+
   @Column({
     type: 'enum',
     enum: AccountStatus,
@@ -59,25 +64,4 @@ export class User extends AbstractEntity {
     nullable: false
   })
   status: AccountStatus
-
-  @Column({ type: 'boolean', default: false })
-  deleted: boolean
-
-  @CreateDateColumn({
-    type: 'timestamp',
-    precision: 0, // Remove decimal
-    default: () => "CURRENT_TIMESTAMP AT TIME ZONE 'UTC'"
-  })
-  createdAt: Date
-
-  @UpdateDateColumn({
-    type: 'timestamp',
-    precision: 0, // Remove decimal
-    default: () => "CURRENT_TIMESTAMP AT TIME ZONE 'UTC'",
-    onUpdate: "CURRENT_TIMESTAMP AT TIME ZONE 'UTC'"
-  })
-  updatedAt: Date
-
-  @Column({ type: 'varchar', nullable: true })
-  title: string
 }

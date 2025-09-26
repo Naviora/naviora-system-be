@@ -1,6 +1,14 @@
 import { getOrder, Order } from '@database/decorators/order.decorator'
 import { plainToInstance } from 'class-transformer'
-import { BaseEntity, Column, CreateDateColumn, DataSource, UpdateDateColumn, VersionColumn } from 'typeorm'
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  DataSource,
+  DeleteDateColumn,
+  UpdateDateColumn,
+  VersionColumn
+} from 'typeorm'
 
 export abstract class AbstractEntity extends BaseEntity {
   @Order(9999)
@@ -25,6 +33,14 @@ export abstract class AbstractEntity extends BaseEntity {
     nullable: false
   })
   updatedAt: Date
+
+  @Order(9999)
+  @DeleteDateColumn({
+    type: 'timestamptz',
+    default: () => 'CURRENT_TIMESTAMP',
+    nullable: false
+  })
+  deletedAt: Date
 
   @Order(9999)
   @Column({

@@ -7,7 +7,7 @@ import { AccountStatus } from '@common/enums/account-role.enum'
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(private authService: AuthService) {
-    // Xac thuc bang email
+    // Validate user by email
     super({ usernameField: 'email' })
   }
 
