@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
     ports:
-      - '${DATABASE_PORT}:${DATABASE_PORT}'
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
@@ -21,14 +21,14 @@ services:
     container_name: redis_container
     restart: always
     ports:
-      - '6379:6379'
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
       - app-network
 
-  bill-snap-service:
-    container_name: bill-snap-service
+  naviora-app:
+    container_name: naviora-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -37,8 +37,8 @@ services:
     depends_on:
       - postgres
     ports:
-      - '${PORT}:${PORT}' # port app
-      - '${SOCKET_PORT}:${SOCKET_PORT}' # port socket
+      - "${PORT}:${PORT}" # port app
+      - "${SOCKET_PORT}:${SOCKET_PORT}" # port socket
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
