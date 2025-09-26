@@ -28,6 +28,7 @@ import { User } from '@api/user/entities/user.entity'
 import { Role } from '@api/role/entities/role.entity'
 import { HealthzModule } from '@api/heathz/healthz.module'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
+import { SessionEntity } from '@api/user/entities/session.entity'
 
 @Module({
   imports: [
@@ -45,7 +46,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
         return {
           ...databaseEnv,
           autoLoadEntities: true,
-          entities: [User, Role]
+          entities: [User, Role, SessionEntity]
         }
       },
       inject: [ConfigService]

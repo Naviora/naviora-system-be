@@ -17,6 +17,10 @@ import { CacheKey } from '@constants/cache.constant'
 import { createCacheKey } from '@utils/cache.util'
 import { randomStringGenerator } from '@nestjs/common/utils/random-string-generator.util'
 import crypto from 'crypto'
+import { InjectRepository } from '@nestjs/typeorm'
+import { SessionEntity } from '@api/user/entities/session.entity'
+import { Repository } from 'typeorm'
+import { JwtRefreshPayloadType } from '@api/auth/types/jwt-refresh-payload.type'
 type PayLoadAuth = { id?: string; role?: string }
 type Token = {
   accessToken: string
@@ -31,24 +35,27 @@ export class AuthService {
     private configService: ConfigService,
     private mailerService: MailService,
     @Inject(CACHE_MANAGER)
-    private cacheManager: Cache
+    private cacheManager: Cache,
+
+    @InjectRepository(SessionEntity)
+    private readonly sessionRepository: Repository<SessionEntity>
   ) {}
 
-  private async generateTokens(accountId: string, role: string, hash: string): Promise<Token> {
+  private async generateTokens(accountId: string, role: string, hash: string, sessionId: string): Promise<Token> {
     const accessExpiresIn: MsStringValue = (this.configService.get<string>('ACCESS_EXPIRES_IN') ??
       '15m') as MsStringValue
     const tokenExpires = Date.now() + ms(accessExpiresIn)
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
-        { id: accountId, role },
+        { id: accountId, role, session_id: sessionId },
         {
           secret: this.configService.get<string>('ACCESS_SECRET'),
           expiresIn: accessExpiresIn
         }
       ),
       this.jwtService.signAsync(
-        { id: accountId },
+        { session_id: sessionId, hash },
         {
           secret: this.configService.get<string>('REFRESH_SECRET'),
           expiresIn: this.configService.get<string>('REFRESH_EXPIRES_IN') ?? '7d'
@@ -88,7 +95,12 @@ export class AuthService {
   async login(account: PayLoadAuth) {
     try {
       const hash = crypto.createHash('sha256').update(randomStringGenerator()).digest('hex')
-      const tokens = await this.generateTokens(account.id, account.role, hash)
+      const session = this.sessionRepository.create({
+        userId: account.id,
+        hash
+      })
+      await this.sessionRepository.save(session)
+      const tokens = await this.generateTokens(account.id, account.role, hash, session.id)
       if (!tokens.accessToken || !tokens.refreshToken) {
         throw new Error('Login failed')
       }
@@ -99,38 +111,34 @@ export class AuthService {
     }
   }
 
-  async refreshToken(accountId: string, refresh_token: string) {
+  async refreshToken(refresh_token: string) {
     try {
-      const account = await this.userService.findById(accountId)
-      const role = account?.role?.name
+      const { sessionId, hash } = this.verifyRefreshToken(refresh_token)
+      const session = await this.sessionRepository.findOneBy({ id: sessionId })
 
-      const refreshTokenRedis = (await this.cacheManager.get(`RT:${accountId}`)) as string
-      if (!refreshTokenRedis) {
-        throw new ForbiddenException('Access Denied')
+      if (!session || session.hash !== hash) {
+        throw new UnauthorizedException()
       }
 
-      const refreshTokenMatches = await compareString(refresh_token, refreshTokenRedis)
-      if (!refreshTokenMatches) throw new ForbiddenException('Access Denied')
-      const hash = crypto.createHash('sha256').update(randomStringGenerator()).digest('hex')
+      const user = await this.userService.findById(session.userId)
 
-      // tao moi  at va rt, luu rt vao db
-      const tokens = await this.generateTokens(account.id, role, hash)
-      if (!tokens.accessToken || !tokens.refreshToken) {
-        throw new ForbiddenException('Access Denied')
-      }
-      await this.userService.updateRefreshToken(account.id, tokens.refreshToken)
-      return tokens
+      const newHash = crypto.createHash('sha256').update(randomStringGenerator()).digest('hex')
+
+      this.sessionRepository.update(session.id, { hash: newHash })
+
+      return await this.generateTokens(user.id, user.role.name, newHash, session.id)
     } catch (error) {
       throw error
     }
   }
 
-  async logout(accountId: string) {
-    try {
-      await this.cacheManager.del(`RT:${accountId}`)
-    } catch (error) {
-      throw error
-    }
+  async logout(userToken: JwtPayloadType) {
+    await this.cacheManager.set<boolean>(
+      createCacheKey(CacheKey.SESSION_BLACKLIST, userToken.sessionId),
+      true,
+      userToken.exp * 1000 - Date.now()
+    )
+    await this.sessionRepository.delete(userToken.sessionId)
   }
 
   async verifyAccessToken(token: string): Promise<JwtPayloadType> {
@@ -153,6 +161,16 @@ export class AuthService {
     }
 
     return payload
+  }
+
+  private verifyRefreshToken(token: string): JwtRefreshPayloadType {
+    try {
+      return this.jwtService.verify(token, {
+        secret: this.configService.getOrThrow('REFRESH_SECRET')
+      })
+    } catch {
+      throw new UnauthorizedException()
+    }
   }
 
   // async logout(userToken: JwtPayloadType): Promise<void> {
@@ -186,7 +204,7 @@ export class AuthService {
         ])
       }
       await this.userService.createOtp(account.id, otp, expired_otp)
-      console.log(`OTP: ${otp} - Expired: ${expired_otp}`)
+
       this.mailerService.sendOtp(payload.email, otp, account.name)
     } catch (error) {
       throw error

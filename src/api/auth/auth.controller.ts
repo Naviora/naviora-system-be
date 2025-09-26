@@ -45,7 +45,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh token', description: 'Get new refresh token' })
   @ApiBody({ type: LoginDTO, examples: { example1: { summary: 'Refresh token', value: { refreshToken: 'token' } } } })
   async refreshToken(@Request() req: any) {
-    const response = await this.authService.refreshToken(req.user.id, req.user.refreshToken)
+    const response = await this.authService.refreshToken(req.user.refreshToken)
     return new ApiResponseSuccess().setCode(200).setMessage('Get refresh token successfully').setData(response)
   }
 

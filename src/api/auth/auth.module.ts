@@ -12,9 +12,11 @@ import { RefreshTokenGuard } from './passport/refreshToken.guard'
 import { UserModule } from '@api/user/user.module'
 import { MailService } from '@mail/mail.service'
 import { MailModule } from '@mail/mail.module'
+import { SessionEntity } from '@api/user/entities/session.entity'
+import { TypeOrmModule } from '@nestjs/typeorm'
 
 @Module({
-  imports: [UserModule, PassportModule, JwtModule.register({}), MailModule],
+  imports: [TypeOrmModule.forFeature([SessionEntity]), UserModule, PassportModule, JwtModule.register({}), MailModule],
   controllers: [AuthController],
   providers: [
     AuthService,

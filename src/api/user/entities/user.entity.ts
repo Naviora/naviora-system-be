@@ -1,14 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Index,
-  OneToMany
-} from 'typeorm'
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Index, OneToMany } from 'typeorm'
 import { Role } from '@api/role/entities/role.entity'
 import { Exclude } from 'class-transformer'
 import { AccountStatus, Gender } from '@common/enums/account-role.enum'

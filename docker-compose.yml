@@ -37,7 +37,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - "${PORT}:${PORT}" # port app
+      - "${APP_PORT}:${APP_PORT}" # port app
       - "${SOCKET_PORT}:${SOCKET_PORT}" # port socket
     volumes:
       - ./:/usr/src/app
