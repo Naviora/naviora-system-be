@@ -19,12 +19,12 @@ export abstract class AbstractEntity extends BaseEntity {
   })
   createdAt: Date
 
-  @Order(9999)
-  @Column({
-    type: 'varchar',
-    nullable: false
-  })
-  createdBy: string
+  // @Order(9999)
+  // @Column({
+  //   type: 'varchar',
+  //   nullable: false
+  // })
+  // createdBy: string
 
   @Order(9999)
   @UpdateDateColumn({
@@ -36,18 +36,16 @@ export abstract class AbstractEntity extends BaseEntity {
 
   @Order(9999)
   @DeleteDateColumn({
-    type: 'timestamptz',
-    default: () => 'CURRENT_TIMESTAMP',
-    nullable: false
+    type: 'timestamptz'
   })
   deletedAt: Date
 
-  @Order(9999)
-  @Column({
-    type: 'varchar',
-    nullable: false
-  })
-  deletedBy: string
+  // @Order(9999)
+  // @Column({
+  //   type: 'varchar',
+  //   nullable: false
+  // })
+  // deletedBy: string
 
   @Order(9999)
   @VersionColumn({

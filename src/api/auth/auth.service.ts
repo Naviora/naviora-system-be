@@ -104,8 +104,12 @@ export class AuthService {
       if (!tokens.accessToken || !tokens.refreshToken) {
         throw new Error('Login failed')
       }
-      await this.userService.updateRefreshToken(account.id, tokens.refreshToken)
-      return tokens
+
+      return {
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+        expires_in: tokens.tokenExpires
+      }
     } catch (error) {
       throw error
     }

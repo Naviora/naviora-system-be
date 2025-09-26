@@ -18,9 +18,9 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags
 import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
 import { ApiResponse as ApiResponseSuccess } from '@common/dto/api-response.dto'
 import { RolesGuard } from '@guards/roles.guard'
-import { Roles } from '@decorators/roles.decorator'
+// import { Roles } from '@decorators/roles.decorator'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { RoleInAccount } from '@common/enums/account-role.enum'
+// import { RoleInAccount } from '@common/enums/account-role.enum'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { Public } from '@decorators/auth.decorator'
 
@@ -35,7 +35,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  @Roles(RoleInAccount.Admin, RoleInAccount.User)
+  // @Roles(RoleInAccount.Admin, RoleInAccount.User)
   @ApiOperation({ summary: 'Create a new user' })
   @ApiBody({
     description: 'Data create user',
@@ -51,6 +51,7 @@ export class UserController {
       }
     }
   })
+  @Public()
   async create(@Body() createAccountDto: CreateAccountDto) {
     const account = await this.userService.create(createAccountDto)
     return new ApiResponseSuccess().setCode(201).setData(account).setMessage('Create successfully.')

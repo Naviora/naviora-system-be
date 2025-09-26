@@ -9,6 +9,7 @@ import { AccessTokenGuard } from './passport/accessToken.guard'
 import { VerifyOtpDTO } from './dto/verify-otp-payload'
 import { ApiResponse as ApiResponseSuccess } from '@common/dto/api-response.dto'
 import { Public } from '@decorators/auth.decorator'
+import { ResponseMessage } from '@decorators/response-message.decorator'
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -30,10 +31,10 @@ export class AuthController {
       example1: { summary: 'Login Account', value: { email: 'thang09052004@gmail.com', password: 'Login123@' } }
     }
   })
+  @ResponseMessage('Login successfully')
   async login(@Request() req: any) {
     try {
-      const response = await this.authService.login(req.user)
-      return new ApiResponseSuccess().setCode(200).setMessage('Login successfully').setData(response)
+      return await this.authService.login(req.user)
     } catch (error) {
       throw error
     }
@@ -58,9 +59,10 @@ export class AuthController {
   @Post('logout')
   @ApiBody({ description: 'Login Account', examples: { example1: { value: { refreshToken: 'token' } } } })
   @Get('logout')
+  @ResponseMessage('Logout successfully')
   async logout(@Request() req: any) {
     await this.authService.logout(req.user.id)
-    return new ApiResponseSuccess().setCode(200).setMessage('Logout successfully')
+    return
   }
 
   @Post('change-password')

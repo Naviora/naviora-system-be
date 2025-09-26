@@ -36,7 +36,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
 
         if (data instanceof OffsetPaginatedDto) {
           return {
-            statusCode,
+            status_code: statusCode,
             message: customMessage || defaultMessage,
             data: data.data,
             pagination: data.pagination

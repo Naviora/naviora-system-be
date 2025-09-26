@@ -13,8 +13,8 @@ export function configSwagger(app: INestApplication) {
   }
 
   const config = new DocumentBuilder()
-    .setTitle('Bill Snap API')
-    .setDescription('## The Bill Snap API description')
+    .setTitle('Naviora API')
+    .setDescription('## The Naviora API description')
     .setVersion('1.0')
     .addBearerAuth(
       {
