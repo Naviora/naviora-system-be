@@ -173,15 +173,6 @@ export class AuthService {
     }
   }
 
-  // async logout(userToken: JwtPayloadType): Promise<void> {
-  //   await this.cacheManager.store.set<boolean>(
-  //     createCacheKey(CacheKey.SESSION_BLACKLIST, userToken.sessionId),
-  //     true,
-  //     userToken.exp * 1000 - Date.now(),
-  //   );
-  //   await SessionEntity.delete(userToken.sessionId);
-  // }
-
   async changePassword(id: string, data: ChangePasswordAuthDto) {
     try {
       return await this.userService.changePassword(id, data)

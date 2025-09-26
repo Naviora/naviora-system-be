@@ -8,7 +8,6 @@ import { convertToSeconds, hashString } from '@utils/auth.util'
 import { ChangePasswordAuthDto, ForgotPasswordDTO } from '@api/auth/dto/change-password-auth'
 import { compareString } from '@utils/auth.util'
 import { AccountStatus } from '@common/enums/account-role.enum'
-import { CreateAccountStaffDto } from '@api/user/dto/create-account-staff.dto'
 import { User } from '@api/user/entities/user.entity'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
@@ -50,38 +49,6 @@ export class UserService {
       const hashPass = await hashString(password)
 
       const user = this.userRepository.create({ ...createAccountDto, password: hashPass })
-      const newAccount = await this.userRepository.save(user)
-      if (!newAccount) {
-        throw new ValidationException(ErrorCode.A001)
-      }
-      return newAccount
-    } catch (error) {
-      throw error
-    }
-  }
-
-  async createAccountStaff(createAccountDto: CreateAccountStaffDto) {
-    try {
-      const { email, password } = createAccountDto
-
-      if (await this.isExist(email)) {
-        throw new ValidationException(ErrorCode.E003, 'Email already exists', [
-          {
-            property: 'email',
-            code: ErrorCode.E003
-          }
-        ])
-      }
-
-      const hashPass = await hashString(password)
-
-      const user = this.userRepository.create({
-        ...createAccountDto,
-        password: hashPass,
-        role: {
-          id: createAccountDto.roleId
-        }
-      })
       const newAccount = await this.userRepository.save(user)
       if (!newAccount) {
         throw new ValidationException(ErrorCode.A001)
