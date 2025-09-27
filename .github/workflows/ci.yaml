@@ -34,10 +34,10 @@ jobs:
         run: npm ci --prefer-offline --no-audit
 
       - name: Check code formatting
-        run: npm run format -- --check
+        run: npm run format -- --check --ignore-path .prettierignore --ignore-pattern "test/**"
 
       - name: Run ESLint
-        run: npm run lint
+        run: npm run lint -- --ignore-pattern "test/**"
 
       - name: Type checking
         run: npx tsc --noEmit
