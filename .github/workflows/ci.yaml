@@ -1,0 +1,100 @@
+name: Naviora BE CI Pipeline
+
+on:
+  push:
+    branches: ['**']  # Run on all branches for push
+  pull_request:
+    branches: ['**']  # Run on all branches for PR
+
+env:
+  NODE_VERSION: 20
+  REGISTRY: docker.io
+  IMAGE_NAME: hoanghuynguyen/naviora-system-be
+
+jobs:
+  # Code Quality and Build Verification Job
+  quality-check:
+    name: Code Quality & Build Check
+    runs-on: ubuntu-24.04
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for better analysis
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'  # Enable npm caching
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Check code formatting
+        run: npm run format -- --check
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Type checking
+        run: npx tsc --noEmit
+
+      - name: Build application
+        run: npm run build
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist/
+            node_modules/
+          key: build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
+  # Docker Build and Push Job (only runs after quality check passes)
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-24.04
+    needs: quality-check
+    # Only push to Docker Hub on main/develop branches or when explicitly triggered
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          target: production
