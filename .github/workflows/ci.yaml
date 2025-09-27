@@ -129,7 +129,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=dev-
             type=raw,value=dev-latest,enable={{is_default_branch}}
 
       - name: Build and push development Docker image
