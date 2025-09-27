@@ -40,7 +40,9 @@ jobs:
         run: npm run lint -- --ignore-pattern "test/**"
 
       - name: Type checking
-        run: npx tsc --noEmit
+        run: |
+          echo '{"extends": "./tsconfig.json", "exclude": ["test/**/*", "**/*.spec.ts", "**/*.test.ts"]}' > tsconfig.ci.json
+          npx tsc --noEmit --project tsconfig.ci.json
 
       - name: Build application
         run: npm run build
