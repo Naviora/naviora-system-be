@@ -1,2 +1,40 @@
+# Dependencies
 node_modules
-dist
+npm-debug.log*
+
+# Testing
+coverage
+test
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Development files
+.env*
+.git
+.gitignore
+README.md
+docker-compose*.yml
+Dockerfile*
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build artifacts (exclude from context, but keep dist for copying)
+# dist
+
+# CI/CD
+.github
+.husky
+
+# Logs
+logs
+*.log
