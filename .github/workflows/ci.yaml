@@ -7,7 +7,7 @@ on:
     branches: ['**'] # Run on all branches for PR
 
 env:
-  NODE_VERSION: 20
+  NODE_VERSION: 22
   REGISTRY: docker.io
   PROD_IMAGE_NAME: hoanghuynguyen/naviora-system-be
   NON_PROD_IMAGE_NAME: hoanghuynguyen/naviora-system-be-dev
