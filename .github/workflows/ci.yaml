@@ -85,8 +85,6 @@ jobs:
           images: ${{ env.PROD_IMAGE_NAME }}
           tags: |
             type=raw,value=latest
-            type=sha,prefix=prod-
-            type=raw,value={{date 'YYYY-MM-DD'}}-{{sha}}
 
       - name: Build and push production Docker image
         uses: docker/build-push-action@v5
@@ -129,8 +127,6 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
-            type=sha,prefix=dev-
-            type=raw,value=dev-latest,enable={{is_default_branch}}
 
       - name: Build and push development Docker image
         uses: docker/build-push-action@v5
