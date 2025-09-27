@@ -1,5 +1,5 @@
 import { UserService } from '@api/user/user.service'
-import { BadRequestException, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { compareString, generateExpired, generateOtp } from '@utils/auth.util'
@@ -117,8 +117,8 @@ export class AuthService {
 
   async refreshToken(refresh_token: string) {
     try {
-      const { sessionId, hash } = this.verifyRefreshToken(refresh_token)
-      const session = await this.sessionRepository.findOneBy({ id: sessionId })
+      const { session_id, hash } = this.verifyRefreshToken(refresh_token)
+      const session = await this.sessionRepository.findOneBy({ id: session_id })
 
       if (!session || session.hash !== hash) {
         throw new UnauthorizedException()
@@ -138,11 +138,11 @@ export class AuthService {
 
   async logout(userToken: JwtPayloadType) {
     await this.cacheManager.set<boolean>(
-      createCacheKey(CacheKey.SESSION_BLACKLIST, userToken.sessionId),
+      createCacheKey(CacheKey.SESSION_BLACKLIST, userToken.session_id),
       true,
       userToken.exp * 1000 - Date.now()
     )
-    await this.sessionRepository.delete(userToken.sessionId)
+    await this.sessionRepository.delete(userToken.session_id)
   }
 
   async verifyAccessToken(token: string): Promise<JwtPayloadType> {
@@ -157,11 +157,11 @@ export class AuthService {
 
     // Force logout if the session is in the blacklist
     const isSessionBlacklisted = await this.cacheManager.get<boolean>(
-      createCacheKey(CacheKey.SESSION_BLACKLIST, payload.sessionId)
+      createCacheKey(CacheKey.SESSION_BLACKLIST, payload.session_id)
     )
 
     if (isSessionBlacklisted) {
-      throw new UnauthorizedException()
+      throw new UnauthorizedException('Access token is invalid or revoked')
     }
 
     return payload

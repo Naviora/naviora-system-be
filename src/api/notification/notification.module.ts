@@ -9,9 +9,15 @@ import { OpenaiModule } from '@api/openai/openai.module'
 import { UserContextModule } from '@api/user-context/user-context.module'
 import { NotificationSystem } from '@api/notification/entities/notification-system.entity'
 import { NotificationController } from '@api/notification/notification.controller'
+import { AuthModule } from '@api/auth/auth.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, NotificationSystem]), forwardRef(() => OpenaiModule), UserContextModule],
+  imports: [
+    TypeOrmModule.forFeature([User, NotificationSystem]),
+    forwardRef(() => OpenaiModule),
+    UserContextModule,
+    AuthModule
+  ],
   providers: [NotificationGateway, NotificationService, JwtService, ConfigService],
   exports: [NotificationService],
   controllers: [NotificationController]

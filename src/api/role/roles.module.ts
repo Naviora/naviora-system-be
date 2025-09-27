@@ -4,9 +4,10 @@ import { RolesController } from './roles.controller'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { Role } from '@api/role/entities/role.entity'
 import { JwtModule } from '@nestjs/jwt'
+import { AuthModule } from '@api/auth/auth.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Role]), JwtModule],
+  imports: [TypeOrmModule.forFeature([Role]), JwtModule, AuthModule],
   controllers: [RolesController],
   providers: [RolesService]
 })

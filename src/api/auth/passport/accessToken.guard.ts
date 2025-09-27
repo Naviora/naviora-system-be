@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core'
 import { AuthGuard } from '@nestjs/passport'
 import { IS_PUBLIC_KEY } from '../../../decorators/auth.decorator'
 import { JwtService } from '@nestjs/jwt'
+import { AuthService } from '@api/auth/auth.service'
 import { ConfigService } from '@nestjs/config'
 
 @Injectable()
@@ -10,6 +11,7 @@ export class AccessTokenGuard extends AuthGuard('jwt') {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
     private readonly configService: ConfigService
   ) {
     super()
@@ -28,7 +30,7 @@ export class AccessTokenGuard extends AuthGuard('jwt') {
     return super.canActivate(context)
   }
 
-  handleRequest(err, account, info, context: ExecutionContext) {
+  handleRequest<TUser = unknown>(err: unknown, user: unknown, info: unknown, context: ExecutionContext): TUser {
     const request = context.switchToHttp().getRequest()
     const authHeader = request.headers.authorization
 
@@ -39,13 +41,11 @@ export class AccessTokenGuard extends AuthGuard('jwt') {
     const token = authHeader.split(' ')[1]
 
     try {
-      const decoded = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('ACCESS_SECRET')
-      })
+      const decoded = this.authService.verifyAccessToken(token)
 
       request.user = decoded
-      return decoded
-    } catch (error) {
+      return decoded as TUser
+    } catch {
       throw new UnauthorizedException('Access token is invalid or expired')
     }
   }

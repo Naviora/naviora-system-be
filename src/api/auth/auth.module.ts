@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { AuthController } from './auth.controller'
 import { PassportModule } from '@nestjs/passport'
@@ -14,9 +14,16 @@ import { MailService } from '@mail/mail.service'
 import { MailModule } from '@mail/mail.module'
 import { SessionEntity } from '@api/user/entities/session.entity'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { User } from '@api/user/entities/user.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SessionEntity]), UserModule, PassportModule, JwtModule.register({}), MailModule],
+  imports: [
+    TypeOrmModule.forFeature([SessionEntity, User]),
+    forwardRef(() => UserModule),
+    PassportModule,
+    JwtModule.register({}),
+    MailModule
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,
@@ -28,6 +35,6 @@ import { TypeOrmModule } from '@nestjs/typeorm'
     RefreshTokenGuard,
     MailService
   ],
-  exports: [AuthService, JwtModule]
+  exports: [AuthService, JwtModule, AccessTokenGuard]
 })
 export class AuthModule {}

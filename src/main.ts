@@ -8,6 +8,7 @@ import helmet from 'helmet'
 import { AppDataSource } from '@database/data-source'
 import { GlobalExceptionFilter } from '@filters/global-exception.filter'
 import { TransformInterceptor } from 'src/interceptors/transform.interceptor'
+import { DatabaseSeederService } from '@database/seeds/database-seeder.service'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -16,9 +17,23 @@ async function bootstrap() {
   app.use(helmet())
 
   // Database connection
-  AppDataSource.initialize()
+  await AppDataSource.initialize()
     .then(() => console.log('Database connected!'))
     .catch((error) => console.error('Database connection error:', error))
+
+  // Run database seeds in development environment
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Development environment detected. Running database seeds...')
+    try {
+      const seederService = new DatabaseSeederService(AppDataSource)
+      await seederService.seed()
+      console.log('Database seeding completed successfully!')
+    } catch (error) {
+      console.error('Failed to seed database:', error)
+    }
+  } else {
+    console.log('Non-development environment detected. Skipping database seeds.')
+  }
 
   const configService = app.get(ConfigService)
   const reflector = app.get(Reflector)

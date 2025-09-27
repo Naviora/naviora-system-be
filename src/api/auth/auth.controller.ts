@@ -10,6 +10,9 @@ import { VerifyOtpDTO } from './dto/verify-otp-payload'
 import { ApiResponse as ApiResponseSuccess } from '@common/dto/api-response.dto'
 import { Public } from '@decorators/auth.decorator'
 import { ResponseMessage } from '@decorators/response-message.decorator'
+import { CurrentUser } from '@decorators/current-user.decorator'
+import { JwtPayloadType } from '@api/auth/types/jwt-payload.type'
+import { RefreshReqDto } from '@api/auth/dto/refresh.req.dto'
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -41,28 +44,27 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(RefreshTokenGuard)
   @Post('refresh-token')
   @ApiOperation({ summary: 'Refresh token', description: 'Get new refresh token' })
-  @ApiBody({ type: LoginDTO, examples: { example1: { summary: 'Refresh token', value: { refreshToken: 'token' } } } })
-  async refreshToken(@Request() req: any) {
-    const response = await this.authService.refreshToken(req.user.refreshToken)
+  @ApiBody({
+    type: RefreshReqDto,
+    examples: { example1: { summary: 'Refresh token', value: { refresh_token: 'token' } } }
+  })
+  async refreshToken(@Body() dto: RefreshReqDto) {
+    const response = await this.authService.refreshToken(dto.refresh_token)
     return new ApiResponseSuccess().setCode(200).setMessage('Get refresh token successfully').setData(response)
   }
 
-  @Public()
   @ApiOperation({
     description: 'Logout user and remove refresh token from redis',
     summary: 'Logout user'
   })
-  @UseGuards(RefreshTokenGuard)
   @Post('logout')
-  @ApiBody({ description: 'Login Account', examples: { example1: { value: { refreshToken: 'token' } } } })
-  @Get('logout')
+  @ApiBody({ description: 'Login Account' })
   @ResponseMessage('Logout successfully')
-  async logout(@Request() req: any) {
-    await this.authService.logout(req.user.id)
-    return
+  async logout(@CurrentUser() userToken: JwtPayloadType) {
+    console.log('user token', userToken)
+    return await this.authService.logout(userToken)
   }
 
   @Post('change-password')

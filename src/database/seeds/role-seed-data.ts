@@ -10,5 +10,10 @@ export const RoleInAccounts = [
     name: RoleInAccount.Admin,
     description: 'System administrator.',
     permissions: 'manage,view,edit,delete'
+  },
+  {
+    name: RoleInAccount.Student,
+    description: 'Student user with limited access.',
+    permissions: 'view,create'
   }
 ]

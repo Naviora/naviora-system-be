@@ -1,6 +1,6 @@
 export type JwtPayloadType = {
   id: string
-  sessionId: string
+  session_id: string
   iat: number
   exp: number
 }

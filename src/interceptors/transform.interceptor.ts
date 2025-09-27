@@ -44,7 +44,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
         }
 
         return {
-          statusCode,
+          status_code: statusCode,
           message: customMessage || defaultMessage,
           data
         }

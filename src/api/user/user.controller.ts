@@ -59,7 +59,6 @@ export class UserController {
 
   @Get()
   @ResponseMessage('Get all accounts successfully')
-  @Public()
   async getAll() {
     const data = await this.userService.getAll()
     return data
