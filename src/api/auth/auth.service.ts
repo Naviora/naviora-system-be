@@ -108,7 +108,8 @@ export class AuthService {
       return {
         access_token: tokens.accessToken,
         refresh_token: tokens.refreshToken,
-        expires_in: tokens.tokenExpires
+        expires_in: tokens.tokenExpires,
+        role: account.role
       }
     } catch (error) {
       throw error
