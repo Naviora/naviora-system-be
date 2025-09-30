@@ -29,6 +29,7 @@ import { Role } from '@api/role/entities/role.entity'
 import { HealthzModule } from '@api/heathz/healthz.module'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import { SessionEntity } from '@api/user/entities/session.entity'
+import { ClassModule } from '@api/class/class.module'
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { SessionEntity } from '@api/user/entities/session.entity'
     UserModule,
     RolesModule,
     MailModule,
+    ClassModule,
     CacheModule.registerAsync({
       inject: [ConfigService],
       isGlobal: true,
