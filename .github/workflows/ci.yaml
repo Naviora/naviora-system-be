@@ -103,7 +103,7 @@ jobs:
     name: Docker Build & Push (Development)
     runs-on: ubuntu-24.04
     needs: quality-check
-    if: github.ref != 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'pull_request' && github.base_ref == 'develop')
 
     steps:
       - name: Checkout repository
