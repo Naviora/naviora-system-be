@@ -95,5 +95,9 @@ export enum ErrorCode {
 
   //Error of Class
   CLASS001 = 'class.error.class_code_exists',
-  CLASS002 = 'class.error.create_class_failed'
+  CLASS002 = 'class.error.create_class_failed',
+
+  //Error of Module
+  MODULE001 = 'module.error.module_code_exists',
+  MODULE002 = 'module.error.create_module_failed'
 }
