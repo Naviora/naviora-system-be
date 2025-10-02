@@ -29,6 +29,7 @@ import { Role } from '@api/role/entities/role.entity'
 import { HealthzModule } from '@api/heathz/healthz.module'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import { SessionEntity } from '@api/user/entities/session.entity'
+import { ClassModule } from '@api/class/class.module'
 import { ModulesModule } from '@api/module/module.module'
 
 @Module({
@@ -56,6 +57,7 @@ import { ModulesModule } from '@api/module/module.module'
     UserModule,
     RolesModule,
     MailModule,
+    ClassModule,
     ModulesModule,
     CacheModule.registerAsync({
       inject: [ConfigService],

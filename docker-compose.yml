@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
     ports:
-      - "${DATABASE_PORT}:${DATABASE_PORT}"
+      - '${DATABASE_PORT}:${DATABASE_PORT}'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
@@ -21,7 +21,7 @@ services:
     container_name: redis_container
     restart: always
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     networks:
@@ -36,9 +36,12 @@ services:
     command: npm run start:dev
     depends_on:
       - postgres
+    env_file:
+      - .env.dev
+
     ports:
-      - "${APP_PORT}:${APP_PORT}" # port app
-      - "${SOCKET_PORT}:${SOCKET_PORT}" # port socket
+      - '${APP_PORT}:${APP_PORT}' # port app
+      - '${SOCKET_PORT}:${SOCKET_PORT}' # port socket
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
