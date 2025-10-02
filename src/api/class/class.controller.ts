@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { ClassService } from './class.service'
 import { CreateClassDto } from './dto/create-class.dto'
 import { ApiResponse as ApiResponseSuccess } from '@common/dto/api-response.dto'
+import { ResponseMessage } from '@decorators/response-message.decorator'
 
 @ApiTags('Classes')
 @Controller({
@@ -34,6 +35,7 @@ export class ClassController {
       }
     }
   })
+  @ResponseMessage('Created class successfully')
   create(@Body() createClassDto: CreateClassDto) {
     const newClass = this.classService.create(createClassDto)
     return new ApiResponseSuccess().setCode(201).setData(newClass).setMessage('Create successfully.')
