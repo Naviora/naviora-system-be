@@ -4,7 +4,7 @@ import { Body, Controller, Post, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { ModulesService } from './module.service'
 import { CreateModuleDto } from './dto/create-module.dto'
-import { ApiResponse as ApiResponseSuccess } from '@common/dto/api-response.dto'
+import { ResponseMessage } from '@decorators/response-message.decorator'
 
 @ApiTags('Modules')
 @Controller({
@@ -32,12 +32,8 @@ export class ModulesController {
       }
     }
   })
-  create(@Body() createModuleDto: CreateModuleDto) {
-    const newModule = this.modulesService.create(createModuleDto)
-    return new ApiResponseSuccess()
-      .setCode(201)
-      .setMessage('Module created successfully')
-      .setData(newModule)
-      .setMessage('Created successfully')
+  @ResponseMessage('Module created successfully')
+  async create(@Body() createModuleDto: CreateModuleDto) {
+    return await this.modulesService.create(createModuleDto)
   }
 }
