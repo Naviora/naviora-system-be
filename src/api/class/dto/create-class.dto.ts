@@ -1,6 +1,7 @@
 import { ClassType } from '@common/enums/class-types.enum'
+import { IsDateFormat } from '@decorators/validators/is-date-format.decorator'
 import { ApiProperty } from '@nestjs/swagger'
-import { IsDate, IsEnum, IsNotEmpty, Matches } from 'class-validator'
+import { IsEnum, IsNotEmpty, Matches } from 'class-validator'
 
 export class CreateClassDto {
   @ApiProperty({
@@ -33,7 +34,7 @@ export class CreateClassDto {
     example: '2025-01-01'
   })
   @IsNotEmpty()
-  @IsDate()
+  @IsDateFormat()
   startDate: Date
 
   @ApiProperty({
@@ -41,6 +42,6 @@ export class CreateClassDto {
     example: '2025-01-01'
   })
   @IsNotEmpty()
-  @IsDate()
+  @IsDateFormat()
   endDate: Date
 }
