@@ -29,6 +29,10 @@ import { Role } from '@api/role/entities/role.entity'
 import { HealthzModule } from '@api/heathz/healthz.module'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import { SessionEntity } from '@api/user/entities/session.entity'
+import { ClassModule } from '@api/class/class.module'
+import { ModulesModule } from '@api/module/module.module'
+import { Class } from '@api/class/entities/class.entity'
+import { ModuleEntity } from '@api/module/entities/module.entity'
 
 @Module({
   imports: [
@@ -46,7 +50,7 @@ import { SessionEntity } from '@api/user/entities/session.entity'
         return {
           ...databaseEnv,
           autoLoadEntities: true,
-          entities: [User, Role, SessionEntity]
+          entities: [User, Role, SessionEntity, Class, ModuleEntity]
         }
       },
       inject: [ConfigService]
@@ -55,6 +59,8 @@ import { SessionEntity } from '@api/user/entities/session.entity'
     UserModule,
     RolesModule,
     MailModule,
+    ClassModule,
+    ModulesModule,
     CacheModule.registerAsync({
       inject: [ConfigService],
       isGlobal: true,

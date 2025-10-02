@@ -91,5 +91,13 @@ export enum ErrorCode {
   EMAIL005 = 'email.error.processing_failed',
 
   //Error of Department
-  D001 = 'department.error.not_found'
+  D001 = 'department.error.not_found',
+
+  //Error of Class
+  CLASS001 = 'class.error.class_code_exists',
+  CLASS002 = 'class.error.create_class_failed',
+
+  //Error of Module
+  MODULE001 = 'module.error.module_code_exists',
+  MODULE002 = 'module.error.create_module_failed'
 }

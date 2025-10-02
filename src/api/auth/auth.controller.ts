@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
+import { Request as ExpressRequest } from 'express'
 import { LoginDTO } from './dto/login-auth.dto'
 import { LocalAuthGuard } from './passport/local-auth.guard'
-import { RefreshTokenGuard } from './passport/refreshToken.guard'
 import { ChangePasswordAuthDto, EmailDTO, ForgotPasswordDTO } from './dto/change-password-auth'
 import { AccessTokenGuard } from './passport/accessToken.guard'
 import { VerifyOtpDTO } from './dto/verify-otp-payload'
@@ -31,11 +31,11 @@ export class AuthController {
     description: 'Login Account',
     type: LoginDTO,
     examples: {
-      example1: { summary: 'Login Account', value: { email: 'thang09052004@gmail.com', password: 'Login123@' } }
+      example1: { summary: 'Login Account', value: { email: 'admin@naviora.com', password: 'Admin@123' } }
     }
   })
   @ResponseMessage('Login successfully')
-  async login(@Request() req: any) {
+  async login(@Request() req: ExpressRequest & { user: { id: string; role?: string } }) {
     try {
       return await this.authService.login(req.user)
     } catch (error) {
@@ -50,9 +50,9 @@ export class AuthController {
     type: RefreshReqDto,
     examples: { example1: { summary: 'Refresh token', value: { refresh_token: 'token' } } }
   })
+  @ResponseMessage('Get refresh token successfully')
   async refreshToken(@Body() dto: RefreshReqDto) {
-    const response = await this.authService.refreshToken(dto.refresh_token)
-    return new ApiResponseSuccess().setCode(200).setMessage('Get refresh token successfully').setData(response)
+    return await this.authService.refreshToken(dto.refresh_token)
   }
 
   @ApiOperation({
@@ -81,7 +81,7 @@ export class AuthController {
       }
     }
   })
-  async changePassword(@Request() req: any, @Body() data: ChangePasswordAuthDto) {
+  async changePassword(@Request() req: ExpressRequest & { user: { id: string } }, @Body() data: ChangePasswordAuthDto) {
     await this.authService.changePassword(req.user.id, data)
     return new ApiResponseSuccess().setCode(200).setMessage('Change password successfully')
   }
