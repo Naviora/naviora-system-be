@@ -54,4 +54,13 @@ export class User extends AbstractEntity {
     nullable: false
   })
   status: AccountStatus
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  officePhoneNumber: string
+
+  @Column({ type: 'int', nullable: true })
+  point: number
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  username: string
 }
