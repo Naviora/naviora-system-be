@@ -50,9 +50,9 @@ export class AuthController {
     type: RefreshReqDto,
     examples: { example1: { summary: 'Refresh token', value: { refresh_token: 'token' } } }
   })
+  @ResponseMessage('Get refresh token successfully')
   async refreshToken(@Body() dto: RefreshReqDto) {
-    const response = await this.authService.refreshToken(dto.refresh_token)
-    return new ApiResponseSuccess().setCode(200).setMessage('Get refresh token successfully').setData(response)
+    return await this.authService.refreshToken(dto.refresh_token)
   }
 
   @ApiOperation({

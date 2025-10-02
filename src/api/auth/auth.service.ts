@@ -23,9 +23,10 @@ import { Repository } from 'typeorm'
 import { JwtRefreshPayloadType } from '@api/auth/types/jwt-refresh-payload.type'
 type PayLoadAuth = { id?: string; role?: string }
 type Token = {
-  accessToken: string
-  refreshToken: string
-  tokenExpires: number
+  access_token: string
+  refresh_token: string
+  expires_in: number
+  role: string
 }
 @Injectable()
 export class AuthService {
@@ -63,7 +64,7 @@ export class AuthService {
       )
     ])
 
-    return { accessToken, refreshToken, tokenExpires } as Token
+    return { access_token: accessToken, refresh_token: refreshToken, expires_in: tokenExpires, role: role } as Token
   }
 
   async validateAccount(email: string, pass: string): Promise<User> {
@@ -101,15 +102,15 @@ export class AuthService {
       })
       await this.sessionRepository.save(session)
       const tokens = await this.generateTokens(account.id, account.role, hash, session.id)
-      if (!tokens.accessToken || !tokens.refreshToken) {
+      if (!tokens.access_token || !tokens.refresh_token) {
         throw new Error('Login failed')
       }
 
       return {
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-        expires_in: tokens.tokenExpires,
-        role: account.role
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_in: tokens.expires_in,
+        role: tokens.role
       }
     } catch (error) {
       throw error
