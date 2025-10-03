@@ -42,8 +42,7 @@ export class DatabaseSeederService {
           name: roleData.name,
           description: roleData.description,
           permissions: roleData.permissions,
-          isActive: true,
-          deleted: false
+          isActive: true
         })
 
         await this.dataSource.getRepository(Role).save(role)

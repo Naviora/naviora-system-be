@@ -1,8 +1,9 @@
 import { User } from '@api/user/entities/user.entity'
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm'
+import { AbstractEntity } from '@database/entities/base.entity'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
 
-@Entity({ name: 'roles' })
-export class Role {
+@Entity({ name: 'role' })
+export class Role extends AbstractEntity {
   @PrimaryGeneratedColumn()
   id: number
 
@@ -15,29 +16,10 @@ export class Role {
   @Column({ type: 'boolean', nullable: false, default: true })
   isActive: boolean
 
-  @Column({ type: 'text', default: '' }) // Lưu permissions dưới dạng chuỗi
+  @Column({ type: 'text', default: '' })
   permissions: string
 
-  @Column({ type: 'boolean', nullable: false, default: false })
-  deleted: boolean
-
+  // TODO: Disscussion about the relationship between role and user (one user can have multiple roles)
   @OneToMany(() => User, (user) => user.role)
   users: User[]
-
-  @CreateDateColumn({
-    type: 'timestamp',
-    precision: 0, // Loại bỏ phần thập phân của giây
-    default: () => "CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'",
-    nullable: false
-  })
-  createdAt: Date
-
-  @UpdateDateColumn({
-    type: 'timestamp',
-    precision: 0, // Loại bỏ phần thập phân của giây
-    default: () => "CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'",
-    nullable: false,
-    onUpdate: "CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'"
-  })
-  updatedAt: Date
 }

@@ -1,7 +1,9 @@
 export enum RoleInAccount {
-  Admin = 'admin',
-  User = 'user',
-  Student = 'student'
+  Admin = 'Admin',
+  User = 'User',
+  Student = 'Student',
+  Lecturer = 'Lecturer',
+  Principal = 'Principal'
 }
 
 export enum RoleInGroup {
