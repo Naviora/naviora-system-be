@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
 import { Request as ExpressRequest } from 'express'
@@ -13,6 +13,8 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { JwtPayloadType } from '@api/auth/types/jwt-payload.type'
 import { RefreshReqDto } from '@api/auth/dto/refresh.req.dto'
+import { GoogleOAuthGuard } from '@api/auth/passport/google-oauth.guard'
+import { IGoogleUser } from '@common/interfaces/google-user.interface'
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -219,5 +221,15 @@ export class AuthController {
     } catch (error) {
       throw error
     }
+  }
+
+  @Get('google')
+  @UseGuards(GoogleOAuthGuard)
+  async googleAuth(@Request() _req) {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleOAuthGuard)
+  async googleAuthRedirect(@Request() req: ExpressRequest & { user: IGoogleUser }) {
+    return await this.authService.googleLogin(req)
   }
 }
