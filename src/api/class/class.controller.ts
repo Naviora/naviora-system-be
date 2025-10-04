@@ -5,6 +5,8 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { ClassService } from './class.service'
 import { CreateClassDto } from './dto/create-class.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
+import { RoleInAccount } from '@common/enums/account-role.enum'
+import { Roles } from '@decorators/roles.decorator'
 
 @ApiTags('Classes')
 @Controller({
@@ -12,6 +14,7 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
   version: '1'
 })
 @ApiBearerAuth('Authorization')
+@Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
 @UseGuards(AccessTokenGuard, RolesGuard)
 export class ClassController {
   constructor(private readonly classService: ClassService) {}
