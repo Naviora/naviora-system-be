@@ -11,6 +11,7 @@ export const RoleInAccounts = [
     description: 'Student user with limited access.',
     permissions: 'view,create'
   },
+  // TODO: Remove in the next phase
   {
     name: RoleInAccount.User,
     description: 'User submitting claims.',

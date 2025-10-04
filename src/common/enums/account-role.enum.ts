@@ -1,5 +1,6 @@
 export enum RoleInAccount {
   Admin = 'Admin',
+  // TODO: Remove in the next phase
   User = 'User',
   Student = 'Student',
   Lecturer = 'Lecturer',
