@@ -4,9 +4,6 @@ on:
   workflow_run:
     workflows: ['Naviora BE CI Pipeline']
     types: [completed]
-    branches:
-      - main
-      - develop
 
 env:
   REGISTRY: docker.io
