@@ -1,0 +1,50 @@
+name: Naviora BE CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ['Naviora BE CI Pipeline']
+    types: [completed]
+
+env:
+  REGISTRY: docker.io
+  PROD_IMAGE_NAME: hoanghuynguyen/naviora-system-be
+  NON_PROD_IMAGE_NAME: hoanghuynguyen/naviora-system-be-dev
+
+jobs:
+  deploy-prod:
+    name: Deploy (Production)
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: SSH and deploy to production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker pull ${{ env.PROD_IMAGE_NAME }}:latest
+            cd naviora
+            docker compose up -d
+
+  deploy-dev:
+    name: Deploy (Development)
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch != 'main' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: SSH and deploy to development
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker pull ${{ env.NON_PROD_IMAGE_NAME }}:develop
+            cd naviora
+            docker compose up -d
