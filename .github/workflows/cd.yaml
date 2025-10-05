@@ -21,10 +21,10 @@ jobs:
       - name: SSH and deploy to production
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
           script: |
             docker pull ${{ env.PROD_IMAGE_NAME }}:latest
             cd naviora
@@ -37,13 +37,49 @@ jobs:
           github.event.workflow_run.head_branch != 'main' }}
     runs-on: ubuntu-24.04
     steps:
-      - name: SSH and deploy to development
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout repo at CI head sha
+        uses: actions/checkout@v4
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - name: Detect entity changes
+        id: detect-entity-changes
+        run: |
+          PREV_SHA=$(git rev-parse HEAD^ || echo "")
+          if [ -z "$PREV_SHA" ]; then
+            echo "entity_changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only "$PREV_SHA" HEAD || true)
+          if echo "$CHANGED" | grep -E '^src/.+\\.entity\\.ts$' >/dev/null 2>&1; then
+            echo "entity_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "entity_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: SSH and deploy to development (with down)
+        uses: appleboy/ssh-action@v1.0.3
+        if: steps.detect-entity-changes.outputs.entity_changed == 'true'
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            docker pull ${{ env.NON_PROD_IMAGE_NAME }}:develop
+            cd naviora
+            docker compose down
+            docker compose up -d
+
+      - name: SSH and deploy to development (no down)
+        uses: appleboy/ssh-action@v1.0.3
+        if: steps.detect-entity-changes.outputs.entity_changed != 'true'
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
           script: |
             docker pull ${{ env.NON_PROD_IMAGE_NAME }}:develop
             cd naviora
