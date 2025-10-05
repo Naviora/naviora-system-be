@@ -8,6 +8,7 @@ import { VerifyOtpDTO } from './dto/verify-otp-payload'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
 import { ValidationException } from '@exceptions/validation.exception'
+import { IGoogleUser } from '@common/interfaces/google-user.interface'
 import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
 import { MailService } from '@mail/mail.service'
@@ -112,6 +113,23 @@ export class AuthService {
         expires_in: tokens.expires_in,
         role: tokens.role
       }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async googleLogin(req: { user: IGoogleUser }) {
+    try {
+      const account = await this.userService.findByEmail(req.user.email)
+      if (!account) {
+        const newAccount = await this.userService.create({
+          email: req.user.email,
+          name: `${req.user.firstName} ${req.user.lastName}`,
+          password: randomStringGenerator()
+        })
+        return newAccount
+      }
+      return account
     } catch (error) {
       throw error
     }
