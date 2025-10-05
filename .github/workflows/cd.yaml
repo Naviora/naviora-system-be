@@ -69,7 +69,7 @@ jobs:
           script: |
             docker pull ${{ env.NON_PROD_IMAGE_NAME }}:develop
             cd naviora
-            docker compose down
+            docker rm -f postgres_container || true
             docker compose up -d
 
       - name: SSH and deploy to development (no down)
