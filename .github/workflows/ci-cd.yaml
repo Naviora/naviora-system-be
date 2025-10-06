@@ -207,7 +207,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             docker pull ${{ env.NON_PROD_IMAGE_NAME }}:${{ env.TAG }}
-            cd naviora
+            cd be-non-prod
             if [[ "${{ steps.detect-entity-changes.outputs.entity_changed }}" == "true" ]]; then
                 docker rm -f postgres_container || true
             fi
