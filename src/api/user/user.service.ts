@@ -1,13 +1,14 @@
 import { BadRequestException, Inject, Injectable, UploadedFile } from '@nestjs/common'
 import { CreateAccountDto } from './dto/create-account.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
+import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { plainToInstance } from 'class-transformer'
 import { convertToSeconds, hashString } from '@utils/auth.util'
 import { ChangePasswordAuthDto, ForgotPasswordDTO } from '@api/auth/dto/change-password-auth'
 import { compareString } from '@utils/auth.util'
-import { AccountStatus } from '@common/enums/account-role.enum'
+import { AccountStatus, RoleInAccount } from '@common/enums/account-role.enum'
 import { User } from '@api/user/entities/user.entity'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
@@ -17,6 +18,7 @@ import { ErrorCode } from '@constants/error-code.constant'
 import { ProfileDTO } from './dto/profile-dto'
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service'
 import { getDefaultPublicIdAvatar, getPublicIdAvatar } from '@utils/common.util'
+import { paginate } from '@utils/offset-pagination'
 
 @Injectable()
 export class UserService {
@@ -104,6 +106,47 @@ export class UserService {
     // response = plainToInstance(User, response)
     // const response = 'Get all accounts successfully'
     return response
+  }
+
+  async getLecturers(queryDto: GetLecturersQueryDto) {
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('role.name = :roleName', { roleName: RoleInAccount.Lecturer })
+
+    // Apply search query if provided (search in name, email, username, phone)
+    if (queryDto.q) {
+      query.andWhere(
+        '(user.name ILIKE :search OR user.email ILIKE :search OR user.username ILIKE :search OR user.phone ILIKE :search)',
+        { search: `%${queryDto.q}%` }
+      )
+    }
+
+    // Apply gender filter
+    if (queryDto.gender) {
+      query.andWhere('user.gender = :gender', { gender: queryDto.gender })
+    }
+
+    // Apply status filter
+    if (queryDto.status) {
+      query.andWhere('user.status = :status', { status: queryDto.status })
+    }
+
+    // Apply sorting
+    const sortBy = queryDto.sortBy || 'createdAt'
+    const validSortFields = ['name', 'email', 'createdAt', 'updatedAt', 'dateOfBirth']
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    query.orderBy(`user.${sortField}`, queryDto.order)
+
+    const [lecturers, metaDto] = await paginate(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      lecturers,
+      meta: metaDto
+    }
   }
 
   async getProfile(idUser: string): Promise<ProfileDTO> {
