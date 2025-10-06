@@ -9,20 +9,25 @@ import {
   UseGuards,
   Req,
   UseInterceptors,
-  UploadedFile
+  UploadedFile,
+  Query
 } from '@nestjs/common'
 import { UserService } from './user.service'
 import { CreateAccountDto } from './dto/create-account.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
+import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
 import { ApiResponse as ApiResponseSuccess } from '@common/dto/api-response.dto'
+import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { RolesGuard } from '@guards/roles.guard'
 // import { Roles } from '@decorators/roles.decorator'
 import { FileInterceptor } from '@nestjs/platform-express'
 // import { RoleInAccount } from '@common/enums/account-role.enum'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { Public } from '@decorators/auth.decorator'
+import { plainToInstance } from 'class-transformer'
+import { ProfileDTO } from './dto/profile-dto'
 
 @ApiTags('Users')
 @Controller({
@@ -62,6 +67,36 @@ export class UserController {
   async getAll() {
     const data = await this.userService.getAll()
     return data
+  }
+
+  @ApiOperation({ summary: 'Get Lecturers', description: 'Get list of lecturers with pagination, search and filters' })
+  @ApiBearerAuth()
+  @Get('lecturers')
+  @ResponseMessage('Get Lecturers successfully')
+  async getLecturers(@Query() query: GetLecturersQueryDto): Promise<OffsetPaginatedDto<ProfileDTO>> {
+    const { lecturers, meta } = await this.userService.getLecturers(query)
+
+    const mappedLecturers = lecturers.map((lecturer) =>
+      plainToInstance(ProfileDTO, {
+        accountId: lecturer.id,
+        name: lecturer.name,
+        email: lecturer.email,
+        avatar: lecturer.avatar,
+        phone: lecturer.phone,
+        address: lecturer.address,
+        gender: lecturer.gender,
+        dateOfBirth: lecturer.dateOfBirth,
+        status: lecturer.status,
+        role: lecturer.role?.name
+      })
+    )
+
+    return new OffsetPaginatedDto<ProfileDTO>({
+      statusCode: 200,
+      message: 'Get Lecturers successfully',
+      data: mappedLecturers,
+      meta
+    })
   }
 
   @ApiOperation({ summary: 'Get user profile', description: 'Retrieve profile information of the authenticated user' })

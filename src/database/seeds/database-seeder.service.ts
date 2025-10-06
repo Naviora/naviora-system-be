@@ -4,7 +4,6 @@ import { User } from '@api/user/entities/user.entity'
 import { Role } from '@api/role/entities/role.entity'
 import { RoleInAccounts } from './role-seed-data'
 import { accountStatuses } from './account-seed-data'
-import * as bcrypt from 'bcrypt'
 import { hashString } from '@utils/auth.util'
 
 export class DatabaseSeederService {
