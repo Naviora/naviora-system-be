@@ -33,6 +33,7 @@ import { ClassModule } from '@api/class/class.module'
 import { ModulesModule } from '@api/module/module.module'
 import { Class } from '@api/class/entities/class.entity'
 import { ModuleEntity } from '@api/module/entities/module.entity'
+import { QuestionModule } from './api/question/question.module';
 
 @Module({
   imports: [
@@ -117,7 +118,8 @@ import { ModuleEntity } from '@api/module/entities/module.entity'
         ttl: 60000,
         limit: 100
       }
-    ])
+    ]),
+    QuestionModule
   ],
   controllers: [AppController],
   providers: [
