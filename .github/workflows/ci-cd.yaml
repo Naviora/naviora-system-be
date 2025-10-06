@@ -198,7 +198,7 @@ jobs:
             echo "TAG=develop" >> $GITHUB_ENV
           fi
 
-      - name: SSH and deploy to development (with down)
+      - name: SSH and deploy to development
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
