@@ -53,7 +53,7 @@
     "@types/streamifier": "^0.1.2",
     "argon2": "^0.41.1",
     "axios": "^1.8.1",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "boilerplate-nest-js": "file:",
     "bullmq": "^5.41.8",
     "cache-manager": "^6.4.0",
