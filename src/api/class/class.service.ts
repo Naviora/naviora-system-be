@@ -9,6 +9,9 @@ import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateClassDto } from './dto/create-class.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
+import { GetClassesQueryDto } from './dto/get-classes-query.dto'
+import { ClassType } from '@common/enums/class-types.enum'
+import { paginate } from '@utils/offset-pagination'
 
 @Injectable()
 export class ClassService {
@@ -44,6 +47,37 @@ export class ClassService {
       return newClass
     } catch (error) {
       throw error
+    }
+  }
+
+  async getClasses(queryDto: GetClassesQueryDto) {
+    const query = this.classRepository.createQueryBuilder('class')
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(class.className ILIKE :search OR class.classCode ILIKE :search)', { search: `%${queryDto.q}%` })
+    }
+
+    // Class type filter
+    if (queryDto.classType) {
+      query.andWhere('class.classType = :classType', { classType: queryDto.classType })
+    }
+
+    // Sorting
+    const sortBy = queryDto.sortBy || 'createdAt'
+    const validSortFields = ['className', 'classCode', 'createdAt', 'updatedAt', 'startDate', 'endDate']
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    query.orderBy(`class.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [classes, metaDto] = await paginate(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      classes,
+      meta: metaDto
     }
   }
 }

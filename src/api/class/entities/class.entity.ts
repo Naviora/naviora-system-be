@@ -22,7 +22,7 @@ export class Class extends AbstractEntity {
   @Column({ type: 'date', nullable: false })
   endDate: Date
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean
 
   /**
