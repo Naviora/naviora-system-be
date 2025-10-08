@@ -3,7 +3,7 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 import { QuestionDifficulty, QuestionType } from '@common/enums/question.enum'
 
 @Entity('question')
-export class Question extends AbstractEntity {
+export class QuestionEntity extends AbstractEntity {
   @PrimaryGeneratedColumn('uuid', { primaryKeyConstraintName: 'PK_question_id' })
   id: string
 
