@@ -33,7 +33,8 @@ import { ClassModule } from '@api/class/class.module'
 import { ModulesModule } from '@api/module/module.module'
 import { Class } from '@api/class/entities/class.entity'
 import { ModuleEntity } from '@api/module/entities/module.entity'
-import { LessonModule } from './api/lesson/lesson.module';
+import { LessonModule } from './api/lesson/lesson.module'
+import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 
 @Module({
   imports: [
@@ -51,7 +52,7 @@ import { LessonModule } from './api/lesson/lesson.module';
         return {
           ...databaseEnv,
           autoLoadEntities: true,
-          entities: [User, Role, SessionEntity, Class, ModuleEntity]
+          entities: [User, Role, SessionEntity, Class, ModuleEntity, LessonEntity]
         }
       },
       inject: [ConfigService]

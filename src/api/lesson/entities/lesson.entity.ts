@@ -1,6 +1,7 @@
 import { AbstractEntity } from '@database/entities/base.entity'
-import { Column, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
+@Entity('lesson')
 export class LessonEntity extends AbstractEntity {
   @PrimaryGeneratedColumn('uuid', { primaryKeyConstraintName: 'PK_lesson_id' })
   lessonId: string
