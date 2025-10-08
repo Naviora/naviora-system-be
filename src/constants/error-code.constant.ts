@@ -96,6 +96,11 @@ export enum ErrorCode {
   //Error of Class
   CLASS001 = 'class.error.class_code_exists',
   CLASS002 = 'class.error.create_class_failed',
+  CLASS003 = 'class.error.class_not_found',
+  CLASS004 = 'class.error.lecturer_not_found',
+  CLASS005 = 'class.error.user_not_lecturer',
+  CLASS006 = 'class.error.assign_lecturer_failed',
+  CLASS007 = 'class.error.lecturer_already_assigned',
 
   //Error of Module
   MODULE001 = 'module.error.module_code_exists',

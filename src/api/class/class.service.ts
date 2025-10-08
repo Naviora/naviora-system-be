@@ -80,4 +80,20 @@ export class ClassService {
       meta: metaDto
     }
   }
+
+  async getClassById(classId: string) {
+    const classEntity = await this.classRepository.findOne({ where: { classId } })
+
+    if (!classEntity) {
+      throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+        { property: 'classId', code: ErrorCode.CLASS003 }
+      ])
+    }
+
+    /**
+     * TODO: wait for others to finish the implementation - will fetch all the relations of the class
+     */
+
+    return classEntity
+  }
 }
