@@ -4,17 +4,25 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ConfigService } from '@nestjs/config'
-import { Repository } from 'typeorm'
+import { Repository, In } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateClassDto } from './dto/create-class.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
+import { AssignLecturersDto } from './dto/assign-lecturers.dto'
+import { TeachingAssignment } from './entities/teaching-assignment.entity'
+import { User } from '@api/user/entities/user.entity'
+import { RoleInAccount } from '@common/enums/account-role.enum'
 
 @Injectable()
 export class ClassService {
   constructor(
     @InjectRepository(Class)
     private readonly classRepository: Repository<Class>,
+    @InjectRepository(TeachingAssignment)
+    private readonly teachingAssignmentRepository: Repository<TeachingAssignment>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService
@@ -42,6 +50,107 @@ export class ClassService {
         throw new ValidationException(ErrorCode.CLASS002)
       }
       return newClass
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async assignLecturers(classId: string, assignLecturersDto: AssignLecturersDto) {
+    try {
+      const { lecturerIds } = assignLecturersDto
+
+      // Check if class exists
+      const classEntity = await this.classRepository.findOne({
+        where: { classId },
+        relations: ['teachingAssignments', 'teachingAssignments.lecturer']
+      })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+          {
+            property: 'classId',
+            code: ErrorCode.CLASS003
+          }
+        ])
+      }
+
+      // Check if all users exist and are lecturers
+      const lecturers = await this.userRepository.find({
+        where: { id: In(lecturerIds) },
+        relations: ['role']
+      })
+
+      if (lecturers.length !== lecturerIds.length) {
+        const foundIds = lecturers.map((l) => l.id)
+        const notFoundIds = lecturerIds.filter((id) => !foundIds.includes(id))
+        throw new ValidationException(ErrorCode.CLASS004, 'Some lecturers not found', [
+          {
+            property: 'lecturerIds',
+            code: ErrorCode.CLASS004,
+            message: `Lecturers not found: ${notFoundIds.join(', ')}`
+          }
+        ])
+      }
+
+      // Verify all users are lecturers
+      const nonLecturers = lecturers.filter((user) => user.role?.name !== RoleInAccount.Lecturer)
+
+      if (nonLecturers.length > 0) {
+        throw new ValidationException(ErrorCode.CLASS005, 'Some users are not lecturers', [
+          {
+            property: 'lecturerIds',
+            code: ErrorCode.CLASS005,
+            message: `Users are not lecturers: ${nonLecturers.map((u) => u.id).join(', ')}`
+          }
+        ])
+      }
+
+      // Check for existing active assignments
+      const existingAssignments = await this.teachingAssignmentRepository.find({
+        where: {
+          class: { classId },
+          lecturer: { id: In(lecturerIds) },
+          isActive: true
+        },
+        relations: ['lecturer']
+      })
+
+      if (existingAssignments.length > 0) {
+        const alreadyAssignedIds = existingAssignments.map((a) => a.lecturer.id)
+        throw new ValidationException(ErrorCode.CLASS007, 'Some lecturers are already assigned to this class', [
+          {
+            property: 'lecturerIds',
+            code: ErrorCode.CLASS007,
+            message: `Lecturers already assigned: ${alreadyAssignedIds.join(', ')}`
+          }
+        ])
+      }
+
+      // Create teaching assignments
+      const teachingAssignments = lecturers.map((lecturer) => {
+        return this.teachingAssignmentRepository.create({
+          lecturer,
+          class: classEntity,
+          isActive: true
+        })
+      })
+
+      const savedAssignments = await this.teachingAssignmentRepository.save(teachingAssignments)
+
+      if (!savedAssignments || savedAssignments.length === 0) {
+        throw new ValidationException(ErrorCode.CLASS006, 'Failed to assign lecturers to class')
+      }
+
+      return {
+        classId: classEntity.classId,
+        classCode: classEntity.classCode,
+        className: classEntity.className,
+        assignedLecturers: lecturers.map((lecturer) => ({
+          id: lecturer.id,
+          name: lecturer.name,
+          email: lecturer.email
+        }))
+      }
     } catch (error) {
       throw error
     }
