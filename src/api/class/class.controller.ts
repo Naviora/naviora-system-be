@@ -12,6 +12,7 @@ import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { ClassDTO } from './dto/class-dto'
 import { plainToInstance } from 'class-transformer'
 import { AssignLecturersDto } from './dto/assign-lecturers.dto'
+import { ClassDetailDTO } from './dto/class-detail.dto'
 
 @ApiTags('Classes')
 @Controller({
@@ -72,6 +73,18 @@ export class ClassController {
       data: mappedClasses,
       meta
     })
+  }
+
+  @Get(':classId')
+  @ApiOperation({ summary: 'Get Class Detail', description: 'Get detailed information about a specific class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Get Class detail successfully')
+  async getClassById(@Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string): Promise<ClassDetailDTO> {
+    return await this.classService.getClassById(classId)
   }
 
   @Post(':classId/assign-lecturers')

@@ -31,5 +31,6 @@ export class Class extends AbstractEntity {
 
   /**
    * TODO: Add final_exam_id as the ManyToOne with the FinalExam entity
+   * TODO: Add OneToMany relationship with ModuleEntity
    *  */
 }

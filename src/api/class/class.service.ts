@@ -10,7 +10,6 @@ import { CreateClassDto } from './dto/create-class.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { GetClassesQueryDto } from './dto/get-classes-query.dto'
-import { ClassType } from '@common/enums/class-types.enum'
 import { paginate } from '@utils/offset-pagination'
 import { AssignLecturersDto } from './dto/assign-lecturers.dto'
 import { TeachingAssignment } from './entities/teaching-assignment.entity'
@@ -90,7 +89,10 @@ export class ClassService {
   }
 
   async getClassById(classId: string) {
-    const classEntity = await this.classRepository.findOne({ where: { classId } })
+    const classEntity = await this.classRepository.findOne({
+      where: { classId },
+      relations: ['teachingAssignments', 'teachingAssignments.lecturer']
+    })
 
     if (!classEntity) {
       throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
@@ -98,11 +100,30 @@ export class ClassService {
       ])
     }
 
-    /**
-     * TODO: wait for others to finish the implementation - will fetch all the relations of the class
-     */
+    // Map lecturers from active teaching assignments
+    const lecturers =
+      classEntity.teachingAssignments
+        ?.filter((assignment) => assignment.isActive)
+        .map((assignment) => ({
+          id: assignment.lecturer.id,
+          name: assignment.lecturer.name,
+          email: assignment.lecturer.email,
+          avatar: assignment.lecturer.avatar,
+          phone: assignment.lecturer.phone
+        })) || []
 
-    return classEntity
+    return {
+      classId: classEntity.classId,
+      classCode: classEntity.classCode,
+      className: classEntity.className,
+      classType: classEntity.classType,
+      startDate: classEntity.startDate,
+      endDate: classEntity.endDate,
+      isActive: classEntity.isActive,
+      lecturers,
+      createdAt: classEntity.createdAt,
+      updatedAt: classEntity.updatedAt
+    }
   }
 
   async assignLecturers(classId: string, assignLecturersDto: AssignLecturersDto) {
