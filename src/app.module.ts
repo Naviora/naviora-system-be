@@ -33,7 +33,8 @@ import { ClassModule } from '@api/class/class.module'
 import { ModulesModule } from '@api/module/module.module'
 import { Class } from '@api/class/entities/class.entity'
 import { ModuleEntity } from '@api/module/entities/module.entity'
-import { QuestionModule } from './api/question/question.module';
+import { QuestionModule } from './api/question/question.module'
+import { QuestionEntity } from '@api/question/entities/question.entity'
 
 @Module({
   imports: [
@@ -51,7 +52,7 @@ import { QuestionModule } from './api/question/question.module';
         return {
           ...databaseEnv,
           autoLoadEntities: true,
-          entities: [User, Role, SessionEntity, Class, ModuleEntity]
+          entities: [User, Role, SessionEntity, Class, ModuleEntity, QuestionEntity]
         }
       },
       inject: [ConfigService]

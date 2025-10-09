@@ -5,7 +5,7 @@ import { QuestionDifficulty, QuestionType } from '@common/enums/question.enum'
 @Entity('question')
 export class QuestionEntity extends AbstractEntity {
   @PrimaryGeneratedColumn('uuid', { primaryKeyConstraintName: 'PK_question_id' })
-  id: string
+  questionId: string
 
   @Column({ type: 'uuid', nullable: false, name: 'lesson_id' })
   lessonId: string
