@@ -1,14 +1,6 @@
 import { getOrder, Order } from '@database/decorators/order.decorator'
 import { plainToInstance } from 'class-transformer'
-import {
-  BaseEntity,
-  Column,
-  CreateDateColumn,
-  DataSource,
-  DeleteDateColumn,
-  UpdateDateColumn,
-  VersionColumn
-} from 'typeorm'
+import { BaseEntity, CreateDateColumn, DataSource, DeleteDateColumn, UpdateDateColumn, VersionColumn } from 'typeorm'
 
 export abstract class AbstractEntity extends BaseEntity {
   @Order(9999)
