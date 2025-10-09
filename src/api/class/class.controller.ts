@@ -1,7 +1,7 @@
 import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
 import { RolesGuard } from '@guards/roles.guard'
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { Body, Controller, Get, Post, Query, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger'
 import { ClassService } from './class.service'
 import { CreateClassDto } from './dto/create-class.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
@@ -11,6 +11,7 @@ import { GetClassesQueryDto } from './dto/get-classes-query.dto'
 import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { ClassDTO } from './dto/class-dto'
 import { plainToInstance } from 'class-transformer'
+import { AssignLecturersDto } from './dto/assign-lecturers.dto'
 
 @ApiTags('Classes')
 @Controller({
@@ -71,5 +72,32 @@ export class ClassController {
       data: mappedClasses,
       meta
     })
+  }
+
+  @Post(':classId/assign-lecturers')
+  @ApiOperation({ summary: 'Assign lecturers to a class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'List of lecturer IDs to assign',
+    type: AssignLecturersDto,
+    examples: {
+      example1: {
+        summary: 'Assign lecturers to class',
+        value: {
+          lecturerIds: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']
+        }
+      }
+    }
+  })
+  @ResponseMessage('Lecturers assigned to class successfully')
+  async assignLecturers(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() assignLecturersDto: AssignLecturersDto
+  ) {
+    return await this.classService.assignLecturers(classId, assignLecturersDto)
   }
 }

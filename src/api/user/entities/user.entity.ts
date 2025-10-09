@@ -4,6 +4,7 @@ import { Exclude } from 'class-transformer'
 import { AccountStatus, Gender } from '@common/enums/account-role.enum'
 import { AbstractEntity } from '@database/entities/base.entity'
 import { SessionEntity } from '@api/user/entities/session.entity'
+import { TeachingAssignment } from '@api/class/entities/teaching-assignment.entity'
 
 @Entity('user')
 export class User extends AbstractEntity {
@@ -46,6 +47,9 @@ export class User extends AbstractEntity {
 
   @OneToMany(() => SessionEntity, (session) => session.user)
   sessions?: SessionEntity[]
+
+  @OneToMany(() => TeachingAssignment, (teachingAssignment) => teachingAssignment.lecturer)
+  teachingAssignments?: TeachingAssignment[]
 
   @Column({
     type: 'enum',
