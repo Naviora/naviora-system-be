@@ -1,6 +1,6 @@
 import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
 import { RolesGuard } from '@guards/roles.guard'
-import { Body, Controller, Post, UseGuards, Param } from '@nestjs/common'
+import { Body, Controller, Post, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger'
 import { ClassService } from './class.service'
 import { CreateClassDto } from './dto/create-class.dto'
@@ -63,7 +63,10 @@ export class ClassController {
     }
   })
   @ResponseMessage('Lecturers assigned to class successfully')
-  async assignLecturers(@Param('classId') classId: string, @Body() assignLecturersDto: AssignLecturersDto) {
+  async assignLecturers(
+    @Param('classId', new ParseUUIDPipe()) classId: string,
+    @Body() assignLecturersDto: AssignLecturersDto
+  ) {
     return await this.classService.assignLecturers(classId, assignLecturersDto)
   }
 }
