@@ -64,7 +64,7 @@ export class ClassController {
   })
   @ResponseMessage('Lecturers assigned to class successfully')
   async assignLecturers(
-    @Param('classId', new ParseUUIDPipe()) classId: string,
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
     @Body() assignLecturersDto: AssignLecturersDto
   ) {
     return await this.classService.assignLecturers(classId, assignLecturersDto)
