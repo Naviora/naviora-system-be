@@ -1,15 +1,18 @@
 import { ClassType } from '@common/enums/class-types.enum'
 import { IsDateFormat } from '@decorators/validators/is-date-format.decorator'
 import { ApiProperty } from '@nestjs/swagger'
-import { IsEnum, IsOptional, IsBoolean } from 'class-validator'
+import { IsEnum, IsOptional, IsBoolean, MaxLength, IsString } from 'class-validator'
 
 export class UpdateClassDto {
   @ApiProperty({
     description: 'The name of the class',
     example: 'Biology Class 1',
-    required: false
+    required: false,
+    maxLength: 255
   })
   @IsOptional()
+  @IsString()
+  @MaxLength(255, { message: 'Class name must not exceed 255 characters' })
   className?: string
 
   @ApiProperty({

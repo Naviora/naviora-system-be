@@ -1,7 +1,7 @@
 import { ClassType } from '@common/enums/class-types.enum'
 import { IsDateFormat } from '@decorators/validators/is-date-format.decorator'
 import { ApiProperty } from '@nestjs/swagger'
-import { IsEnum, IsNotEmpty, Matches } from 'class-validator'
+import { IsEnum, IsNotEmpty, Matches, MaxLength, IsString } from 'class-validator'
 
 export class CreateClassDto {
   @ApiProperty({
@@ -16,9 +16,12 @@ export class CreateClassDto {
 
   @ApiProperty({
     description: 'The name of the class',
-    example: 'Biology Class 1'
+    example: 'Biology Class 1',
+    maxLength: 255
   })
   @IsNotEmpty()
+  @IsString()
+  @MaxLength(255, { message: 'Class name must not exceed 255 characters' })
   className: string
 
   @ApiProperty({

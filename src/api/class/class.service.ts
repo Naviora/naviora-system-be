@@ -31,7 +31,7 @@ export class ClassService {
 
   async create(createClassDto: CreateClassDto) {
     try {
-      const { classCode } = createClassDto
+      const { classCode, startDate, endDate } = createClassDto
 
       const existingClass = await this.classRepository.findOne({ where: { classCode } })
 
@@ -40,6 +40,20 @@ export class ClassService {
           {
             property: 'classCode',
             code: ErrorCode.CLASS001
+          }
+        ])
+      }
+
+      // Validate date range: startDate must be <= endDate
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+
+      if (start > end) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date', [
+          {
+            property: 'startDate',
+            code: ErrorCode.CLASS002,
+            message: 'Start date must be before or equal to end date'
           }
         ])
       }
@@ -66,6 +80,20 @@ export class ClassService {
           {
             property: 'classId',
             code: ErrorCode.CLASS003
+          }
+        ])
+      }
+
+      // Validate date range: startDate must be <= endDate
+      const newStartDate = updateClassDto.startDate ? new Date(updateClassDto.startDate) : classEntity.startDate
+      const newEndDate = updateClassDto.endDate ? new Date(updateClassDto.endDate) : classEntity.endDate
+
+      if (newStartDate && newEndDate && newStartDate > newEndDate) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date', [
+          {
+            property: 'startDate',
+            code: ErrorCode.CLASS002,
+            message: 'Start date must be before or equal to end date'
           }
         ])
       }
