@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config'
 import { Repository, In } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateClassDto } from './dto/create-class.dto'
+import { UpdateClassDto } from './dto/update-class.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { AssignLecturersDto } from './dto/assign-lecturers.dto'
@@ -50,6 +51,35 @@ export class ClassService {
         throw new ValidationException(ErrorCode.CLASS002)
       }
       return newClass
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async update(classId: string, updateClassDto: UpdateClassDto) {
+    try {
+      // Check if class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+          {
+            property: 'classId',
+            code: ErrorCode.CLASS003
+          }
+        ])
+      }
+
+      // Update the class with provided fields
+      Object.assign(classEntity, updateClassDto)
+
+      const updatedClass = await this.classRepository.save(classEntity)
+
+      if (!updatedClass) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Failed to update class')
+      }
+
+      return updatedClass
     } catch (error) {
       throw error
     }
