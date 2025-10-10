@@ -20,7 +20,7 @@ import { Roles } from '@decorators/roles.decorator'
 })
 @ApiBearerAuth('Authorization')
 @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
-@UseGuards(AccessTokenGuard, RolesGuard)
+@UseGuards(RolesGuard)
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
