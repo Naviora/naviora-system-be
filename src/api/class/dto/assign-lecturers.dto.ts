@@ -11,5 +11,5 @@ export class AssignLecturersDto {
   @IsArray()
   @ArrayMinSize(1, { message: 'At least one lecturer must be provided' })
   @IsUUID('4', { each: true, message: 'Each lecturer ID must be a valid UUID' })
-  lecturerIds: string[]
+  lecturer_ids: string[]
 }

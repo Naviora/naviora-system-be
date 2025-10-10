@@ -10,16 +10,16 @@ export class CreateClassDto {
   })
   @IsNotEmpty()
   @Matches(/^BIO-\d{2}-\d{3}$/i, {
-    message: 'classCode must match format BIO-YY-NNN (e.g., BIO-25-001)'
+    message: 'class_code must match format BIO-YY-NNN (e.g., BIO-25-001)'
   })
-  classCode: string
+  class_code: string
 
   @ApiProperty({
     description: 'The name of the class',
     example: 'Biology Class 1'
   })
   @IsNotEmpty()
-  className: string
+  class_name: string
 
   @ApiProperty({
     description: 'The type of the class - it indicates the scope of the competition in which students participate',
@@ -27,7 +27,7 @@ export class CreateClassDto {
   })
   @IsNotEmpty()
   @IsEnum(ClassType)
-  classType: ClassType
+  class_type: ClassType
 
   @ApiProperty({
     description: 'The start date of the class',
@@ -35,7 +35,7 @@ export class CreateClassDto {
   })
   @IsNotEmpty()
   @IsDateFormat()
-  startDate: Date
+  start_date: Date
 
   @ApiProperty({
     description: 'The end date of the class',
@@ -43,5 +43,5 @@ export class CreateClassDto {
   })
   @IsNotEmpty()
   @IsDateFormat()
-  endDate: Date
+  end_date: Date
 }
