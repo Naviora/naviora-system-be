@@ -59,6 +59,7 @@ export enum ErrorCode {
   //Error of Module
   MODULE001 = 'module.error.module_code_exists',
   MODULE002 = 'module.error.create_module_failed',
+  MODULE003 = 'module.error.module_not_found',
 
   // Error of Class
   L001 = 'lesson.error.lesson_name_exists'
