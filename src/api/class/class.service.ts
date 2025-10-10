@@ -7,8 +7,11 @@ import { ConfigService } from '@nestjs/config'
 import { Repository, In } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateClassDto } from './dto/create-class.dto'
+import { UpdateClassDto } from './dto/update-class.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
+import { GetClassesQueryDto } from './dto/get-classes-query.dto'
+import { paginate } from '@utils/offset-pagination'
 import { AssignLecturersDto } from './dto/assign-lecturers.dto'
 import { TeachingAssignment } from './entities/teaching-assignment.entity'
 import { User } from '@api/user/entities/user.entity'
@@ -30,20 +33,29 @@ export class ClassService {
 
   async create(createClassDto: CreateClassDto) {
     try {
-      const { classCode } = createClassDto
+      const { class_code, start_date, end_date } = createClassDto
 
-      const existingClass = await this.classRepository.findOne({ where: { classCode } })
+      const existingClass = await this.classRepository.findOne({ where: { classCode: class_code } })
 
       if (existingClass) {
-        throw new ValidationException(ErrorCode.CLASS001, 'Class code already exists', [
-          {
-            property: 'classCode',
-            code: ErrorCode.CLASS001
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS001, 'Class code already exists')
       }
 
-      const classEntity = this.classRepository.create(createClassDto)
+      // Validate date range: startDate must be <= endDate
+      const start = new Date(start_date)
+      const end = new Date(end_date)
+
+      if (start > end) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
+      }
+
+      const classEntity = this.classRepository.create({
+        classCode: createClassDto.class_code,
+        className: createClassDto.class_name,
+        classType: createClassDto.class_type,
+        startDate: createClassDto.start_date,
+        endDate: createClassDto.end_date
+      })
 
       const newClass = await this.classRepository.save(classEntity)
       if (!newClass) {
@@ -55,9 +67,133 @@ export class ClassService {
     }
   }
 
+  async getClasses(queryDto: GetClassesQueryDto) {
+    const query = this.classRepository.createQueryBuilder('class')
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(class.className ILIKE :search OR class.classCode ILIKE :search)', { search: `%${queryDto.q}%` })
+    }
+
+    // Class type filter
+    if (queryDto.class_type) {
+      query.andWhere('class.classType = :classType', { classType: queryDto.class_type })
+    }
+
+    // Sorting
+    const validSortFields = ['className', 'classCode', 'createdAt', 'updatedAt', 'startDate', 'endDate']
+    const sortMapping: Record<string, string> = {
+      class_name: 'className',
+      class_code: 'classCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt',
+      start_date: 'startDate',
+      end_date: 'endDate'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    query.orderBy(`class.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [classes, metaDto] = await paginate<Class>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      classes,
+      meta: metaDto
+    }
+  }
+
+  async getClassById(classId: string) {
+    const classEntity = await this.classRepository.findOne({
+      where: { classId },
+      relations: ['teachingAssignments', 'teachingAssignments.lecturer']
+    })
+
+    if (!classEntity) {
+      throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+        { property: 'classId', code: ErrorCode.CLASS003 }
+      ])
+    }
+
+    // Map lecturers from active teaching assignments
+    const lecturers =
+      classEntity.teachingAssignments
+        ?.filter((assignment) => assignment.isActive)
+        .map((assignment) => ({
+          id: assignment.lecturer.id,
+          name: assignment.lecturer.name,
+          email: assignment.lecturer.email,
+          avatar: assignment.lecturer.avatar,
+          phone: assignment.lecturer.phone
+        })) || []
+
+    return {
+      class_id: classEntity.classId,
+      class_code: classEntity.classCode,
+      class_name: classEntity.className,
+      class_type: classEntity.classType,
+      start_date: classEntity.startDate,
+      end_date: classEntity.endDate,
+      is_active: classEntity.isActive,
+      lecturers,
+      created_at: classEntity.createdAt,
+      updated_at: classEntity.updatedAt
+    }
+  }
+
+  async update(classId: string, updateClassDto: UpdateClassDto) {
+    try {
+      // Check if class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
+      }
+
+      // Validate date range: start_date must be <= end_date
+      const newStartDate = updateClassDto.start_date ? new Date(updateClassDto.start_date) : classEntity.startDate
+      const newEndDate = updateClassDto.end_date ? new Date(updateClassDto.end_date) : classEntity.endDate
+
+      if (newStartDate && newEndDate && newStartDate > newEndDate) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
+      }
+
+      // Update the class with provided fields (map snake_case to entity fields)
+      if (updateClassDto.class_name !== undefined) classEntity.className = updateClassDto.class_name
+      if (updateClassDto.class_type !== undefined) classEntity.classType = updateClassDto.class_type
+      if (updateClassDto.start_date !== undefined) classEntity.startDate = updateClassDto.start_date as unknown as Date
+      if (updateClassDto.end_date !== undefined) classEntity.endDate = updateClassDto.end_date as unknown as Date
+      if (updateClassDto.is_active !== undefined) classEntity.isActive = updateClassDto.is_active
+
+      const updatedClass = await this.classRepository.save(classEntity)
+
+      if (!updatedClass) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Failed to update class')
+      }
+
+      return {
+        class_id: updatedClass.classId,
+        class_code: updatedClass.classCode,
+        class_name: updatedClass.className,
+        class_type: updatedClass.classType,
+        start_date: updatedClass.startDate,
+        end_date: updatedClass.endDate,
+        is_active: updatedClass.isActive,
+        created_at: updatedClass.createdAt,
+        updated_at: updatedClass.updatedAt
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
   async assignLecturers(classId: string, assignLecturersDto: AssignLecturersDto) {
     try {
-      const { lecturerIds } = assignLecturersDto
+      const { lecturer_ids } = assignLecturersDto
 
       // Check if class exists
       const classEntity = await this.classRepository.findOne({
@@ -66,26 +202,21 @@ export class ClassService {
       })
 
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
-          {
-            property: 'classId',
-            code: ErrorCode.CLASS003
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
       }
 
       // Check if all users exist and are lecturers
       const lecturers = await this.userRepository.find({
-        where: { id: In(lecturerIds) },
+        where: { id: In(lecturer_ids) },
         relations: ['role']
       })
 
-      if (lecturers.length !== lecturerIds.length) {
+      if (lecturers.length !== lecturer_ids.length) {
         const foundIds = lecturers.map((l) => l.id)
-        const notFoundIds = lecturerIds.filter((id) => !foundIds.includes(id))
+        const notFoundIds = lecturer_ids.filter((id) => !foundIds.includes(id))
         throw new ValidationException(ErrorCode.CLASS004, 'Some lecturers not found', [
           {
-            property: 'lecturerIds',
+            property: 'lecturer_ids',
             code: ErrorCode.CLASS004,
             message: `Lecturers not found: ${notFoundIds.join(', ')}`
           }
@@ -98,7 +229,7 @@ export class ClassService {
       if (nonLecturers.length > 0) {
         throw new ValidationException(ErrorCode.CLASS005, 'Some users are not lecturers', [
           {
-            property: 'lecturerIds',
+            property: 'lecturer_ids',
             code: ErrorCode.CLASS005,
             message: `Users are not lecturers: ${nonLecturers.map((u) => u.id).join(', ')}`
           }
@@ -109,7 +240,7 @@ export class ClassService {
       const existingAssignments = await this.teachingAssignmentRepository.find({
         where: {
           class: { classId },
-          lecturer: { id: In(lecturerIds) },
+          lecturer: { id: In(lecturer_ids) },
           isActive: true
         },
         relations: ['lecturer']
@@ -119,7 +250,7 @@ export class ClassService {
         const alreadyAssignedIds = existingAssignments.map((a) => a.lecturer.id)
         throw new ValidationException(ErrorCode.CLASS007, 'Some lecturers are already assigned to this class', [
           {
-            property: 'lecturerIds',
+            property: 'lecturer_ids',
             code: ErrorCode.CLASS007,
             message: `Lecturers already assigned: ${alreadyAssignedIds.join(', ')}`
           }
