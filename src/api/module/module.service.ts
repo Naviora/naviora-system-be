@@ -6,9 +6,12 @@ import { ConfigService } from '@nestjs/config'
 import { Repository } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateModuleDto } from './dto/create-module.dto'
+import { UpdateModuleDto } from './dto/update-module.dto'
+import { GetModulesQueryDto } from './dto/get-modules-query.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { Cache } from 'cache-manager'
+import { paginate } from '@utils/offset-pagination'
 
 @Injectable()
 export class ModulesService {
@@ -22,24 +25,124 @@ export class ModulesService {
 
   async create(createModuleDto: CreateModuleDto) {
     try {
-      const { moduleCode } = createModuleDto
-      const existingModule = await this.moduleRepository.findOne({ where: { moduleCode } })
+      const { module_code } = createModuleDto
+      const existingModule = await this.moduleRepository.findOne({ where: { moduleCode: module_code } })
       if (existingModule) {
         throw new ValidationException(ErrorCode.MODULE001, 'Module code already exists', [
           {
-            property: 'moduleCode',
+            property: 'module_code',
             code: ErrorCode.MODULE001
           }
         ])
       }
-      const moduleEntity = await this.moduleRepository.create(createModuleDto)
+      const moduleEntity = this.moduleRepository.create({
+        moduleCode: createModuleDto.module_code,
+        moduleName: createModuleDto.module_name,
+        moduleDescription: createModuleDto.module_description
+      })
       const newModule = await this.moduleRepository.save(moduleEntity)
       if (!newModule) {
         throw new ValidationException(ErrorCode.MODULE002)
       }
-      return newModule
+      return {
+        module_id: newModule.moduleId,
+        module_code: newModule.moduleCode,
+        module_name: newModule.moduleName,
+        module_description: newModule.moduleDescription,
+        created_at: newModule.createdAt,
+        updated_at: newModule.updatedAt
+      }
     } catch (error) {
       throw error
+    }
+  }
+
+  async update(moduleId: string, updateModuleDto: UpdateModuleDto) {
+    try {
+      // Check if module exists
+      const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
+
+      if (!moduleEntity) {
+        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+          {
+            property: 'module_id',
+            code: ErrorCode.MODULE003
+          }
+        ])
+      }
+
+      // Check if module code is being updated and if it conflicts
+      if (updateModuleDto.module_code && updateModuleDto.module_code !== moduleEntity.moduleCode) {
+        const existingModule = await this.moduleRepository.findOne({
+          where: { moduleCode: updateModuleDto.module_code }
+        })
+        if (existingModule) {
+          throw new ValidationException(ErrorCode.MODULE001, 'Module code already exists', [
+            {
+              property: 'module_code',
+              code: ErrorCode.MODULE001
+            }
+          ])
+        }
+      }
+
+      // Update the module with provided fields (map snake_case to entity fields)
+      if (updateModuleDto.module_code !== undefined) moduleEntity.moduleCode = updateModuleDto.module_code
+      if (updateModuleDto.module_name !== undefined) moduleEntity.moduleName = updateModuleDto.module_name
+      if (updateModuleDto.module_description !== undefined)
+        moduleEntity.moduleDescription = updateModuleDto.module_description
+
+      const updatedModule = await this.moduleRepository.save(moduleEntity)
+
+      if (!updatedModule) {
+        throw new ValidationException(ErrorCode.MODULE002, 'Failed to update module')
+      }
+
+      return {
+        module_id: updatedModule.moduleId,
+        module_code: updatedModule.moduleCode,
+        module_name: updatedModule.moduleName,
+        module_description: updatedModule.moduleDescription,
+        created_at: updatedModule.createdAt,
+        updated_at: updatedModule.updatedAt
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getModules(queryDto: GetModulesQueryDto) {
+    const query = this.moduleRepository.createQueryBuilder('module')
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(module.moduleName ILIKE :search OR module.moduleCode ILIKE :search)', {
+        search: `%${queryDto.q}%`
+      })
+    }
+
+    // Sorting
+    const validSortFields = ['moduleName', 'moduleCode', 'createdAt', 'updatedAt']
+    const sortMapping: Record<string, string> = {
+      module_name: 'moduleName',
+      module_code: 'moduleCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    query.orderBy(`module.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [modules, metaDto] = await paginate<ModuleEntity>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      modules,
+      meta: metaDto
     }
   }
 }

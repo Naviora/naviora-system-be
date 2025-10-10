@@ -10,19 +10,19 @@ export class CreateModuleDto {
   /**
    * TODO: should check the format of the moduleCode match with the specific regex
    */
-  moduleCode: string
+  module_code: string
 
   @ApiProperty({
     description: 'The name of the module',
     example: 'Cơ bản về cơ thể người'
   })
   @IsNotEmpty()
-  moduleName: string
+  module_name: string
 
   @ApiProperty({
     description: 'The description of the module',
     example: 'Module 1 description',
     default: null
   })
-  moduleDescription?: string
+  module_description?: string
 }
