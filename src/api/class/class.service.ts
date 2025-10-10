@@ -36,12 +36,7 @@ export class ClassService {
       const existingClass = await this.classRepository.findOne({ where: { classCode } })
 
       if (existingClass) {
-        throw new ValidationException(ErrorCode.CLASS001, 'Class code already exists', [
-          {
-            property: 'classCode',
-            code: ErrorCode.CLASS001
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS001, 'Class code already exists')
       }
 
       // Validate date range: startDate must be <= endDate
@@ -49,13 +44,7 @@ export class ClassService {
       const end = new Date(endDate)
 
       if (start > end) {
-        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date', [
-          {
-            property: 'startDate',
-            code: ErrorCode.CLASS002,
-            message: 'Start date must be before or equal to end date'
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
       }
 
       const classEntity = this.classRepository.create(createClassDto)
@@ -76,12 +65,7 @@ export class ClassService {
       const classEntity = await this.classRepository.findOne({ where: { classId } })
 
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
-          {
-            property: 'classId',
-            code: ErrorCode.CLASS003
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
       }
 
       // Validate date range: startDate must be <= endDate
@@ -89,13 +73,7 @@ export class ClassService {
       const newEndDate = updateClassDto.endDate ? new Date(updateClassDto.endDate) : classEntity.endDate
 
       if (newStartDate && newEndDate && newStartDate > newEndDate) {
-        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date', [
-          {
-            property: 'startDate',
-            code: ErrorCode.CLASS002,
-            message: 'Start date must be before or equal to end date'
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
       }
 
       // Update the class with provided fields
@@ -124,12 +102,7 @@ export class ClassService {
       })
 
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
-          {
-            property: 'classId',
-            code: ErrorCode.CLASS003
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
       }
 
       // Check if all users exist and are lecturers
