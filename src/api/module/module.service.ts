@@ -7,9 +7,11 @@ import { Repository } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateModuleDto } from './dto/create-module.dto'
 import { UpdateModuleDto } from './dto/update-module.dto'
+import { GetModulesQueryDto } from './dto/get-modules-query.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { Cache } from 'cache-manager'
+import { paginate } from '@utils/offset-pagination'
 
 @Injectable()
 export class ModulesService {
@@ -106,6 +108,41 @@ export class ModulesService {
       }
     } catch (error) {
       throw error
+    }
+  }
+
+  async getModules(queryDto: GetModulesQueryDto) {
+    const query = this.moduleRepository.createQueryBuilder('module')
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(module.moduleName ILIKE :search OR module.moduleCode ILIKE :search)', {
+        search: `%${queryDto.q}%`
+      })
+    }
+
+    // Sorting
+    const validSortFields = ['moduleName', 'moduleCode', 'createdAt', 'updatedAt']
+    const sortMapping: Record<string, string> = {
+      module_name: 'moduleName',
+      module_code: 'moduleCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    query.orderBy(`module.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [modules, metaDto] = await paginate<ModuleEntity>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      modules,
+      meta: metaDto
     }
   }
 }
