@@ -40,44 +40,44 @@ export class ClassDetailDTO {
     description: 'Class ID',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  classId: string
+  class_id: string
 
   @ApiProperty({
     description: 'Class code',
     example: 'BIO-25-001'
   })
-  classCode: string
+  class_code: string
 
   @ApiProperty({
     description: 'Class name',
     example: 'Biology Class 1'
   })
-  className: string
+  class_name: string
 
   @ApiProperty({
     description: 'Class type',
     enum: ClassType,
     example: ClassType.CITY
   })
-  classType: ClassType
+  class_type: ClassType
 
   @ApiProperty({
     description: 'Start date of the class',
     example: '2025-01-01'
   })
-  startDate: Date
+  start_date: Date
 
   @ApiProperty({
     description: 'End date of the class',
     example: '2025-12-31'
   })
-  endDate: Date
+  end_date: Date
 
   @ApiProperty({
     description: 'Whether the class is active',
     example: true
   })
-  isActive: boolean
+  is_active: boolean
 
   @ApiProperty({
     description: 'List of assigned lecturers',
@@ -89,11 +89,11 @@ export class ClassDetailDTO {
     description: 'Date when the class was created',
     example: '2025-01-01T00:00:00.000Z'
   })
-  createdAt: Date
+  created_at: Date
 
   @ApiProperty({
     description: 'Date when the class was last updated',
     example: '2025-01-01T00:00:00.000Z'
   })
-  updatedAt: Date
+  updated_at: Date
 }

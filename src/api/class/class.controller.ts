@@ -9,7 +9,7 @@ import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
 import { GetClassesQueryDto } from './dto/get-classes-query.dto'
 import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
-import { ClassDTO } from './dto/class-dto'
+import { ClassDTO } from './dto/class.dto'
 import { plainToInstance } from 'class-transformer'
 import { AssignLecturersDto } from './dto/assign-lecturers.dto'
 import { ClassDetailDTO } from './dto/class-detail.dto'
@@ -34,18 +34,29 @@ export class ClassController {
       example1: {
         summary: 'Create a new class',
         value: {
-          classCode: 'BIO-25-001',
-          className: 'Biology Class 1',
-          classType: 'city',
-          startDate: '2025-01-01',
-          endDate: '2025-01-01'
+          class_code: 'BIO-25-001',
+          class_name: 'Biology Class 1',
+          class_type: 'city',
+          start_date: '2025-01-01',
+          end_date: '2025-01-01'
         }
       }
     }
   })
   @ResponseMessage('Class created successfully')
   async create(@Body() createClassDto: CreateClassDto) {
-    return await this.classService.create(createClassDto)
+    const created = await this.classService.create(createClassDto)
+    return {
+      class_id: created.classId,
+      class_code: created.classCode,
+      class_name: created.className,
+      class_type: created.classType,
+      start_date: created.startDate,
+      end_date: created.endDate,
+      is_active: created.isActive,
+      created_at: created.createdAt,
+      updated_at: created.updatedAt
+    }
   }
 
   @ApiOperation({ summary: 'Get Classes', description: 'Get list of classes with pagination, search and filters' })
@@ -57,13 +68,15 @@ export class ClassController {
 
     const mappedClasses = classes.map((c) =>
       plainToInstance(ClassDTO, {
-        classId: c.classId,
-        classCode: c.classCode,
-        className: c.className,
-        classType: c.classType,
-        startDate: c.startDate,
-        endDate: c.endDate,
-        isActive: c.isActive
+        class_id: c.classId,
+        class_code: c.classCode,
+        class_name: c.className,
+        class_type: c.classType,
+        start_date: c.startDate,
+        end_date: c.endDate,
+        is_active: c.isActive,
+        created_at: c.createdAt,
+        updated_at: c.updatedAt
       })
     )
 
@@ -101,7 +114,7 @@ export class ClassController {
       example1: {
         summary: 'Assign lecturers to class',
         value: {
-          lecturerIds: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']
+          lecturer_ids: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']
         }
       }
     }

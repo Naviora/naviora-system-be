@@ -32,20 +32,26 @@ export class ClassService {
 
   async create(createClassDto: CreateClassDto) {
     try {
-      const { classCode } = createClassDto
+      const { class_code } = createClassDto
 
-      const existingClass = await this.classRepository.findOne({ where: { classCode } })
+      const existingClass = await this.classRepository.findOne({ where: { classCode: class_code } })
 
       if (existingClass) {
         throw new ValidationException(ErrorCode.CLASS001, 'Class code already exists', [
           {
-            property: 'classCode',
+            property: 'class_code',
             code: ErrorCode.CLASS001
           }
         ])
       }
 
-      const classEntity = this.classRepository.create(createClassDto)
+      const classEntity = this.classRepository.create({
+        classCode: createClassDto.class_code,
+        className: createClassDto.class_name,
+        classType: createClassDto.class_type,
+        startDate: createClassDto.start_date,
+        endDate: createClassDto.end_date
+      })
 
       const newClass = await this.classRepository.save(classEntity)
       if (!newClass) {
@@ -66,18 +72,27 @@ export class ClassService {
     }
 
     // Class type filter
-    if (queryDto.classType) {
-      query.andWhere('class.classType = :classType', { classType: queryDto.classType })
+    if (queryDto.class_type) {
+      query.andWhere('class.classType = :classType', { classType: queryDto.class_type })
     }
 
     // Sorting
-    const sortBy = queryDto.sortBy || 'createdAt'
     const validSortFields = ['className', 'classCode', 'createdAt', 'updatedAt', 'startDate', 'endDate']
-    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    const sortMapping: Record<string, string> = {
+      class_name: 'className',
+      class_code: 'classCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt',
+      start_date: 'startDate',
+      end_date: 'endDate'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
     query.orderBy(`class.${sortField}`, queryDto.order)
 
     // Pagination
-    const [classes, metaDto] = await paginate(query, queryDto, {
+    const [classes, metaDto] = await paginate<Class>(query, queryDto, {
       skipCount: false,
       takeAll: false
     })
@@ -113,22 +128,22 @@ export class ClassService {
         })) || []
 
     return {
-      classId: classEntity.classId,
-      classCode: classEntity.classCode,
-      className: classEntity.className,
-      classType: classEntity.classType,
-      startDate: classEntity.startDate,
-      endDate: classEntity.endDate,
-      isActive: classEntity.isActive,
+      class_id: classEntity.classId,
+      class_code: classEntity.classCode,
+      class_name: classEntity.className,
+      class_type: classEntity.classType,
+      start_date: classEntity.startDate,
+      end_date: classEntity.endDate,
+      is_active: classEntity.isActive,
       lecturers,
-      createdAt: classEntity.createdAt,
-      updatedAt: classEntity.updatedAt
+      created_at: classEntity.createdAt,
+      updated_at: classEntity.updatedAt
     }
   }
 
   async assignLecturers(classId: string, assignLecturersDto: AssignLecturersDto) {
     try {
-      const { lecturerIds } = assignLecturersDto
+      const { lecturer_ids } = assignLecturersDto
 
       // Check if class exists
       const classEntity = await this.classRepository.findOne({
@@ -147,16 +162,16 @@ export class ClassService {
 
       // Check if all users exist and are lecturers
       const lecturers = await this.userRepository.find({
-        where: { id: In(lecturerIds) },
+        where: { id: In(lecturer_ids) },
         relations: ['role']
       })
 
-      if (lecturers.length !== lecturerIds.length) {
+      if (lecturers.length !== lecturer_ids.length) {
         const foundIds = lecturers.map((l) => l.id)
-        const notFoundIds = lecturerIds.filter((id) => !foundIds.includes(id))
+        const notFoundIds = lecturer_ids.filter((id) => !foundIds.includes(id))
         throw new ValidationException(ErrorCode.CLASS004, 'Some lecturers not found', [
           {
-            property: 'lecturerIds',
+            property: 'lecturer_ids',
             code: ErrorCode.CLASS004,
             message: `Lecturers not found: ${notFoundIds.join(', ')}`
           }
@@ -169,7 +184,7 @@ export class ClassService {
       if (nonLecturers.length > 0) {
         throw new ValidationException(ErrorCode.CLASS005, 'Some users are not lecturers', [
           {
-            property: 'lecturerIds',
+            property: 'lecturer_ids',
             code: ErrorCode.CLASS005,
             message: `Users are not lecturers: ${nonLecturers.map((u) => u.id).join(', ')}`
           }
@@ -180,7 +195,7 @@ export class ClassService {
       const existingAssignments = await this.teachingAssignmentRepository.find({
         where: {
           class: { classId },
-          lecturer: { id: In(lecturerIds) },
+          lecturer: { id: In(lecturer_ids) },
           isActive: true
         },
         relations: ['lecturer']
@@ -190,7 +205,7 @@ export class ClassService {
         const alreadyAssignedIds = existingAssignments.map((a) => a.lecturer.id)
         throw new ValidationException(ErrorCode.CLASS007, 'Some lecturers are already assigned to this class', [
           {
-            property: 'lecturerIds',
+            property: 'lecturer_ids',
             code: ErrorCode.CLASS007,
             message: `Lecturers already assigned: ${alreadyAssignedIds.join(', ')}`
           }
