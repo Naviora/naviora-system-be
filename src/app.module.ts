@@ -34,6 +34,8 @@ import { ModulesModule } from '@api/module/module.module'
 import { Class } from '@api/class/entities/class.entity'
 import { ModuleEntity } from '@api/module/entities/module.entity'
 import { TeachingAssignment } from '@api/class/entities/teaching-assignment.entity'
+import { LessonModule } from './api/lesson/lesson.module'
+import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 
 @Module({
   imports: [
@@ -51,7 +53,7 @@ import { TeachingAssignment } from '@api/class/entities/teaching-assignment.enti
         return {
           ...databaseEnv,
           autoLoadEntities: true,
-          entities: [User, Role, SessionEntity, Class, ModuleEntity, TeachingAssignment]
+          entities: [User, Role, SessionEntity, Class, ModuleEntity, TeachingAssignment, LessonEntity]
         }
       },
       inject: [ConfigService]
@@ -118,7 +120,8 @@ import { TeachingAssignment } from '@api/class/entities/teaching-assignment.enti
         ttl: 60000,
         limit: 100
       }
-    ])
+    ]),
+    LessonModule
   ],
   controllers: [AppController],
   providers: [
