@@ -32,7 +32,11 @@ export class LessonService {
         throw new ValidationException(ErrorCode.MODULE001, 'Module not found')
       }
 
-      const lesson = this.lessonRepository.create({ ...createLessonDto, moduleId: module.moduleId })
+      const lesson = this.lessonRepository.create({
+        lessonName: createLessonDto.lesson_name,
+        lessonDescription: createLessonDto.lesson_description,
+        moduleId: module.moduleId
+      })
       return this.lessonRepository.save(lesson)
     } catch (error) {
       throw error

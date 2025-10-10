@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { ModulesService } from './module.service'
 import { CreateModuleDto } from './dto/create-module.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
+import { Public } from '@decorators/auth.decorator'
 
 @ApiTags('Modules')
 @Controller({
@@ -12,7 +13,8 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
   version: '1'
 })
 @ApiBearerAuth('Authorization')
-@UseGuards(AccessTokenGuard, RolesGuard)
+@Public()
+// @UseGuards(AccessTokenGuard, RolesGuard)
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
