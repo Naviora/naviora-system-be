@@ -154,16 +154,20 @@ export class ClassService {
         throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
       }
 
-      // Validate date range: startDate must be <= endDate
-      const newStartDate = updateClassDto.startDate ? new Date(updateClassDto.startDate) : classEntity.startDate
-      const newEndDate = updateClassDto.endDate ? new Date(updateClassDto.endDate) : classEntity.endDate
+      // Validate date range: start_date must be <= end_date
+      const newStartDate = updateClassDto.start_date ? new Date(updateClassDto.start_date) : classEntity.startDate
+      const newEndDate = updateClassDto.end_date ? new Date(updateClassDto.end_date) : classEntity.endDate
 
       if (newStartDate && newEndDate && newStartDate > newEndDate) {
         throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
       }
 
-      // Update the class with provided fields
-      Object.assign(classEntity, updateClassDto)
+      // Update the class with provided fields (map snake_case to entity fields)
+      if (updateClassDto.class_name !== undefined) classEntity.className = updateClassDto.class_name
+      if (updateClassDto.class_type !== undefined) classEntity.classType = updateClassDto.class_type
+      if (updateClassDto.start_date !== undefined) classEntity.startDate = updateClassDto.start_date as unknown as Date
+      if (updateClassDto.end_date !== undefined) classEntity.endDate = updateClassDto.end_date as unknown as Date
+      if (updateClassDto.is_active !== undefined) classEntity.isActive = updateClassDto.is_active
 
       const updatedClass = await this.classRepository.save(classEntity)
 
@@ -171,7 +175,17 @@ export class ClassService {
         throw new ValidationException(ErrorCode.CLASS002, 'Failed to update class')
       }
 
-      return updatedClass
+      return {
+        class_id: updatedClass.classId,
+        class_code: updatedClass.classCode,
+        class_name: updatedClass.className,
+        class_type: updatedClass.classType,
+        start_date: updatedClass.startDate,
+        end_date: updatedClass.endDate,
+        is_active: updatedClass.isActive,
+        created_at: updatedClass.createdAt,
+        updated_at: updatedClass.updatedAt
+      }
     } catch (error) {
       throw error
     }

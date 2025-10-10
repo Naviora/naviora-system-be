@@ -115,10 +115,10 @@ export class ClassController {
       example1: {
         summary: 'Update class information',
         value: {
-          className: 'Updated Biology Class 1',
-          classType: 'national',
-          endDate: '2025-12-31',
-          isActive: true
+          class_name: 'Updated Biology Class 1',
+          class_type: 'national',
+          end_date: '2025-12-31',
+          is_active: true
         }
       }
     }
