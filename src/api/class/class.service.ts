@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config'
 import { Repository, In } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateClassDto } from './dto/create-class.dto'
+import { UpdateClassDto } from './dto/update-class.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { GetClassesQueryDto } from './dto/get-classes-query.dto'
@@ -32,17 +33,20 @@ export class ClassService {
 
   async create(createClassDto: CreateClassDto) {
     try {
-      const { class_code } = createClassDto
+      const { class_code, start_date, end_date } = createClassDto
 
       const existingClass = await this.classRepository.findOne({ where: { classCode: class_code } })
 
       if (existingClass) {
-        throw new ValidationException(ErrorCode.CLASS001, 'Class code already exists', [
-          {
-            property: 'class_code',
-            code: ErrorCode.CLASS001
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS001, 'Class code already exists')
+      }
+
+      // Validate date range: startDate must be <= endDate
+      const start = new Date(start_date)
+      const end = new Date(end_date)
+
+      if (start > end) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
       }
 
       const classEntity = this.classRepository.create({
@@ -141,6 +145,52 @@ export class ClassService {
     }
   }
 
+  async update(classId: string, updateClassDto: UpdateClassDto) {
+    try {
+      // Check if class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
+      }
+
+      // Validate date range: start_date must be <= end_date
+      const newStartDate = updateClassDto.start_date ? new Date(updateClassDto.start_date) : classEntity.startDate
+      const newEndDate = updateClassDto.end_date ? new Date(updateClassDto.end_date) : classEntity.endDate
+
+      if (newStartDate && newEndDate && newStartDate > newEndDate) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
+      }
+
+      // Update the class with provided fields (map snake_case to entity fields)
+      if (updateClassDto.class_name !== undefined) classEntity.className = updateClassDto.class_name
+      if (updateClassDto.class_type !== undefined) classEntity.classType = updateClassDto.class_type
+      if (updateClassDto.start_date !== undefined) classEntity.startDate = updateClassDto.start_date as unknown as Date
+      if (updateClassDto.end_date !== undefined) classEntity.endDate = updateClassDto.end_date as unknown as Date
+      if (updateClassDto.is_active !== undefined) classEntity.isActive = updateClassDto.is_active
+
+      const updatedClass = await this.classRepository.save(classEntity)
+
+      if (!updatedClass) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Failed to update class')
+      }
+
+      return {
+        class_id: updatedClass.classId,
+        class_code: updatedClass.classCode,
+        class_name: updatedClass.className,
+        class_type: updatedClass.classType,
+        start_date: updatedClass.startDate,
+        end_date: updatedClass.endDate,
+        is_active: updatedClass.isActive,
+        created_at: updatedClass.createdAt,
+        updated_at: updatedClass.updatedAt
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
   async assignLecturers(classId: string, assignLecturersDto: AssignLecturersDto) {
     try {
       const { lecturer_ids } = assignLecturersDto
@@ -152,12 +202,7 @@ export class ClassService {
       })
 
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
-          {
-            property: 'classId',
-            code: ErrorCode.CLASS003
-          }
-        ])
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
       }
 
       // Check if all users exist and are lecturers
