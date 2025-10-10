@@ -23,7 +23,7 @@ export class Class extends AbstractEntity {
   @Column({ type: 'date', nullable: false })
   endDate: Date
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean
 
   @OneToMany(() => TeachingAssignment, (teachingAssignment) => teachingAssignment.class)
@@ -31,5 +31,6 @@ export class Class extends AbstractEntity {
 
   /**
    * TODO: Add final_exam_id as the ManyToOne with the FinalExam entity
+   * TODO: Add OneToMany relationship with ModuleEntity
    *  */
 }
