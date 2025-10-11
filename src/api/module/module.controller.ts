@@ -11,6 +11,8 @@ import { plainToInstance } from 'class-transformer'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
+import { CurrentUser } from '@decorators/current-user.decorator'
+import { User } from '@api/user/entities/user.entity'
 
 @ApiTags('Modules')
 @Controller({
@@ -18,12 +20,12 @@ import { Roles } from '@decorators/roles.decorator'
   version: '1'
 })
 @ApiBearerAuth('Authorization')
-@Roles(RoleInAccount.Admin, RoleInAccount.Principal)
-@UseGuards(RolesGuard)
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
   @Post()
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
+  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Create a new module' })
   @ApiBody({
     description: 'Data create module',
@@ -45,7 +47,6 @@ export class ModulesController {
   }
 
   @ApiOperation({ summary: 'Get Modules', description: 'Get list of modules with pagination, search and filters' })
-  @ApiBearerAuth()
   @Get()
   @ResponseMessage('Get Modules successfully')
   async getModules(@Query() query: GetModulesQueryDto): Promise<OffsetPaginatedDto<ModuleDTO>> {
@@ -70,7 +71,24 @@ export class ModulesController {
     })
   }
 
+  @Get(':moduleId')
+  @ApiOperation({ summary: 'Get a module detail' })
+  @ApiParam({
+    name: 'moduleId',
+    description: 'The ID of the module to get detail',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Get Module Detail successfully')
+  async getModuleDetail(
+    @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string,
+    @CurrentUser() currentUser: User
+  ) {
+    return await this.modulesService.getModuleById(moduleId, currentUser)
+  }
+
   @Patch(':moduleId')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
+  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Update a module' })
   @ApiParam({
     name: 'moduleId',

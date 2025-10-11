@@ -12,12 +12,17 @@ import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { Cache } from 'cache-manager'
 import { paginate } from '@utils/offset-pagination'
+import { RoleInAccount } from '@common/enums/account-role.enum'
+import { User } from '@api/user/entities/user.entity'
+import { TeachingModule } from './entities/teaching-module.entity'
 
 @Injectable()
 export class ModulesService {
   constructor(
     @InjectRepository(ModuleEntity)
     private readonly moduleRepository: Repository<ModuleEntity>,
+    @InjectRepository(TeachingModule)
+    private readonly teachingModuleRepository: Repository<TeachingModule>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService
@@ -143,6 +148,100 @@ export class ModulesService {
     return {
       modules,
       meta: metaDto
+    }
+  }
+
+  async getModuleById(moduleId: string, currentUser: User) {
+    try {
+      // Find module with relationships based on user role
+      const moduleQuery = this.moduleRepository
+        .createQueryBuilder('module')
+        .leftJoinAndSelect('module.class', 'class')
+        .where('module.moduleId = :moduleId', { moduleId })
+
+      // Add role-specific relationships
+      if (currentUser.role?.name === RoleInAccount.Student) {
+        // Students can see lessons within the module
+        moduleQuery.leftJoinAndSelect('module.lessons', 'lessons')
+      } else if (currentUser.role?.name === RoleInAccount.Lecturer) {
+        // Lecturers can see if they are assigned to this module
+        moduleQuery
+          .leftJoinAndSelect('module.teachingModules', 'teachingModules')
+          .leftJoinAndSelect('teachingModules.lecturer', 'lecturer')
+          .where('teachingModules.lecturer.id = :userId OR module.moduleId = :moduleId', {
+            userId: currentUser.id,
+            moduleId
+          })
+      } else if (currentUser.role?.name === RoleInAccount.Admin || currentUser.role?.name === RoleInAccount.Principal) {
+        // Admin/Principal can see all assigned lecturers
+        moduleQuery
+          .leftJoinAndSelect('module.teachingModules', 'teachingModules')
+          .leftJoinAndSelect('teachingModules.lecturer', 'lecturer')
+      }
+
+      const module = await moduleQuery.getOne()
+
+      if (!module) {
+        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+          {
+            property: 'module_id',
+            code: ErrorCode.MODULE003
+          }
+        ])
+      }
+
+      // Build response based on user role
+      const response: Record<string, any> = {
+        module_id: module.moduleId,
+        module_code: module.moduleCode,
+        module_name: module.moduleName,
+        module_description: module.moduleDescription,
+        class: module.class
+          ? {
+              class_id: module.class.classId,
+              class_code: module.class.classCode,
+              class_name: module.class.className,
+              class_type: module.class.classType
+            }
+          : null,
+        created_at: module.createdAt,
+        updated_at: module.updatedAt
+      }
+
+      // Role-specific data
+      if (currentUser.role?.name === RoleInAccount.Student) {
+        // Students see lessons
+        response.lessons =
+          module.lessons?.map((lesson) => ({
+            lesson_id: lesson.lessonId,
+            lesson_name: lesson.lessonName,
+            lesson_description: lesson.lessonDescription
+          })) || []
+      } else if (currentUser.role?.name === RoleInAccount.Lecturer) {
+        // Lecturers see if they are assigned and their assignment details
+        const userAssignment = module.teachingModules?.find((tm) => tm.lecturer.id === currentUser.id)
+        response.is_assigned = !!userAssignment
+        if (userAssignment) {
+          response.assignment = {
+            is_active: userAssignment.isActive,
+            end_date: userAssignment.endDate
+          }
+        }
+      } else if (currentUser.role?.name === RoleInAccount.Admin || currentUser.role?.name === RoleInAccount.Principal) {
+        // Admin/Principal see all assigned lecturers
+        response.assigned_lecturers =
+          module.teachingModules?.map((tm) => ({
+            lecturer_id: tm.lecturer.id,
+            lecturer_name: tm.lecturer.name,
+            lecturer_email: tm.lecturer.email,
+            is_active: tm.isActive,
+            end_date: tm.endDate
+          })) || []
+      }
+
+      return response
+    } catch (error) {
+      throw error
     }
   }
 }
