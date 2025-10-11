@@ -1,9 +1,10 @@
 import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
 import { RolesGuard } from '@guards/roles.guard'
-import { Body, Controller, Get, Post, Query, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common'
+import { Body, Controller, Get, Post, Patch, Query, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger'
 import { ClassService } from './class.service'
 import { CreateClassDto } from './dto/create-class.dto'
+import { UpdateClassDto } from './dto/update-class.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
@@ -98,6 +99,36 @@ export class ClassController {
   @ResponseMessage('Get Class detail successfully')
   async getClassById(@Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string): Promise<ClassDetailDTO> {
     return await this.classService.getClassById(classId)
+  }
+
+  @Patch(':classId')
+  @ApiOperation({ summary: 'Update a class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class to update',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'Data to update class',
+    type: UpdateClassDto,
+    examples: {
+      example1: {
+        summary: 'Update class information',
+        value: {
+          class_name: 'Updated Biology Class 1',
+          class_type: 'national',
+          end_date: '2025-12-31',
+          is_active: true
+        }
+      }
+    }
+  })
+  @ResponseMessage('Class updated successfully')
+  async update(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() updateClassDto: UpdateClassDto
+  ) {
+    return await this.classService.update(classId, updateClassDto)
   }
 
   @Post(':classId/assign-lecturers')
