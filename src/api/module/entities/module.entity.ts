@@ -2,6 +2,7 @@ import { AbstractEntity } from '@database/entities/base.entity'
 import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm'
 import { Class } from '@api/class/entities/class.entity'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
+import { TeachingModule } from './teaching-module.entity'
 
 @Entity('module')
 export class ModuleEntity extends AbstractEntity {
@@ -26,4 +27,7 @@ export class ModuleEntity extends AbstractEntity {
 
   @OneToMany(() => LessonEntity, (lesson) => lesson.module)
   lessons: LessonEntity[]
+
+  @OneToMany(() => TeachingModule, (teachingModule) => teachingModule.module)
+  teachingModules: TeachingModule[]
 }

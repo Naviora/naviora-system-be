@@ -5,6 +5,7 @@ import { AccountStatus, Gender } from '@common/enums/account-role.enum'
 import { AbstractEntity } from '@database/entities/base.entity'
 import { SessionEntity } from '@api/user/entities/session.entity'
 import { TeachingAssignment } from '@api/class/entities/teaching-assignment.entity'
+import { TeachingModule } from '@api/module/entities/teaching-module.entity'
 
 @Entity('user')
 export class User extends AbstractEntity {
@@ -50,6 +51,9 @@ export class User extends AbstractEntity {
 
   @OneToMany(() => TeachingAssignment, (teachingAssignment) => teachingAssignment.lecturer)
   teachingAssignments?: TeachingAssignment[]
+
+  @OneToMany(() => TeachingModule, (teachingModule) => teachingModule.lecturer)
+  teachingModules?: TeachingModule[]
 
   @Column({
     type: 'enum',
