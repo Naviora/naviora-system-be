@@ -1,4 +1,3 @@
-import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
 import { RolesGuard } from '@guards/roles.guard'
 import { Body, Controller, Get, Post, Patch, Query, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger'

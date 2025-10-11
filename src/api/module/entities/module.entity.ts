@@ -1,5 +1,6 @@
 import { AbstractEntity } from '@database/entities/base.entity'
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm'
+import { Class } from '@api/class/entities/class.entity'
 
 @Entity('module')
 export class ModuleEntity extends AbstractEntity {
@@ -15,7 +16,10 @@ export class ModuleEntity extends AbstractEntity {
   @Column({ type: 'varchar', nullable: true })
   moduleDescription: string
 
-  /**
-   * TODO: Add classId as the ManyToOne relationship with Class
-   */
+  @Column({ type: 'uuid', nullable: false })
+  classId: string
+
+  @ManyToOne(() => Class, (classEntity) => classEntity.modules)
+  @JoinColumn({ name: 'classId' })
+  class: Class
 }
