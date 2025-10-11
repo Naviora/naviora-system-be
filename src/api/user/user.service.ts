@@ -161,16 +161,20 @@ export class UserService {
       }
 
       return plainToInstance(ProfileDTO, {
-        accountId: user.id,
+        account_id: user.id,
         name: user.name,
         email: user.email,
+        staff_id: user.id, // Assuming staff_id maps to the same as account_id
         avatar: user.avatar,
         phone: user.phone,
         address: user.address,
         gender: user.gender,
-        dateOfBirth: user.dateOfBirth,
+        date_of_birth: user.dateOfBirth,
         status: user.status,
-        role: user.role?.name
+        department: '', // Add default values for missing fields
+        rank: '',
+        role: user.role?.name,
+        salary: 0
       })
     } catch (error) {
       throw error
