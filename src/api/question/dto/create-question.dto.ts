@@ -23,7 +23,7 @@ export class CreateQuestionDto {
   @URLFieldOptional()
   additional_image: string
 
-  @ApiProperty()
-  @UUIDField()
-  correct_answer_id: string
+  // @ApiProperty()
+  // @ArrayField(CreateAnswerDto)
+  // answers: CreateAnswerDto[]
 }

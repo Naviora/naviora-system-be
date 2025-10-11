@@ -27,7 +27,15 @@ export class QuestionService {
         throw new ValidationException(ErrorCode.L001, 'Lesson not found')
       }
 
-      // TODO: check correct answer exist
+      // TODO: create answers for this question
+      // const answer = this.answerRepository.create({
+      //   questionId: createQuestionDto.questionId,
+      //   content: createQuestionDto.content,
+      //   isCorrect: createQuestionDto.isCorrect
+      // })
+      // await this.answerRepository.save(answer)
+
+      // TODO: update correct answer exist
       // const correctAnswer = await this.answerRepository.findOne({ where: { id: createQuestionDto.correctAnswerId } })
       // if (!correctAnswer) {
       //   throw new ValidationException(ErrorCode.A001, 'Correct answer not found')
