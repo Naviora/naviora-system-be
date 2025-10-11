@@ -3,7 +3,7 @@ import { ModuleEntity } from './entities/module.entity'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ConfigService } from '@nestjs/config'
-import { Repository } from 'typeorm'
+import { Repository, In } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateModuleDto } from './dto/create-module.dto'
 import { UpdateModuleDto } from './dto/update-module.dto'
@@ -16,6 +16,7 @@ import { RoleInAccount } from '@common/enums/account-role.enum'
 import { User } from '@api/user/entities/user.entity'
 import { TeachingModule } from './entities/teaching-module.entity'
 import { Class } from '@api/class/entities/class.entity'
+import { AssignLecturersToModuleDto } from './dto/assign-lecturers-to-module.dto'
 
 @Injectable()
 export class ModulesService {
@@ -26,6 +27,8 @@ export class ModulesService {
     private readonly teachingModuleRepository: Repository<TeachingModule>,
     @InjectRepository(Class)
     private readonly classRepository: Repository<Class>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService
@@ -271,6 +274,108 @@ export class ModulesService {
       }
 
       return response
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async assignLecturersToModule(moduleId: string, assignLecturersDto: AssignLecturersToModuleDto) {
+    try {
+      // Check if module exists
+      const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
+      if (!moduleEntity) {
+        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+          {
+            property: 'module_id',
+            code: ErrorCode.MODULE003
+          }
+        ])
+      }
+
+      // Validate that all lecturer IDs exist and are lecturers
+      const lecturers = await this.userRepository.find({
+        where: { id: In(assignLecturersDto.lecturer_ids) },
+        relations: ['role']
+      })
+
+      if (lecturers.length !== assignLecturersDto.lecturer_ids.length) {
+        const foundIds = lecturers.map((l) => l.id)
+        const missingIds = assignLecturersDto.lecturer_ids.filter((id) => !foundIds.includes(id))
+        throw new ValidationException(ErrorCode.USER001, 'Some lecturers not found', [
+          {
+            property: 'lecturer_ids',
+            code: ErrorCode.USER001,
+            message: `Lecturers not found: ${missingIds.join(', ')}`
+          }
+        ])
+      }
+
+      // Validate that all users are lecturers
+      const nonLecturers = lecturers.filter((lecturer) => lecturer.role?.name !== RoleInAccount.Lecturer)
+      if (nonLecturers.length > 0) {
+        throw new ValidationException(ErrorCode.USER002, 'Some users are not lecturers', [
+          {
+            property: 'lecturer_ids',
+            code: ErrorCode.USER002,
+            message: `Non-lecturers found: ${nonLecturers.map((l) => l.name).join(', ')}`
+          }
+        ])
+      }
+
+      // Check for existing assignments
+      const existingAssignments = await this.teachingModuleRepository.find({
+        where: {
+          module: { moduleId },
+          lecturer: { id: In(assignLecturersDto.lecturer_ids) }
+        },
+        relations: ['lecturer']
+      })
+
+      if (existingAssignments.length > 0) {
+        const alreadyAssignedIds = existingAssignments.map((a) => a.lecturer.id)
+        throw new ValidationException(ErrorCode.MODULE004, 'Some lecturers are already assigned to this module', [
+          {
+            property: 'lecturer_ids',
+            code: ErrorCode.MODULE004,
+            message: `Lecturers already assigned: ${alreadyAssignedIds.join(', ')}`
+          }
+        ])
+      }
+
+      // Create teaching module assignments
+      const teachingModules = lecturers.map((lecturer) => {
+        const teachingModule = this.teachingModuleRepository.create({
+          module: moduleEntity,
+          lecturer,
+          isActive: true
+        })
+
+        // Set end date if provided
+        if (assignLecturersDto.end_date) {
+          teachingModule.endDate = new Date(assignLecturersDto.end_date)
+        }
+
+        return teachingModule
+      })
+
+      const savedAssignments = await this.teachingModuleRepository.save(teachingModules)
+
+      if (!savedAssignments || savedAssignments.length === 0) {
+        throw new ValidationException(ErrorCode.MODULE005, 'Failed to assign lecturers to module')
+      }
+
+      return {
+        module_id: moduleEntity.moduleId,
+        module_code: moduleEntity.moduleCode,
+        module_name: moduleEntity.moduleName,
+        assigned_lecturers: lecturers.map((lecturer) => ({
+          lecturer_id: lecturer.id,
+          lecturer_name: lecturer.name,
+          lecturer_email: lecturer.email,
+          is_active: true,
+          end_date: assignLecturersDto.end_date || null
+        }))
+      }
     } catch (error) {
       throw error
     }
