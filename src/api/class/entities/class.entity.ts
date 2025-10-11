@@ -1,6 +1,7 @@
 import { AbstractEntity } from '@database/entities/base.entity'
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm'
 import { ClassType } from '@common/enums/class-types.enum'
+import { TeachingAssignment } from './teaching-assignment.entity'
 
 @Entity('class')
 export class Class extends AbstractEntity {
@@ -22,10 +23,14 @@ export class Class extends AbstractEntity {
   @Column({ type: 'date', nullable: false })
   endDate: Date
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean', default: true })
   isActive: boolean
+
+  @OneToMany(() => TeachingAssignment, (teachingAssignment) => teachingAssignment.class)
+  teachingAssignments: TeachingAssignment[]
 
   /**
    * TODO: Add final_exam_id as the ManyToOne with the FinalExam entity
+   * TODO: Add OneToMany relationship with ModuleEntity
    *  */
 }

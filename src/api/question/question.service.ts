@@ -3,19 +3,29 @@ import { CreateQuestionDto } from './dto/create-question.dto'
 import { UpdateQuestionDto } from './dto/update-question.dto'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { Repository } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
+import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 
 @Injectable()
 export class QuestionService {
-  constructor(private readonly questionRepository: Repository<QuestionEntity>) {}
+  constructor(
+    @InjectRepository(QuestionEntity)
+    private readonly questionRepository: Repository<QuestionEntity>,
+
+    @InjectRepository(LessonEntity)
+    private readonly lessonRepository: Repository<LessonEntity>
+
+    // @InjectRepository(An)
+  ) {}
   async create(createQuestionDto: CreateQuestionDto) {
     try {
       // TODO: check lesson exist
-      // const lesson = await this.lessonRepository.findOne({ where: { lessonId: createQuestionDto.lessonId } })
-      // if (!lesson) {
-      //   throw new ValidationException(ErrorCode.L001, 'Lesson not found')
-      // }
+      const lesson = await this.lessonRepository.findOne({ where: { lessonId: createQuestionDto.lesson_id } })
+      if (!lesson) {
+        throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+      }
 
       // TODO: check correct answer exist
       // const correctAnswer = await this.answerRepository.findOne({ where: { id: createQuestionDto.correctAnswerId } })

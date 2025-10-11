@@ -33,6 +33,9 @@ import { ClassModule } from '@api/class/class.module'
 import { ModulesModule } from '@api/module/module.module'
 import { Class } from '@api/class/entities/class.entity'
 import { ModuleEntity } from '@api/module/entities/module.entity'
+import { TeachingAssignment } from '@api/class/entities/teaching-assignment.entity'
+import { LessonModule } from './api/lesson/lesson.module'
+import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { QuestionModule } from './api/question/question.module'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 
@@ -52,7 +55,7 @@ import { QuestionEntity } from '@api/question/entities/question.entity'
         return {
           ...databaseEnv,
           autoLoadEntities: true,
-          entities: [User, Role, SessionEntity, Class, ModuleEntity, QuestionEntity]
+          entities: [User, Role, SessionEntity, Class, ModuleEntity, TeachingAssignment, LessonEntity, QuestionEntity]
         }
       },
       inject: [ConfigService]
@@ -120,6 +123,7 @@ import { QuestionEntity } from '@api/question/entities/question.entity'
         limit: 100
       }
     ]),
+    LessonModule,
     QuestionModule
   ],
   controllers: [AppController],

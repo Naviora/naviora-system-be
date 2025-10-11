@@ -1,12 +1,19 @@
 import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
 import { RolesGuard } from '@guards/roles.guard'
-import { Body, Controller, Post, UseGuards } from '@nestjs/common'
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { Body, Controller, Get, Post, Patch, Query, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger'
 import { ClassService } from './class.service'
 import { CreateClassDto } from './dto/create-class.dto'
+import { UpdateClassDto } from './dto/update-class.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
+import { GetClassesQueryDto } from './dto/get-classes-query.dto'
+import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
+import { ClassDTO } from './dto/class.dto'
+import { plainToInstance } from 'class-transformer'
+import { AssignLecturersDto } from './dto/assign-lecturers.dto'
+import { ClassDetailDTO } from './dto/class-detail.dto'
 
 @ApiTags('Classes')
 @Controller({
@@ -28,17 +35,126 @@ export class ClassController {
       example1: {
         summary: 'Create a new class',
         value: {
-          classCode: 'BIO-25-001',
-          className: 'Biology Class 1',
-          classType: 'city',
-          startDate: '2025-01-01',
-          endDate: '2025-01-01'
+          class_code: 'BIO-25-001',
+          class_name: 'Biology Class 1',
+          class_type: 'city',
+          start_date: '2025-01-01',
+          end_date: '2025-01-01'
         }
       }
     }
   })
   @ResponseMessage('Class created successfully')
   async create(@Body() createClassDto: CreateClassDto) {
-    return await this.classService.create(createClassDto)
+    const created = await this.classService.create(createClassDto)
+    return {
+      class_id: created.classId,
+      class_code: created.classCode,
+      class_name: created.className,
+      class_type: created.classType,
+      start_date: created.startDate,
+      end_date: created.endDate,
+      is_active: created.isActive,
+      created_at: created.createdAt,
+      updated_at: created.updatedAt
+    }
+  }
+
+  @ApiOperation({ summary: 'Get Classes', description: 'Get list of classes with pagination, search and filters' })
+  @ApiBearerAuth()
+  @Get()
+  @ResponseMessage('Get Classes successfully')
+  async getClasses(@Query() query: GetClassesQueryDto): Promise<OffsetPaginatedDto<ClassDTO>> {
+    const { classes, meta } = await this.classService.getClasses(query)
+
+    const mappedClasses = classes.map((c) =>
+      plainToInstance(ClassDTO, {
+        class_id: c.classId,
+        class_code: c.classCode,
+        class_name: c.className,
+        class_type: c.classType,
+        start_date: c.startDate,
+        end_date: c.endDate,
+        is_active: c.isActive,
+        created_at: c.createdAt,
+        updated_at: c.updatedAt
+      })
+    )
+
+    return new OffsetPaginatedDto<ClassDTO>({
+      statusCode: 200,
+      message: 'Get Classes successfully',
+      data: mappedClasses,
+      meta
+    })
+  }
+
+  @Get(':classId')
+  @ApiOperation({ summary: 'Get Class Detail', description: 'Get detailed information about a specific class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Get Class detail successfully')
+  async getClassById(@Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string): Promise<ClassDetailDTO> {
+    return await this.classService.getClassById(classId)
+  }
+
+  @Patch(':classId')
+  @ApiOperation({ summary: 'Update a class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class to update',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'Data to update class',
+    type: UpdateClassDto,
+    examples: {
+      example1: {
+        summary: 'Update class information',
+        value: {
+          class_name: 'Updated Biology Class 1',
+          class_type: 'national',
+          end_date: '2025-12-31',
+          is_active: true
+        }
+      }
+    }
+  })
+  @ResponseMessage('Class updated successfully')
+  async update(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() updateClassDto: UpdateClassDto
+  ) {
+    return await this.classService.update(classId, updateClassDto)
+  }
+
+  @Post(':classId/assign-lecturers')
+  @ApiOperation({ summary: 'Assign lecturers to a class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'List of lecturer IDs to assign',
+    type: AssignLecturersDto,
+    examples: {
+      example1: {
+        summary: 'Assign lecturers to class',
+        value: {
+          lecturer_ids: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']
+        }
+      }
+    }
+  })
+  @ResponseMessage('Lecturers assigned to class successfully')
+  async assignLecturers(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() assignLecturersDto: AssignLecturersDto
+  ) {
+    return await this.classService.assignLecturers(classId, assignLecturersDto)
   }
 }
