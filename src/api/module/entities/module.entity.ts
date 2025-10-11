@@ -18,14 +18,17 @@ export class ModuleEntity extends AbstractEntity {
   @Column({ type: 'varchar', nullable: true })
   moduleDescription: string
 
+  @Column({ type: 'varchar', nullable: true })
+  banner: string
+
   @Column({ type: 'uuid', nullable: false })
   classId: string
 
-  @ManyToOne(() => Class, (classEntity) => classEntity.modules)
-  @JoinColumn({ name: 'classId' })
+  @ManyToOne(() => Class, (classEntity) => classEntity.modules, { nullable: true })
+  @JoinColumn({ name: 'class_id' })
   class: Class
 
-  @OneToMany(() => LessonEntity, (lesson) => lesson.module)
+  @OneToMany(() => LessonEntity, (lesson) => lesson.module, { nullable: true })
   lessons: LessonEntity[]
 
   @OneToMany(() => TeachingModule, (teachingModule) => teachingModule.module)

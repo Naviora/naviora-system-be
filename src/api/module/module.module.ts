@@ -7,9 +7,10 @@ import { ModuleEntity } from './entities/module.entity'
 import { ModulesService } from './module.service'
 import { ModulesController } from './module.controller'
 import { TeachingModule } from './entities/teaching-module.entity'
+import { Class } from '@api/class/entities/class.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ModuleEntity, TeachingModule]), CloudinaryModule, JwtModule, AuthModule],
+  imports: [TypeOrmModule.forFeature([ModuleEntity, TeachingModule, Class]), CloudinaryModule, JwtModule, AuthModule],
   controllers: [ModulesController],
   providers: [ModulesService],
   exports: [ModulesService]

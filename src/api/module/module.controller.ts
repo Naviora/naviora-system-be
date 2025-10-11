@@ -1,6 +1,19 @@
 import { RolesGuard } from '@guards/roles.guard'
-import { Body, Controller, Get, Post, Patch, Query, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common'
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger'
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Query,
+  UseGuards,
+  Param,
+  ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile
+} from '@nestjs/common'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam, ApiConsumes } from '@nestjs/swagger'
+import { FileInterceptor } from '@nestjs/platform-express'
 import { ModulesService } from './module.service'
 import { CreateModuleDto } from './dto/create-module.dto'
 import { UpdateModuleDto } from './dto/update-module.dto'
@@ -26,24 +39,46 @@ export class ModulesController {
   @Post()
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
   @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('banner'))
   @ApiOperation({ summary: 'Create a new module' })
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Data create module',
-    type: CreateModuleDto,
-    examples: {
-      example1: {
-        summary: 'Create a new module',
-        value: {
-          module_code: 'CD1',
-          module_name: 'Cơ bản về cơ thể người',
-          module_description: 'Module 1 description'
+    description: 'Data create module with optional banner image',
+    schema: {
+      type: 'object',
+      properties: {
+        module_code: {
+          type: 'string',
+          description: 'The code of the module',
+          example: 'CD1'
+        },
+        module_name: {
+          type: 'string',
+          description: 'The name of the module',
+          example: 'Cơ bản về cơ thể người'
+        },
+        module_description: {
+          type: 'string',
+          description: 'The description of the module',
+          example: 'Module 1 description'
+        },
+        banner: {
+          type: 'string',
+          format: 'binary',
+          description: 'Banner image file for the module'
+        },
+        class_id: {
+          type: 'string',
+          description: 'The ID of the class',
+          example: '550e8400-e29b-41d4-a716-446655440000'
         }
-      }
+      },
+      required: ['module_code', 'module_name', 'class_id']
     }
   })
   @ResponseMessage('Module created successfully')
-  async create(@Body() createModuleDto: CreateModuleDto) {
-    return await this.modulesService.create(createModuleDto)
+  async create(@Body() createModuleDto: CreateModuleDto, @UploadedFile() banner?: Express.Multer.File) {
+    return await this.modulesService.create(createModuleDto, banner)
   }
 
   @ApiOperation({ summary: 'Get Modules', description: 'Get list of modules with pagination, search and filters' })
@@ -58,6 +93,7 @@ export class ModulesController {
         module_code: m.moduleCode,
         module_name: m.moduleName,
         module_description: m.moduleDescription,
+        banner: m.banner,
         created_at: m.createdAt,
         updated_at: m.updatedAt
       })

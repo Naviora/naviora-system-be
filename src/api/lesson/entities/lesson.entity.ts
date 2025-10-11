@@ -17,6 +17,6 @@ export class LessonEntity extends AbstractEntity {
   lessonDescription: string
 
   @ManyToOne(() => ModuleEntity, (module) => module.lessons)
-  @JoinColumn({ name: 'moduleId' })
+  @JoinColumn({ name: 'module_id' })
   module: ModuleEntity
 }
