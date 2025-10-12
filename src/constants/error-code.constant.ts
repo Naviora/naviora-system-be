@@ -60,6 +60,12 @@ export enum ErrorCode {
   MODULE001 = 'module.error.module_code_exists',
   MODULE002 = 'module.error.create_module_failed',
   MODULE003 = 'module.error.module_not_found',
+  MODULE004 = 'module.error.lecturer_already_assigned',
+  MODULE005 = 'module.error.assign_lecturer_failed',
+
+  //Error of User
+  USER001 = 'user.error.user_not_found',
+  USER002 = 'user.error.user_not_lecturer',
 
   // Error of Class
   L001 = 'lesson.error.lesson_name_exists'

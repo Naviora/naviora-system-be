@@ -1,15 +1,15 @@
 import { AccountStatus, Gender } from '@common/enums/account-role.enum'
 
 export class ProfileDTO {
-  accountId: string
+  account_id: string
   name: string
   email: string
-  staffId: string
+  staff_id: string
   avatar: string
   phone: string
   address: string
   gender: Gender
-  dateOfBirth: Date
+  date_of_birth: Date
   status: AccountStatus
   department: string
   rank: string

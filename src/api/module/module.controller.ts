@@ -18,6 +18,7 @@ import { ModulesService } from './module.service'
 import { CreateModuleDto } from './dto/create-module.dto'
 import { UpdateModuleDto } from './dto/update-module.dto'
 import { GetModulesQueryDto } from './dto/get-modules-query.dto'
+import { AssignLecturersToModuleDto } from './dto/assign-lecturers-to-module.dto'
 import { ModuleDTO } from './dto/module.dto'
 import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { plainToInstance } from 'class-transformer'
@@ -150,5 +151,35 @@ export class ModulesController {
     @Body() updateModuleDto: UpdateModuleDto
   ) {
     return await this.modulesService.update(moduleId, updateModuleDto)
+  }
+
+  @Post(':moduleId/assign-lecturers')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Assign lecturers to a module' })
+  @ApiParam({
+    name: 'moduleId',
+    description: 'The ID of the module to assign lecturers to',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'List of lecturer IDs to assign to the module',
+    type: AssignLecturersToModuleDto,
+    examples: {
+      example1: {
+        summary: 'Assign lecturers to module',
+        value: {
+          lecturer_ids: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001'],
+          end_date: '2024-12-31'
+        }
+      }
+    }
+  })
+  @ResponseMessage('Lecturers assigned to module successfully')
+  async assignLecturersToModule(
+    @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string,
+    @Body() assignLecturersDto: AssignLecturersToModuleDto
+  ) {
+    return await this.modulesService.assignLecturersToModule(moduleId, assignLecturersDto)
   }
 }
