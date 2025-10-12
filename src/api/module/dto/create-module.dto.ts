@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsNotEmpty } from 'class-validator'
+import { IsNotEmpty, IsOptional } from 'class-validator'
 
 export class CreateModuleDto {
   @ApiProperty({
@@ -24,5 +24,22 @@ export class CreateModuleDto {
     example: 'Module 1 description',
     default: null
   })
+  @IsOptional()
   module_description?: string
+
+  @ApiProperty({
+    description: 'The banner image URL of the module',
+    example: 'https://res.cloudinary.com/example/image/upload/v1234567890/banner.jpg',
+    required: false
+  })
+  @IsOptional()
+  banner?: string
+
+  @ApiProperty({
+    description: 'The class ID of the module',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    required: true
+  })
+  @IsNotEmpty()
+  class_id: string
 }
