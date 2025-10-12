@@ -1,5 +1,6 @@
 import { AbstractEntity } from '@database/entities/base.entity'
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm'
+import { ModuleEntity } from '@api/module/entities/module.entity'
 
 @Entity('lesson')
 export class LessonEntity extends AbstractEntity {
@@ -14,4 +15,8 @@ export class LessonEntity extends AbstractEntity {
 
   @Column({ type: 'varchar', nullable: false })
   lessonDescription: string
+
+  @ManyToOne(() => ModuleEntity, (module) => module.lessons)
+  @JoinColumn({ name: 'module_id' })
+  module: ModuleEntity
 }

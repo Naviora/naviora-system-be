@@ -211,4 +211,4 @@ jobs:
             if [[ "${{ steps.detect-entity-changes.outputs.entity_changed }}" == "true" ]]; then
                 docker rm -f postgres_container || true
             fi
-            docker compose up -d
+            TAG=${{ env.TAG }} docker compose up -d
