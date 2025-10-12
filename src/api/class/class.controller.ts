@@ -12,7 +12,7 @@ import { GetClassesQueryDto } from './dto/get-classes-query.dto'
 import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { ClassDTO } from './dto/class.dto'
 import { plainToInstance } from 'class-transformer'
-import { AssignLecturersDto } from './dto/assign-lecturers.dto'
+import { AssignLecturersDto } from './dto/assign-lecturers-to-class.dto'
 import { ClassDetailDTO } from './dto/class-detail.dto'
 
 @ApiTags('Classes')

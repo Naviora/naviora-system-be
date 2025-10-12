@@ -78,16 +78,20 @@ export class UserController {
 
     const mappedLecturers = lecturers.map((lecturer) =>
       plainToInstance(ProfileDTO, {
-        accountId: lecturer.id,
+        account_id: lecturer.id,
         name: lecturer.name,
         email: lecturer.email,
+        staff_id: lecturer.id, // Assuming staff_id maps to the same as account_id
         avatar: lecturer.avatar,
         phone: lecturer.phone,
         address: lecturer.address,
         gender: lecturer.gender,
-        dateOfBirth: lecturer.dateOfBirth,
+        date_of_birth: lecturer.dateOfBirth,
         status: lecturer.status,
-        role: lecturer.role?.name
+        department: '', // Add default values for missing fields
+        rank: '',
+        role: lecturer.role?.name,
+        salary: 0
       })
     )
 

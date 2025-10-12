@@ -19,6 +19,9 @@ export class ModuleDTO {
   @IsNotEmpty()
   module_description: string
   @ApiProperty()
+  @IsString()
+  banner: string
+  @ApiProperty()
   @IsDate()
   @Type(() => Date)
   created_at: Date
