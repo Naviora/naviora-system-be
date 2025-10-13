@@ -36,11 +36,12 @@ import { ModuleEntity } from '@api/module/entities/module.entity'
 import { TeachingAssignment } from '@api/class/entities/teaching-assignment.entity'
 import { LessonModule } from './api/lesson/lesson.module'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
-import { AnswerModule } from './api/answer/answer.module';
+import { AnswerModule } from './api/answer/answer.module'
 import { TeachingModule } from '@api/module/entities/teaching-module.entity'
 
 import { QuestionModule } from './api/question/question.module'
 import { QuestionEntity } from '@api/question/entities/question.entity'
+import { AnswerEntity } from '@api/answer/entities/answer.entity'
 
 @Module({
   imports: [
@@ -58,7 +59,18 @@ import { QuestionEntity } from '@api/question/entities/question.entity'
         return {
           ...databaseEnv,
           autoLoadEntities: true,
-          entities: [User, Role, SessionEntity, Class, ModuleEntity, TeachingAssignment, LessonEntity, TeachingModule, QuestionEntity]
+          entities: [
+            User,
+            Role,
+            SessionEntity,
+            Class,
+            ModuleEntity,
+            TeachingAssignment,
+            LessonEntity,
+            TeachingModule,
+            QuestionEntity,
+            AnswerEntity
+          ]
         }
       },
       inject: [ConfigService]
@@ -127,7 +139,7 @@ import { QuestionEntity } from '@api/question/entities/question.entity'
       }
     ]),
     LessonModule,
-    AnswerModule
+    AnswerModule,
     QuestionModule
   ],
   controllers: [AppController],

@@ -1,6 +1,7 @@
 import { AbstractEntity } from '@database/entities/base.entity'
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import { QuestionDifficulty, QuestionType } from '@common/enums/question.enum'
+import { AnswerEntity } from '@api/answer/entities/answer.entity'
 
 @Entity('question')
 export class QuestionEntity extends AbstractEntity {
@@ -24,4 +25,7 @@ export class QuestionEntity extends AbstractEntity {
 
   @Column({ type: 'uuid', nullable: false, name: 'correct_answer_id' })
   correctAnswerId: string
+
+  @OneToMany(() => AnswerEntity, (answer) => answer.question)
+  answers: AnswerEntity[]
 }

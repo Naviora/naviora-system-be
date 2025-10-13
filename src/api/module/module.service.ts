@@ -67,7 +67,7 @@ export class ModulesService {
         moduleName: createModuleDto.module_name,
         moduleDescription: createModuleDto.module_description,
         banner: bannerUrl,
-        classId: createModuleDto.class_id
+        class: existingClass
       })
       const newModule = await this.moduleRepository.save(moduleEntity)
       if (!newModule) {
