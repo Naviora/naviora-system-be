@@ -10,6 +10,8 @@ import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
 import { plainToInstance } from 'class-transformer'
 import { QuestionResponseDto, CreateQuestionResponseDto } from './dto/question-response.dto'
+import { QuestionType } from '@common/enums/question.enum'
+import { keysToSnake } from '@utils/snake-case'
 
 @Injectable()
 export class QuestionService {
@@ -25,6 +27,7 @@ export class QuestionService {
   ) {}
   async create(createQuestionDto: CreateQuestionDto): Promise<CreateQuestionResponseDto> {
     try {
+      // 1. Check if the lesson exists
       const lesson = await this.lessonRepository.findOne({ where: { lessonId: createQuestionDto.lesson_id } })
       if (!lesson) {
         throw new ValidationException(ErrorCode.L001, 'Lesson not found')
@@ -40,7 +43,22 @@ export class QuestionService {
 
       const savedQuestion = await this.questionRepository.save(newQuestion)
 
-      // Create answers for this question
+      // 2. Create answers for this question
+
+      // 2.1 Check if the question type is Multiple
+      if (createQuestionDto.type === QuestionType.MULTI_CHOICE) {
+        if (createQuestionDto.answers.length !== 4) {
+          throw new ValidationException(ErrorCode.Q002, 'Multiple choice question must have 4 answers')
+        }
+      }
+
+      // 2.2 Check if more than 1 answer is correct
+      if (createQuestionDto.answers.filter((answer) => answer.isCorrect).length > 1) {
+        throw new ValidationException(ErrorCode.Q003, 'Multiple choice question must have only 1 correct answer')
+      }
+
+      // TODO: Check another question type in the future
+
       const newAnswers = []
       for (const answer of createQuestionDto.answers) {
         const newAnswer = this.answerRepository.create({
@@ -62,9 +80,11 @@ export class QuestionService {
         answers: newAnswers
       }
 
-      return plainToInstance(CreateQuestionResponseDto, responseData, {
-        excludeExtraneousValues: true
-      })
+      return keysToSnake(
+        plainToInstance(CreateQuestionResponseDto, responseData, {
+          excludeExtraneousValues: true
+        })
+      )
     } catch (error) {
       throw error
     }

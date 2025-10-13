@@ -6,7 +6,7 @@ export class AnswerResponseDto {
   @ApiProperty({ description: 'Answer ID' })
   @Expose()
   @Transform(({ obj }) => obj.answerId)
-  id: string
+  answerId: string
 
   @ApiProperty({ description: 'Answer content' })
   @Expose()
@@ -34,7 +34,7 @@ export class AnswerResponseDto {
 
   static fromEntity(entity: AnswerEntity): AnswerResponseDto {
     return {
-      id: entity.answerId,
+      answerId: entity.answerId,
       content: entity.content,
       isCorrect: entity.isCorrect,
       additionalImage: entity.additionalImage,

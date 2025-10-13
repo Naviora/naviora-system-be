@@ -23,7 +23,7 @@ export class QuestionEntity extends AbstractEntity {
   @Column({ type: 'text', nullable: true, name: 'additional_image' })
   additionalImage: string | null
 
-  @Column({ type: 'uuid', nullable: false, name: 'correct_answer_id' })
+  @Column({ type: 'uuid', nullable: true, name: 'correct_answer_id' })
   correctAnswerId: string
 
   @OneToMany(() => AnswerEntity, (answer) => answer.question)

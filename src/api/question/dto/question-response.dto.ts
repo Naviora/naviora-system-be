@@ -8,7 +8,7 @@ export class QuestionResponseDto {
   @ApiProperty({ description: 'Question ID' })
   @Expose()
   @Transform(({ obj }) => obj.questionId)
-  id: string
+  questionId: string
 
   @ApiProperty({ description: 'Lesson ID this question belongs to' })
   @Expose()
@@ -25,6 +25,7 @@ export class QuestionResponseDto {
     enumName: 'QuestionType'
   })
   @Expose()
+  @Transform(({ obj }) => obj.type)
   type: QuestionType
 
   @ApiProperty({
@@ -33,6 +34,7 @@ export class QuestionResponseDto {
     enumName: 'QuestionDifficulty'
   })
   @Expose()
+  @Transform(({ obj }) => obj.difficulty)
   difficulty: QuestionDifficulty
 
   @ApiProperty({ description: 'Additional image URL', required: false })
@@ -52,7 +54,7 @@ export class QuestionResponseDto {
   @Expose()
   @Type(() => AnswerResponseDto)
   @Transform(({ obj }) => obj.answers?.map((answer) => AnswerResponseDto.fromEntity(answer)))
-  answers?: AnswerResponseDto[]
+  answers: AnswerResponseDto[]
 
   @ApiProperty({ description: 'Creation date' })
   @Expose()
@@ -66,7 +68,7 @@ export class QuestionResponseDto {
 
   static fromEntity(entity: QuestionEntity): QuestionResponseDto {
     return {
-      id: entity.questionId,
+      questionId: entity.questionId,
       lessonId: entity.lessonId,
       content: entity.content,
       type: entity.type,
