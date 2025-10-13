@@ -12,6 +12,8 @@ import { plainToInstance } from 'class-transformer'
 import { QuestionResponseDto, CreateQuestionResponseDto } from './dto/question-response.dto'
 import { QuestionType } from '@common/enums/question.enum'
 import { keysToSnake } from '@utils/snake-case'
+import { paginate } from '@utils/offset-pagination'
+import { ListQuestionReqDto } from '@api/question/dto/list-question.req.dto'
 
 @Injectable()
 export class QuestionService {
@@ -90,15 +92,19 @@ export class QuestionService {
     }
   }
 
-  async findAll(): Promise<QuestionResponseDto[]> {
+  async findAll(reqDto: ListQuestionReqDto) {
     try {
-      const questions = await this.questionRepository.find({
-        relations: ['answers']
+      const query = this.questionRepository.createQueryBuilder('questions').orderBy('questions.createdAt', 'DESC')
+
+      const [questions, metaDto] = await paginate<QuestionEntity>(query, reqDto, {
+        skipCount: false,
+        takeAll: false
       })
 
-      return plainToInstance(QuestionResponseDto, questions, {
-        excludeExtraneousValues: true
-      })
+      return {
+        questions,
+        meta: metaDto
+      }
     } catch (error) {
       throw error
     }

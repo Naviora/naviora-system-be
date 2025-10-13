@@ -7,7 +7,8 @@ import {
   Body,
   Param,
   UseInterceptors,
-  ClassSerializerInterceptor
+  ClassSerializerInterceptor,
+  Query
 } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { QuestionService } from './question.service'
@@ -15,6 +16,7 @@ import { CreateQuestionDto } from './dto/create-question.dto'
 import { UpdateQuestionDto } from './dto/update-question.dto'
 import { QuestionResponseDto, CreateQuestionResponseDto } from './dto/question-response.dto'
 import { Public } from '@decorators/auth.decorator'
+import { ListQuestionReqDto } from '@api/question/dto/list-question.req.dto'
 
 @ApiTags('Questions')
 @Controller('questions')
@@ -41,8 +43,8 @@ export class QuestionController {
     description: 'List of questions retrieved successfully',
     type: [QuestionResponseDto]
   })
-  async findAll(): Promise<QuestionResponseDto[]> {
-    return this.questionService.findAll()
+  async findAll(@Query() reqDto: ListQuestionReqDto) {
+    return await this.questionService.findAll(reqDto)
   }
 
   @Get(':id')
