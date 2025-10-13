@@ -11,7 +11,6 @@ import { AnswerEntity } from '@api/answer/entities/answer.entity'
 import { plainToInstance } from 'class-transformer'
 import { QuestionResponseDto, CreateQuestionResponseDto } from './dto/question-response.dto'
 import { QuestionType } from '@common/enums/question.enum'
-import { keysToSnake } from '@utils/snake-case'
 import { paginate } from '@utils/offset-pagination'
 import { ListQuestionReqDto } from '@api/question/dto/list-question.req.dto'
 
