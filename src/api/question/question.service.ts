@@ -82,11 +82,9 @@ export class QuestionService {
         answers: newAnswers
       }
 
-      return keysToSnake(
-        plainToInstance(CreateQuestionResponseDto, responseData, {
-          excludeExtraneousValues: true
-        })
-      )
+      return plainToInstance(CreateQuestionResponseDto, responseData, {
+        excludeExtraneousValues: true
+      })
     } catch (error) {
       throw error
     }

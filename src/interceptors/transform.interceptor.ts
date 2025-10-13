@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators'
 import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { RESPONSE_MESSAGE_KEY } from '@decorators/response-message.decorator'
 import { SKIP_TRANSFORM_KEY } from '@decorators/skip-transform.decorator'
+import { keysToSnake } from '@utils/snake-case'
 
 export interface Response<T> {
   statusCode: number
@@ -46,7 +47,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
         return {
           status_code: statusCode,
           message: customMessage || defaultMessage,
-          data
+          data: keysToSnake(data)
         }
       })
     )
