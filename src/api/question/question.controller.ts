@@ -4,7 +4,6 @@ import { QuestionService } from './question.service'
 import { CreateQuestionDto } from './dto/create-question.dto'
 import { UpdateQuestionDto } from './dto/update-question.dto'
 import { QuestionResponseDto, CreateQuestionResponseDto } from './dto/question-response.dto'
-import { Public } from '@decorators/auth.decorator'
 import { ListQuestionReqDto } from '@api/question/dto/list-question.req.dto'
 import { RolesGuard } from '@guards/roles.guard'
 import { RoleInAccount } from '@common/enums/account-role.enum'
@@ -17,7 +16,6 @@ import { Roles } from '@decorators/roles.decorator'
 })
 @UseGuards(RolesGuard)
 @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
-@Public()
 @ApiBearerAuth('Authorization')
 export class QuestionController {
   constructor(private readonly questionService: QuestionService) {}

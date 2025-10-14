@@ -48,7 +48,7 @@ export class QuestionService {
 
       // 2.1 Check if the question type is Multiple
       if (createQuestionDto.type === QuestionType.MULTI_CHOICE) {
-        if (createQuestionDto.answers.length !== 4) {
+        if (createQuestionDto.answers.length < 2) {
           throw new ValidationException(ErrorCode.Q002, 'Multiple choice question must have 4 answers')
         }
       }
@@ -100,7 +100,7 @@ export class QuestionService {
 
       return {
         questions,
-        meta: metaDto
+        pagination: metaDto
       }
     } catch (error) {
       throw error

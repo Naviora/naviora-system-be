@@ -54,7 +54,7 @@ export class LessonService {
 
       return {
         lessons,
-        meta: metaDto
+        pagination: metaDto
       }
     } catch (error) {
       throw error
