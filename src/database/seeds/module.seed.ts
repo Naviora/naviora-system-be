@@ -1,4 +1,4 @@
-// Dữ liệu seed cho module môn Sinh học 12
+// Data seed for module of subject Sinh học 12
 export const moduleSeedData = [
   {
     moduleCode: 'SINH12-MODULE-01',

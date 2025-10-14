@@ -1,9 +1,9 @@
 import { QuestionType, QuestionDifficulty } from '@common/enums/question.enum'
 
-// Dữ liệu seed cho 20 câu hỏi MULTI_CHOICE môn Sinh học 12 - Chương Cơ chế di truyền và biến dị
+// Data seed for 20 questions of MULTI_CHOICE subject Sinh học 12 - Chapter Cơ chế di truyền và biến dị
 export const questionSeedData = [
   {
-    lessonId: 'lesson-sinh-hoc-12', // Sẽ được thay thế bằng actual lesson ID
+    lessonId: 'lesson-sinh-hoc-12', // Will be replaced by actual lesson ID
     content: 'Trong quá trình nhân đôi ADN, enzim nào có vai trò tháo xoắn phân tử ADN?',
     type: QuestionType.MULTI_CHOICE,
     difficulty: QuestionDifficulty.MEDIUM,
