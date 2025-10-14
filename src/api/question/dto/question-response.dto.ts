@@ -58,12 +58,12 @@ export class QuestionResponseDto {
 
   @ApiProperty({ description: 'Creation date' })
   @Expose()
-  @Transform(({ obj }) => obj.createdAt)
+  @Transform(({ obj }) => obj.createdAt || obj.created_at)
   createdAt: Date
 
   @ApiProperty({ description: 'Last update date' })
   @Expose()
-  @Transform(({ obj }) => obj.updatedAt)
+  @Transform(({ obj }) => obj.updatedAt || obj.updated_at)
   updatedAt: Date
 
   static fromEntity(entity: QuestionEntity): QuestionResponseDto {
