@@ -1,6 +1,13 @@
 import { NestFactory, Reflector } from '@nestjs/core'
 import { AppModule } from './app.module'
-import { HttpStatus, RequestMethod, UnprocessableEntityException, ValidationPipe, VersioningType } from '@nestjs/common'
+import {
+  ClassSerializerInterceptor,
+  HttpStatus,
+  RequestMethod,
+  UnprocessableEntityException,
+  ValidationPipe,
+  VersioningType
+} from '@nestjs/common'
 import { ValidationError } from 'class-validator'
 import { configSwagger } from '@utils/config-swagger'
 import { ConfigService } from '@nestjs/config'
@@ -40,7 +47,7 @@ async function bootstrap() {
   const corsOrigin = configService.getOrThrow<string>('app.corsOrigin', { infer: true })
 
   app.useGlobalFilters(new GlobalExceptionFilter(configService))
-  app.useGlobalInterceptors(new TransformInterceptor(reflector))
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector), new TransformInterceptor(reflector))
 
   app.setGlobalPrefix(configService.getOrThrow<string>('app.apiPrefix', { infer: true }), {
     exclude: [

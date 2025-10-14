@@ -27,21 +27,19 @@ import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
-import { Public } from '@decorators/auth.decorator'
 
 @ApiTags('Modules')
 @Controller({
   path: 'modules',
   version: '1'
 })
-@Public()
 @ApiBearerAuth('Authorization')
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
   @Post()
-  // @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
-  // @UseGuards(RolesGuard)
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
+  @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('banner'))
   @ApiOperation({ summary: 'Create a new module' })
   @ApiConsumes('multipart/form-data')

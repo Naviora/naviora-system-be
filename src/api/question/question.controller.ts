@@ -1,27 +1,24 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
-  Body,
-  Param,
-  UseInterceptors,
-  ClassSerializerInterceptor,
-  Query
-} from '@nestjs/common'
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common'
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger'
 import { QuestionService } from './question.service'
 import { CreateQuestionDto } from './dto/create-question.dto'
 import { UpdateQuestionDto } from './dto/update-question.dto'
 import { QuestionResponseDto, CreateQuestionResponseDto } from './dto/question-response.dto'
 import { Public } from '@decorators/auth.decorator'
 import { ListQuestionReqDto } from '@api/question/dto/list-question.req.dto'
+import { RolesGuard } from '@guards/roles.guard'
+import { RoleInAccount } from '@common/enums/account-role.enum'
+import { Roles } from '@decorators/roles.decorator'
 
 @ApiTags('Questions')
-@Controller('questions')
-@UseInterceptors(ClassSerializerInterceptor)
+@Controller({
+  path: 'questions',
+  version: '1'
+})
+@UseGuards(RolesGuard)
+@Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
 @Public()
+@ApiBearerAuth('Authorization')
 export class QuestionController {
   constructor(private readonly questionService: QuestionService) {}
 
