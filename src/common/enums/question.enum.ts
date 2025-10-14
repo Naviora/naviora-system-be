@@ -1,0 +1,13 @@
+export enum QuestionType {
+  MATCHING = 'MATCHING',
+  MULTI_CHOICE = 'MULTI_CHOICE',
+  TRUE_FALSE = 'TRUE_FALSE',
+  SHORT_ANSWER = 'SHORT_ANSWER',
+  ESSAY = 'ESSAY'
+}
+
+export enum QuestionDifficulty {
+  EASY = 'EASY',
+  MEDIUM = 'MEDIUM',
+  HARD = 'HARD'
+}

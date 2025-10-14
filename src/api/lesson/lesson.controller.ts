@@ -8,16 +8,14 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RolesGuard } from '@guards/roles.guard'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
-import { Public } from '@decorators/auth.decorator'
 
 @Controller({
   path: 'lessons',
   version: '1'
 })
 @ApiTags('Lessons')
-// @UseGuards(RolesGuard)
-// @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
-@Public()
+@UseGuards(RolesGuard)
+@Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
 @ApiBearerAuth('Authorization')
 export class LessonController {
   constructor(private readonly lessonService: LessonService) {}

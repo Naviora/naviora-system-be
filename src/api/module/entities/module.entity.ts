@@ -21,9 +21,6 @@ export class ModuleEntity extends AbstractEntity {
   @Column({ type: 'varchar', nullable: true })
   banner: string
 
-  @Column({ type: 'uuid', nullable: false })
-  classId: string
-
   @ManyToOne(() => Class, (classEntity) => classEntity.modules, { nullable: true })
   @JoinColumn({ name: 'class_id' })
   class: Class
