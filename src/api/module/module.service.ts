@@ -46,14 +46,17 @@ export class ModulesService {
           }
         ])
       }
-      const existingClass = await this.classRepository.findOne({ where: { classId: class_id } })
-      if (!existingClass) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
-          {
-            property: 'class_id',
-            code: ErrorCode.CLASS003
-          }
-        ])
+      let existingClass = null
+      if (class_id !== null && class_id !== '') {
+        existingClass = await this.classRepository.findOne({ where: { classId: class_id } })
+        if (!existingClass) {
+          throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+            {
+              property: 'class_id',
+              code: ErrorCode.CLASS003
+            }
+          ])
+        }
       }
       // Handle banner image upload if provided
       let bannerUrl = createModuleDto.banner
@@ -79,12 +82,14 @@ export class ModulesService {
         module_name: newModule.moduleName,
         module_description: newModule.moduleDescription,
         banner: newModule.banner,
-        class: {
-          class_id: existingClass.classId,
-          class_code: existingClass.classCode,
-          class_name: existingClass.className,
-          class_type: existingClass.classType
-        },
+        class: existingClass
+          ? {
+              class_id: existingClass.classId,
+              class_code: existingClass.classCode,
+              class_name: existingClass.className,
+              class_type: existingClass.classType
+            }
+          : null,
         created_at: newModule.createdAt,
         updated_at: newModule.updatedAt
       }

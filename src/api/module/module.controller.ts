@@ -75,7 +75,7 @@ export class ModulesController {
           example: '550e8400-e29b-41d4-a716-446655440000'
         }
       },
-      required: ['module_code', 'module_name', 'class_id']
+      required: ['module_code', 'module_name']
     }
   })
   @ResponseMessage('Module created successfully')
