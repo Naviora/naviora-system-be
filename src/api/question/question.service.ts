@@ -91,7 +91,11 @@ export class QuestionService {
 
   async findAll(reqDto: ListQuestionReqDto) {
     try {
-      const query = this.questionRepository.createQueryBuilder('questions').orderBy('questions.createdAt', 'DESC')
+      // Find list answer for each question
+      const query = this.questionRepository
+        .createQueryBuilder('questions')
+        .orderBy('questions.createdAt', 'DESC')
+        .leftJoinAndSelect('questions.answers', 'answers')
 
       const [questions, metaDto] = await paginate<QuestionEntity>(query, reqDto, {
         skipCount: false,
