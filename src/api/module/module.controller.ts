@@ -20,6 +20,7 @@ import { UpdateModuleDto } from './dto/update-module.dto'
 import { GetModulesQueryDto } from './dto/get-modules-query.dto'
 import { AssignLecturersToModuleDto } from './dto/assign-lecturers-to-module.dto'
 import { ModuleDTO } from './dto/module.dto'
+import { ModuleWithLessonsDTO } from './dto/module-with-lessons.dto'
 import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { plainToInstance } from 'class-transformer'
 import { ResponseMessage } from '@decorators/response-message.decorator'
@@ -121,6 +122,24 @@ export class ModulesController {
     @CurrentUser() currentUser: User
   ) {
     return await this.modulesService.getModuleById(moduleId, currentUser)
+  }
+
+  @Get(':moduleId/lessons')
+  @ApiOperation({
+    summary: 'Get module with lessons',
+    description: 'Get module details with all corresponding lessons'
+  })
+  @ApiParam({
+    name: 'moduleId',
+    description: 'The ID of the module to get lessons',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Get Module with Lessons successfully')
+  async getModuleWithLessons(
+    @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string
+  ): Promise<ModuleWithLessonsDTO> {
+    const moduleWithLessons = await this.modulesService.getModuleWithLessons(moduleId)
+    return plainToInstance(ModuleWithLessonsDTO, moduleWithLessons)
   }
 
   @Patch(':moduleId')

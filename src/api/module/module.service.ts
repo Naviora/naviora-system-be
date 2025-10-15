@@ -279,6 +279,47 @@ export class ModulesService {
     }
   }
 
+  async getModuleWithLessons(moduleId: string) {
+    try {
+      // Find module with lessons
+      const module = await this.moduleRepository
+        .createQueryBuilder('module')
+        .leftJoinAndSelect('module.lessons', 'lessons')
+        .leftJoinAndSelect('module.class', 'class')
+        .where('module.moduleId = :moduleId', { moduleId })
+        .getOne()
+
+      if (!module) {
+        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+          {
+            property: 'module_id',
+            code: ErrorCode.MODULE003
+          }
+        ])
+      }
+
+      return {
+        module_id: module.moduleId,
+        module_code: module.moduleCode,
+        module_name: module.moduleName,
+        module_description: module.moduleDescription,
+        banner: module.banner,
+        created_at: module.createdAt,
+        updated_at: module.updatedAt,
+        lessons:
+          module.lessons?.map((lesson) => ({
+            lesson_id: lesson.lessonId,
+            lesson_name: lesson.lessonName,
+            lesson_description: lesson.lessonDescription,
+            created_at: lesson.createdAt,
+            updated_at: lesson.updatedAt
+          })) || []
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
   async assignLecturersToModule(moduleId: string, assignLecturersDto: AssignLecturersToModuleDto) {
     try {
       // Check if module exists
