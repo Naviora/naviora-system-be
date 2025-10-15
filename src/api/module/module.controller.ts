@@ -5,6 +5,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Query,
   UseGuards,
   Param,
@@ -181,5 +182,19 @@ export class ModulesController {
     @Body() assignLecturersDto: AssignLecturersToModuleDto
   ) {
     return await this.modulesService.assignLecturersToModule(moduleId, assignLecturersDto)
+  }
+
+  @Delete(':moduleId')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Soft delete a module' })
+  @ApiParam({
+    name: 'moduleId',
+    description: 'The ID of the module to soft delete',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Module deleted successfully')
+  async softDelete(@Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string) {
+    return await this.modulesService.softDelete(moduleId)
   }
 }
