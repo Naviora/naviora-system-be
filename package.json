@@ -55,7 +55,7 @@
     "axios": "^1.12.0",
     "bcrypt": "^6.0.0",
     "boilerplate-nest-js": "file:",
-    "bullmq": "^5.41.8",
+    "bullmq": "^5.58.7",
     "cache-manager": "^6.4.0",
     "cacheable": "^1.8.8",
     "class-transformer": "^0.5.1",
