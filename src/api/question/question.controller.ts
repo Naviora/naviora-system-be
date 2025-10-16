@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common'
+import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, ParseUUIDPipe, Patch } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger'
 import { QuestionService } from './question.service'
 import { CreateQuestionDto } from './dto/create-question.dto'
@@ -8,14 +8,17 @@ import { ListQuestionReqDto } from '@api/question/dto/list-question.req.dto'
 import { RolesGuard } from '@guards/roles.guard'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
+import { ResponseMessage } from '@decorators/response-message.decorator'
+import { Public } from '@decorators/auth.decorator'
 
 @ApiTags('Questions')
 @Controller({
   path: 'questions',
   version: '1'
 })
-@UseGuards(RolesGuard)
-@Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
+// @UseGuards(RolesGuard)
+// @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
+@Public()
 @ApiBearerAuth('Authorization')
 export class QuestionController {
   constructor(private readonly questionService: QuestionService) {}
@@ -27,6 +30,7 @@ export class QuestionController {
     description: 'Question created successfully',
     type: CreateQuestionResponseDto
   })
+  @ResponseMessage('Question created successfully')
   async create(@Body() createQuestionDto: CreateQuestionDto): Promise<CreateQuestionResponseDto> {
     return this.questionService.create(createQuestionDto)
   }
@@ -38,6 +42,7 @@ export class QuestionController {
     description: 'List of questions retrieved successfully',
     type: [QuestionResponseDto]
   })
+  @ResponseMessage('Get all questions successfully')
   async findAll(@Query() reqDto: ListQuestionReqDto) {
     return await this.questionService.findAll(reqDto)
   }
@@ -49,19 +54,23 @@ export class QuestionController {
     description: 'Question retrieved successfully',
     type: QuestionResponseDto
   })
+  @ResponseMessage('Get question successfully')
   async findOne(@Param('id') id: string): Promise<QuestionResponseDto> {
     return this.questionService.findOne(id)
   }
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Update a question' })
+  @Patch(':id')
+  @ResponseMessage('Question updated successfully')
   @ApiResponse({
     status: 200,
     description: 'Question updated successfully',
     type: QuestionResponseDto
   })
-  async update(@Param('id') id: string, @Body() updateQuestionDto: UpdateQuestionDto): Promise<QuestionResponseDto> {
-    return this.questionService.update(id, updateQuestionDto)
+  async update(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() updateQuestionDto: UpdateQuestionDto
+  ): Promise<QuestionResponseDto> {
+    return await this.questionService.update(id, updateQuestionDto)
   }
 
   @Delete(':id')
@@ -71,7 +80,8 @@ export class QuestionController {
     description: 'Question deleted successfully',
     type: QuestionResponseDto
   })
-  async remove(@Param('id') id: string): Promise<QuestionResponseDto> {
-    return this.questionService.remove(id)
+  @ResponseMessage('Question deleted successfully')
+  async remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string): Promise<QuestionResponseDto> {
+    return await this.questionService.remove(id)
   }
 }

@@ -131,6 +131,7 @@ export class QuestionService {
 
   async update(id: string, updateQuestionDto: UpdateQuestionDto): Promise<QuestionResponseDto> {
     try {
+      // 1. Check if the question exists
       const question = await this.questionRepository.findOne({
         where: { questionId: id },
         relations: ['answers']
@@ -139,7 +140,13 @@ export class QuestionService {
         throw new ValidationException(ErrorCode.Q001, 'Question not found')
       }
 
-      // Update question fields
+      // 2. Check if the lesson exists
+      const lesson = await this.lessonRepository.findOne({ where: { lessonId: updateQuestionDto.lesson_id } })
+      if (!lesson) {
+        throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+      }
+
+      // 3. Update question fields
       Object.assign(question, {
         lessonId: updateQuestionDto.lesson_id || question.lessonId,
         content: updateQuestionDto.content || question.content,
@@ -147,6 +154,16 @@ export class QuestionService {
         difficulty: updateQuestionDto.difficulty || question.difficulty,
         additionalImage: updateQuestionDto.additional_image || question.additionalImage
       })
+
+      //4. Update content answers if client provides new content of answers
+      if (updateQuestionDto.answers) {
+        for (const answer of updateQuestionDto.answers) {
+          const existingAnswer = question.answers.find((a) => a.answerId === answer.answer_id)
+          if (existingAnswer) {
+            existingAnswer.content = answer.content
+          }
+        }
+      }
 
       const updatedQuestion = await this.questionRepository.save(question)
 
@@ -161,14 +178,13 @@ export class QuestionService {
   async remove(id: string): Promise<QuestionResponseDto> {
     try {
       const question = await this.questionRepository.findOne({
-        where: { questionId: id },
-        relations: ['answers']
+        where: { questionId: id }
       })
       if (!question) {
         throw new ValidationException(ErrorCode.Q001, 'Question not found')
       }
 
-      await this.questionRepository.remove(question)
+      await this.questionRepository.softDelete(id)
 
       return plainToInstance(QuestionResponseDto, question, {
         excludeExtraneousValues: true
