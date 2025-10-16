@@ -127,19 +127,30 @@ export class ModulesController {
   @Patch(':moduleId')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal)
   @UseGuards(RolesGuard)
+  @UseInterceptors(FileInterceptor('banner'))
   @ApiOperation({ summary: 'Update a module' })
+  @ApiConsumes('multipart/form-data')
   @ApiParam({
     name: 'moduleId',
     description: 'The ID of the module to update',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
   @ApiBody({
-    description: 'Data to update module',
-    type: UpdateModuleDto,
+    description: 'Data to update module (multipart for banner upload)',
+    schema: {
+      type: 'object',
+      properties: {
+        module_code: { type: 'string', example: 'CD1-UPDATED' },
+        module_name: { type: 'string', example: 'Updated Module Name' },
+        module_description: { type: 'string', example: 'Updated description' },
+        banner: { type: 'string', format: 'binary', description: 'Banner image file' }
+      }
+    },
     examples: {
-      example1: {
-        summary: 'Update module information',
+      allPatchableFields: {
+        summary: 'Update all patchable fields (banner via file upload)',
         value: {
+          module_code: 'CD1-UPDATED',
           module_name: 'Updated Module Name',
           module_description: 'Updated description'
         }
@@ -149,9 +160,10 @@ export class ModulesController {
   @ResponseMessage('Module updated successfully')
   async update(
     @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string,
-    @Body() updateModuleDto: UpdateModuleDto
+    @Body() updateModuleDto: UpdateModuleDto,
+    @UploadedFile() banner?: Express.Multer.File
   ) {
-    return await this.modulesService.update(moduleId, updateModuleDto)
+    return await this.modulesService.update(moduleId, updateModuleDto, banner)
   }
 
   @Post(':moduleId/assign-lecturers')

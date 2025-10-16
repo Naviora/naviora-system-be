@@ -83,7 +83,7 @@ export class ModulesService {
     }
   }
 
-  async update(moduleId: string, updateModuleDto: UpdateModuleDto) {
+  async update(moduleId: string, updateModuleDto: UpdateModuleDto, banner?: Express.Multer.File) {
     try {
       // Check if module exists
       const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
@@ -117,7 +117,14 @@ export class ModulesService {
       if (updateModuleDto.module_name !== undefined) moduleEntity.moduleName = updateModuleDto.module_name
       if (updateModuleDto.module_description !== undefined)
         moduleEntity.moduleDescription = updateModuleDto.module_description
-      if (updateModuleDto.banner !== undefined) moduleEntity.banner = updateModuleDto.banner
+
+      // Handle optional banner update (file upload preferred)
+      if (banner) {
+        const uploadResult = await this.cloudinaryService.uploadFile(banner)
+        moduleEntity.banner = uploadResult.secure_url
+      } else if (updateModuleDto.banner !== undefined) {
+        moduleEntity.banner = updateModuleDto.banner
+      }
 
       const updatedModule = await this.moduleRepository.save(moduleEntity)
 
