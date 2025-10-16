@@ -39,8 +39,8 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
           return {
             status_code: statusCode,
             message: customMessage || defaultMessage,
-            data: data.data,
-            pagination: data.pagination
+            data: Array.isArray(data.data) ? data.data.map((item) => keysToSnake(item)) : data.data,
+            pagination: keysToSnake(data.pagination)
           }
         }
 
