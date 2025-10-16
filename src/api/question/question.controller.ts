@@ -9,16 +9,14 @@ import { RolesGuard } from '@guards/roles.guard'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
 import { ResponseMessage } from '@decorators/response-message.decorator'
-import { Public } from '@decorators/auth.decorator'
 
 @ApiTags('Questions')
 @Controller({
   path: 'questions',
   version: '1'
 })
-// @UseGuards(RolesGuard)
-// @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
-@Public()
+@UseGuards(RolesGuard)
+@Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
 @ApiBearerAuth('Authorization')
 export class QuestionController {
   constructor(private readonly questionService: QuestionService) {}
