@@ -19,9 +19,7 @@ import { CreateModuleDto } from './dto/create-module.dto'
 import { UpdateModuleDto } from './dto/update-module.dto'
 import { GetModulesQueryDto } from './dto/get-modules-query.dto'
 import { AssignLecturersToModuleDto } from './dto/assign-lecturers-to-module.dto'
-import { ModuleDTO } from './dto/module.dto'
 import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
-import { plainToInstance } from 'class-transformer'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
@@ -74,7 +72,7 @@ export class ModulesController {
           example: '550e8400-e29b-41d4-a716-446655440000'
         }
       },
-      required: ['module_code', 'module_name', 'class_id']
+      required: ['module_code', 'module_name']
     }
   })
   @ResponseMessage('Module created successfully')
@@ -85,25 +83,13 @@ export class ModulesController {
   @ApiOperation({ summary: 'Get Modules', description: 'Get list of modules with pagination, search and filters' })
   @Get()
   @ResponseMessage('Get Modules successfully')
-  async getModules(@Query() query: GetModulesQueryDto): Promise<OffsetPaginatedDto<ModuleDTO>> {
+  async getModules(@Query() query: GetModulesQueryDto): Promise<OffsetPaginatedDto<unknown>> {
     const { modules, meta } = await this.modulesService.getModules(query)
 
-    const mappedModules = modules.map((m) =>
-      plainToInstance(ModuleDTO, {
-        module_id: m.moduleId,
-        module_code: m.moduleCode,
-        module_name: m.moduleName,
-        module_description: m.moduleDescription,
-        banner: m.banner,
-        created_at: m.createdAt,
-        updated_at: m.updatedAt
-      })
-    )
-
-    return new OffsetPaginatedDto<ModuleDTO>({
+    return new OffsetPaginatedDto<unknown>({
       statusCode: 200,
       message: 'Get Modules successfully',
-      data: mappedModules,
+      data: modules as unknown[],
       meta
     })
   }
@@ -121,6 +107,21 @@ export class ModulesController {
     @CurrentUser() currentUser: User
   ) {
     return await this.modulesService.getModuleById(moduleId, currentUser)
+  }
+
+  @Get(':moduleId/lessons')
+  @ApiOperation({
+    summary: 'Get module with lessons',
+    description: 'Get module details with all corresponding lessons'
+  })
+  @ApiParam({
+    name: 'moduleId',
+    description: 'The ID of the module to get lessons',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Get Module with Lessons successfully')
+  async getModuleWithLessons(@Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string) {
+    return await this.modulesService.getModuleWithLessons(moduleId)
   }
 
   @Patch(':moduleId')
