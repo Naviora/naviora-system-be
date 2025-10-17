@@ -454,7 +454,7 @@ export class ModulesService {
         ])
       }
 
-      await this.moduleRepository.softRemove(moduleEntity)
+      await this.moduleRepository.softDelete({ moduleId })
 
       const deleted = await this.moduleRepository.findOne({ where: { moduleId }, withDeleted: true })
 
