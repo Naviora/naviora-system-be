@@ -61,7 +61,18 @@ export class QuestionService {
       // TODO: Check another question type in the future
 
       const newAnswers = []
+      // Validate unique content for each provided answer (case-insensitive, trimmed)
+      const seenContents = new Set<string>()
       for (const answer of createQuestionDto.answers) {
+        const normalized = (answer.content || '').trim().toLowerCase()
+        if (!normalized) {
+          throw new ValidationException(ErrorCode.V004, 'Answer content must not be empty')
+        }
+        if (seenContents.has(normalized)) {
+          throw new ValidationException(ErrorCode.Q004, 'Answer content must be unique')
+        }
+        seenContents.add(normalized)
+
         const newAnswer = this.answerRepository.create({
           question: savedQuestion,
           content: answer.content,
@@ -91,7 +102,11 @@ export class QuestionService {
 
   async findAll(reqDto: ListQuestionReqDto) {
     try {
-      const query = this.questionRepository.createQueryBuilder('questions').orderBy('questions.createdAt', 'DESC')
+      // Find list answer for each question
+      const query = this.questionRepository
+        .createQueryBuilder('questions')
+        .orderBy('questions.createdAt', 'DESC')
+        .leftJoinAndSelect('questions.answers', 'answers')
 
       const [questions, metaDto] = await paginate<QuestionEntity>(query, reqDto, {
         skipCount: false,
@@ -127,6 +142,7 @@ export class QuestionService {
 
   async update(id: string, updateQuestionDto: UpdateQuestionDto): Promise<QuestionResponseDto> {
     try {
+      // 1. Check if the question exists
       const question = await this.questionRepository.findOne({
         where: { questionId: id },
         relations: ['answers']
@@ -135,7 +151,13 @@ export class QuestionService {
         throw new ValidationException(ErrorCode.Q001, 'Question not found')
       }
 
-      // Update question fields
+      // 2. Check if the lesson exists
+      const lesson = await this.lessonRepository.findOne({ where: { lessonId: updateQuestionDto.lesson_id } })
+      if (!lesson) {
+        throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+      }
+
+      // 3. Update question fields
       Object.assign(question, {
         lessonId: updateQuestionDto.lesson_id || question.lessonId,
         content: updateQuestionDto.content || question.content,
@@ -143,6 +165,44 @@ export class QuestionService {
         difficulty: updateQuestionDto.difficulty || question.difficulty,
         additionalImage: updateQuestionDto.additional_image || question.additionalImage
       })
+
+      //4. Update content answers if client provides new content of answers
+      if (updateQuestionDto.answers) {
+        // Validate uniqueness across provided updates combined with untouched existing answers
+        const normalizedExisting = new Set<string>()
+        // Add all current answers (that will remain) using their final content after updates
+        const finalContentsById = new Map<string, string>()
+        for (const ans of question.answers) {
+          finalContentsById.set(ans.answerId, ans.content)
+        }
+        // Apply incoming changes in-memory to compute final contents
+        for (const incoming of updateQuestionDto.answers) {
+          const current = finalContentsById.get(incoming.answer_id)
+          if (current !== undefined) {
+            finalContentsById.set(incoming.answer_id, incoming.content)
+          }
+        }
+        // Now validate uniqueness (case-insensitive, trimmed)
+        for (const [, content] of finalContentsById) {
+          const normalized = (content || '').trim().toLowerCase()
+          if (!normalized) {
+            throw new ValidationException(ErrorCode.V004, 'Answer content must not be empty')
+          }
+          if (normalizedExisting.has(normalized)) {
+            throw new ValidationException(ErrorCode.Q004, 'Answer content must be unique')
+          }
+          normalizedExisting.add(normalized)
+        }
+
+        // Proceed with applying updates after validation
+        for (const answer of updateQuestionDto.answers) {
+          const existingAnswer = question.answers.find((a) => a.answerId === answer.answer_id)
+          if (existingAnswer) {
+            existingAnswer.content = answer.content
+            existingAnswer.isCorrect = answer.is_correct
+          }
+        }
+      }
 
       const updatedQuestion = await this.questionRepository.save(question)
 
@@ -157,8 +217,7 @@ export class QuestionService {
   async remove(id: string): Promise<QuestionResponseDto> {
     try {
       const question = await this.questionRepository.findOne({
-        where: { questionId: id },
-        relations: ['answers']
+        where: { questionId: id }
       })
       if (!question) {
         throw new ValidationException(ErrorCode.Q001, 'Question not found')
