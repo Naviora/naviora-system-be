@@ -67,6 +67,7 @@ export enum ErrorCode {
   Q001 = 'question.error.not_found',
   Q002 = 'question.error.multiple_choice_question_must_have_4_answers',
   Q003 = 'question.error.multiple_choice_question_must_have_only_1_correct_answer',
+  Q004 = 'question.error.duplicate_answer_content',
 
   //Error of User
   USER001 = 'user.error.user_not_found',

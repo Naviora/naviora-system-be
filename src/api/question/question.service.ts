@@ -61,7 +61,18 @@ export class QuestionService {
       // TODO: Check another question type in the future
 
       const newAnswers = []
+      // Validate unique content for each provided answer (case-insensitive, trimmed)
+      const seenContents = new Set<string>()
       for (const answer of createQuestionDto.answers) {
+        const normalized = (answer.content || '').trim().toLowerCase()
+        if (!normalized) {
+          throw new ValidationException(ErrorCode.V004, 'Answer content must not be empty')
+        }
+        if (seenContents.has(normalized)) {
+          throw new ValidationException(ErrorCode.Q004, 'Answer content must be unique')
+        }
+        seenContents.add(normalized)
+
         const newAnswer = this.answerRepository.create({
           question: savedQuestion,
           content: answer.content,
@@ -157,10 +168,38 @@ export class QuestionService {
 
       //4. Update content answers if client provides new content of answers
       if (updateQuestionDto.answers) {
+        // Validate uniqueness across provided updates combined with untouched existing answers
+        const normalizedExisting = new Set<string>()
+        // Add all current answers (that will remain) using their final content after updates
+        const finalContentsById = new Map<string, string>()
+        for (const ans of question.answers) {
+          finalContentsById.set(ans.answerId, ans.content)
+        }
+        // Apply incoming changes in-memory to compute final contents
+        for (const incoming of updateQuestionDto.answers) {
+          const current = finalContentsById.get(incoming.answer_id)
+          if (current !== undefined) {
+            finalContentsById.set(incoming.answer_id, incoming.content)
+          }
+        }
+        // Now validate uniqueness (case-insensitive, trimmed)
+        for (const [, content] of finalContentsById) {
+          const normalized = (content || '').trim().toLowerCase()
+          if (!normalized) {
+            throw new ValidationException(ErrorCode.V004, 'Answer content must not be empty')
+          }
+          if (normalizedExisting.has(normalized)) {
+            throw new ValidationException(ErrorCode.Q004, 'Answer content must be unique')
+          }
+          normalizedExisting.add(normalized)
+        }
+
+        // Proceed with applying updates after validation
         for (const answer of updateQuestionDto.answers) {
           const existingAnswer = question.answers.find((a) => a.answerId === answer.answer_id)
           if (existingAnswer) {
             existingAnswer.content = answer.content
+            existingAnswer.isCorrect = answer.is_correct
           }
         }
       }
@@ -184,7 +223,7 @@ export class QuestionService {
         throw new ValidationException(ErrorCode.Q001, 'Question not found')
       }
 
-      await this.questionRepository.softDelete(id)
+      await this.questionRepository.remove(question)
 
       return plainToInstance(QuestionResponseDto, question, {
         excludeExtraneousValues: true

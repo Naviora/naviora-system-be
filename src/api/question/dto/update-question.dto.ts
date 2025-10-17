@@ -24,7 +24,7 @@ export class UpdateAnswerBodyDto {
     example: true
   })
   @BooleanField()
-  isCorrect: boolean
+  is_correct: boolean
 }
 
 export class UpdateQuestionDto {
