@@ -441,4 +441,29 @@ export class ModulesService {
       throw error
     }
   }
+
+  async softDelete(moduleId: string) {
+    try {
+      const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
+      if (!moduleEntity) {
+        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+          {
+            property: 'module_id',
+            code: ErrorCode.MODULE003
+          }
+        ])
+      }
+
+      await this.moduleRepository.softRemove(moduleEntity)
+
+      const deleted = await this.moduleRepository.findOne({ where: { moduleId }, withDeleted: true })
+
+      return {
+        module_id: moduleId,
+        deleted_at: deleted?.deletedAt as Date
+      }
+    } catch (error) {
+      throw error
+    }
+  }
 }
