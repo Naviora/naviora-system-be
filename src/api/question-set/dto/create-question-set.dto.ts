@@ -2,29 +2,31 @@ import { ApiProperty } from '@nestjs/swagger'
 import {
   IsArray,
   IsBoolean,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
-  ValidateNested,
-  Min,
-  Max
+  ValidateNested
 } from 'class-validator'
 import { Type } from 'class-transformer'
+import { NumberField } from '@decorators/field.decorators'
 
 class GeneralConfigDto {
   @ApiProperty({ default: 60 })
-  @IsInt()
-  @Min(1)
-  @Max(480) // Maximum 8 hours
+  @NumberField({
+    min: 1,
+    max: 150,
+    int: true
+  })
   duration_minutes: number
 
   @ApiProperty({ default: 50 })
-  @IsInt()
-  @Min(1)
-  @Max(1000) // Maximum 1000 questions
+  @NumberField({
+    min: 10,
+    max: 120,
+    int: true
+  })
   total_questions: number
 
   @ApiProperty({ default: false })
@@ -45,10 +47,12 @@ class ScoringConfigDto {
   @IsBoolean()
   per_question: boolean
 
-  @ApiProperty({ default: 70 })
-  @IsInt()
-  @Min(0)
-  @Max(100)
+  @ApiProperty({ default: 7 })
+  @NumberField({
+    min: 1,
+    max: 10,
+    int: true
+  })
   passing_score: number
 }
 
@@ -58,9 +62,11 @@ class BehaviorConfigDto {
   show_correct_after_submit: boolean
 
   @ApiProperty({ default: 1 })
-  @IsInt()
-  @Min(1)
-  @Max(10)
+  @NumberField({
+    min: 0,
+    max: 10,
+    int: true
+  })
   max_attempts: number
 }
 
