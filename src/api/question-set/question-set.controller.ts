@@ -12,7 +12,6 @@ import { Roles } from '@decorators/roles.decorator'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { RolesGuard } from '@guards/roles.guard'
 import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
-import { plainToInstance } from 'class-transformer'
 
 @ApiTags('Question Sets')
 @Controller({ path: 'question-set', version: '1' })
@@ -33,7 +32,7 @@ export class QuestionSetController {
   @Get()
   @ApiOperation({ summary: 'Get paginated list of question sets' })
   @ResponseMessage('Question sets retrieved successfully')
-  async getQuestionSets(@Query() query: GetQuestionSetsQueryDto): Promise<OffsetPaginatedDto<QuestionSetResponseDto>> {
+  async getQuestionSets(@Query() query: GetQuestionSetsQueryDto) {
     return await this.questionSetService.getQuestionSets(query)
   }
 

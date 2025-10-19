@@ -81,6 +81,8 @@ export class QuestionSetService {
   async getQuestionSets(queryDto: GetQuestionSetsQueryDto) {
     const query = this.questionSetRepository.createQueryBuilder('question_set')
 
+    query.leftJoinAndSelect('question_set.lecturer', 'lecturer')
+
     // Search filter
     if (queryDto.q) {
       query.andWhere('question_set.title ILIKE :search OR question_set.description ILIKE :search', {
@@ -121,18 +123,21 @@ export class QuestionSetService {
         durationMinutes: q.config.general.duration_minutes,
         passingScore: q.config.general.passing_score,
         maxAttempts: q.config.general.max_attempts,
-        lecturer: q.lecturer,
+        lecturer: {
+          userId: q.lecturer.id,
+          name: q.lecturer.name,
+          email: q.lecturer.email,
+          avatar: q.lecturer.avatar
+        },
         createdAt: q.createdAt,
         updatedAt: q.updatedAt
       })
     )
 
-    return new OffsetPaginatedDto<QuestionSetResponseDto>({
-      statusCode: 200,
-      message: 'Question sets retrieved successfully',
-      data: mappedQuestionSets,
-      meta: metaDto
-    })
+    return {
+      question_sets: mappedQuestionSets,
+      pagiantion: metaDto
+    }
   }
 
   async getQuestionSetById(questionSetId: string): Promise<QuestionSetDetailResponseDto> {
