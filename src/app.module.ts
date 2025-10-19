@@ -42,6 +42,10 @@ import { TeachingModule } from '@api/module/entities/teaching-module.entity'
 import { QuestionModule } from './api/question/question.module'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
+import { MaterialModule } from './api/material/material.module'
+import { MaterialEntity } from '@api/material/entities/material.entity'
+import { TeachingMaterialModule } from './api/teaching-material/teaching-material.module'
+import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
 import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
 import { QuestionSetModule } from './api/question-set/question-set.module'
 
@@ -72,6 +76,8 @@ import { QuestionSetModule } from './api/question-set/question-set.module'
             TeachingModule,
             QuestionEntity,
             AnswerEntity,
+            MaterialEntity,
+            TeachingMaterial,
             QuestionSetEntity
           ]
         }
@@ -144,6 +150,8 @@ import { QuestionSetModule } from './api/question-set/question-set.module'
     LessonModule,
     AnswerModule,
     QuestionModule,
+    MaterialModule,
+    TeachingMaterialModule,
     QuestionSetModule
   ],
   controllers: [AppController],

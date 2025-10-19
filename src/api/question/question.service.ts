@@ -223,7 +223,7 @@ export class QuestionService {
         throw new ValidationException(ErrorCode.Q001, 'Question not found')
       }
 
-      await this.questionRepository.remove(question)
+      await this.questionRepository.softDelete(question.questionId)
 
       return plainToInstance(QuestionResponseDto, question, {
         excludeExtraneousValues: true

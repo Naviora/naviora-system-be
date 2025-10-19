@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseUUIDPipe
 import { LessonService } from './lesson.service'
 import { CreateLessonDto } from './dto/create-lesson.dto'
 import { UpdateLessonDto } from './dto/update-lesson.dto'
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import { ListLessonReqDto } from './dto/list-lesson.req.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RolesGuard } from '@guards/roles.guard'
@@ -49,12 +49,33 @@ export class LessonController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a lesson by with materials and content' })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
   @ResponseMessage('Get lesson successfully')
   async findOne(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return await this.lessonService.findOne(id)
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a lesson' })
+  @ApiBody({
+    description: 'Data update lesson',
+    type: UpdateLessonDto,
+    examples: {
+      example1: {
+        summary: 'Update a lesson',
+        value: {
+          lesson_name: 'Lesson 1',
+          lesson_description: 'Lesson 1 description',
+          lesson_content: 'Lesson 1 content'
+        }
+      }
+    }
+  })
   @ResponseMessage('Lesson updated successfully')
   async update(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Body() updateLessonDto: UpdateLessonDto) {
     return await this.lessonService.update(id, updateLessonDto)

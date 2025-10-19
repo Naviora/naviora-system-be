@@ -1,14 +1,18 @@
 import { Injectable } from '@nestjs/common'
 import { CreateLessonDto } from './dto/create-lesson.dto'
 import { UpdateLessonDto } from './dto/update-lesson.dto'
+import { LessonResponseDto, MaterialResponseDto } from './dto/lesson-response.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { ModuleEntity } from '@api/module/entities/module.entity'
 import { paginate } from '@utils/offset-pagination'
 import { ListLessonReqDto } from './dto/list-lesson.req.dto'
+import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
+import { MaterialEntity } from '@api/material/entities/material.entity'
+import { plainToInstance } from 'class-transformer'
 
 @Injectable()
 export class LessonService {
@@ -17,7 +21,13 @@ export class LessonService {
     private readonly lessonRepository: Repository<LessonEntity>,
 
     @InjectRepository(ModuleEntity)
-    private readonly moduleRepository: Repository<ModuleEntity>
+    private readonly moduleRepository: Repository<ModuleEntity>,
+
+    @InjectRepository(TeachingMaterial)
+    private readonly teachingMaterialRepository: Repository<TeachingMaterial>,
+
+    @InjectRepository(MaterialEntity)
+    private readonly materialRepository: Repository<MaterialEntity>
   ) {}
 
   async create(createLessonDto: CreateLessonDto) {
@@ -61,13 +71,41 @@ export class LessonService {
     }
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<LessonResponseDto> {
     try {
+      // Check if lesson exists
       const lesson = await this.lessonRepository.findOne({ where: { lessonId: id } })
       if (!lesson) {
         throw new ValidationException(ErrorCode.L001, 'Lesson not found')
       }
-      return lesson
+
+      // Check if teaching materials exists
+      const teachingMaterials = await this.teachingMaterialRepository.find({
+        where: { lesson: { lessonId: id } },
+        relations: ['material']
+      })
+      if (teachingMaterials.length === 0) {
+        throw new ValidationException(ErrorCode.T001, 'Teaching material not found')
+      }
+
+      // Get materials
+      const materialByLessonId = teachingMaterials.map((teachingMaterial) => teachingMaterial.material.materialId)
+      const materials = await this.materialRepository.find({ where: { materialId: In(materialByLessonId) } })
+
+      const transformedMaterials = materials.map((material) =>
+        plainToInstance(MaterialResponseDto, material, { excludeExtraneousValues: true })
+      )
+
+      const result = plainToInstance(
+        LessonResponseDto,
+        {
+          ...lesson,
+          materials: transformedMaterials
+        },
+        { excludeExtraneousValues: true }
+      )
+
+      return result
     } catch (error) {
       throw error
     }
@@ -79,16 +117,68 @@ export class LessonService {
       if (!lesson) {
         throw new ValidationException(ErrorCode.L001, 'Lesson not found')
       }
-      const module = await this.moduleRepository.findOne({ where: { moduleId: updateLessonDto.module_id } })
-      if (!module) {
-        throw new ValidationException(ErrorCode.MODULE001, 'Module not found')
+
+      // Check if materials exist and create teaching materials
+      if (updateLessonDto.materials && updateLessonDto.materials.length > 0) {
+        const materials = await this.materialRepository.find({ where: { materialId: In(updateLessonDto.materials) } })
+
+        if (materials.length !== updateLessonDto.materials.length) {
+          const foundIds = materials.map((m) => m.materialId)
+          const missingIds = updateLessonDto.materials.filter((id) => !foundIds.includes(id))
+          console.log('Missing material IDs:', missingIds)
+          throw new ValidationException(ErrorCode.M001, `Some materials not found: ${missingIds.join(', ')}`)
+        }
+
+        // Create teaching materials for each material
+        for (const materialId of updateLessonDto.materials) {
+          const existingTeachingMaterial = await this.teachingMaterialRepository.findOne({
+            where: { lesson: { lessonId: id }, material: { materialId: materialId } }
+          })
+
+          if (!existingTeachingMaterial) {
+            const teachingMaterial = this.teachingMaterialRepository.create({
+              lesson: { lessonId: id },
+              material: { materialId: materialId },
+              content: `Material content for lesson ${lesson.lessonName}` // Default content
+            })
+            await this.teachingMaterialRepository.save(teachingMaterial)
+          }
+        }
       }
 
-      return this.lessonRepository.update(id, {
+      await this.lessonRepository.update(id, {
         lessonName: updateLessonDto.lesson_name,
         lessonDescription: updateLessonDto.lesson_description,
-        moduleId: updateLessonDto.module_id
+        lessonContent: updateLessonDto.lesson_content
       })
+
+      // Fetch the updated lesson
+      const updatedLesson = await this.lessonRepository.findOne({ where: { lessonId: id } })
+      if (!updatedLesson) {
+        throw new ValidationException(ErrorCode.L001, 'Lesson not found after update')
+      }
+
+      // Get teaching materials with their related materials
+      const teachingMaterials = await this.teachingMaterialRepository.find({
+        where: { lesson: { lessonId: id } },
+        relations: ['material']
+      })
+
+      // Extract materials from teaching materials
+      const materials = teachingMaterials.map((tm) => tm.material)
+
+      const transformedMaterials = materials.map((material) =>
+        plainToInstance(MaterialResponseDto, material, { excludeExtraneousValues: true })
+      )
+
+      return plainToInstance(
+        LessonResponseDto,
+        {
+          ...updatedLesson,
+          materials: transformedMaterials
+        },
+        { excludeExtraneousValues: true }
+      )
     } catch (error) {
       throw error
     }

@@ -74,6 +74,13 @@ export enum ErrorCode {
   USER001 = 'user.error.user_not_found',
   USER002 = 'user.error.user_not_lecturer',
 
-  // Error of Class
-  L001 = 'lesson.error.lesson_name_exists'
+  // Error of Lesson
+  L001 = 'lesson.error.lesson_name_exists',
+  L002 = 'lesson.error.lesson_not_found',
+
+  // Error of Material
+  M001 = 'material.error.material_not_found',
+
+  // Error of Teaching Material
+  T001 = 'teaching_material.error.teaching_material_not_found'
 }
