@@ -84,8 +84,14 @@ export enum ErrorCode {
   // Error of Teaching Material
   T001 = 'teaching_material.error.teaching_material_not_found',
 
+  // Error of Question Set
+  QUESTION_SET_001 = 'question_set.error.question_set_not_found',
+  QUESTION_SET_002 = 'question_set.error.invalid_question_set_ids',
+  QUESTION_SET_003 = 'question_set.error.question_count_mismatch',
+
   // Error of Entry Test
   ENTRY_TEST001 = 'entry_test.error.entry_test_not_found',
   ENTRY_TEST002 = 'entry_test.error.student_already_has_a_submission_for_this_entry_test',
-  ENTRY_TEST003 = 'entry_test.error.no_question_sets_available_for_this_entry_test'
+  ENTRY_TEST003 = 'entry_test.error.no_question_sets_available_for_this_entry_test',
+  ENTRY_TEST004 = 'entry_test.error.failed_to_update_entry_test'
 }

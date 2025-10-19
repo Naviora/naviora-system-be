@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { EntryTestService } from './entry-test.service'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
+import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
@@ -76,6 +77,37 @@ export class EntryTestController {
     @CurrentUser() currentUser: User
   ): Promise<EntryTestSubmissionResponseDto> {
     return await this.entryTestService.startEntryTest(entryTestId, currentUser)
+  }
+
+  @Patch(':entryTestId')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({ summary: 'Update an entry test' })
+  @ApiBody({
+    description: 'Payload to update entry test',
+    type: UpdateEntryTestDto,
+    examples: {
+      example1: {
+        summary: 'Update entry test title and status',
+        value: {
+          title: 'Updated Entry Test Title',
+          status: 'ACTIVE'
+        }
+      },
+      example2: {
+        summary: 'Update entry test question sets',
+        value: {
+          questionSets: ['uuid1', 'uuid2', 'uuid3']
+        }
+      }
+    }
+  })
+  @ResponseMessage('Entry test updated successfully')
+  async updateEntryTest(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @Body() updateDto: UpdateEntryTestDto,
+    @CurrentUser() currentUser: User
+  ): Promise<EntryTestResponseDto> {
+    return await this.entryTestService.updateEntryTest(entryTestId, updateDto, currentUser)
   }
 
   @Get()

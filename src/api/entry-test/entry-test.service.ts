@@ -5,6 +5,7 @@ import { EntryTestEntity } from './entities/entry-test.entity'
 import { EntryTestSubmissionEntity } from './entities/entry-test-submission.entity'
 import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
+import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
 import { ValidationException } from '@exceptions/validation.exception'
@@ -68,6 +69,92 @@ export class EntryTestService {
 
     if (!savedEntryTest) {
       throw new ValidationException(ErrorCode.MODULE002, 'Failed to create entry test')
+    }
+
+    return plainToInstance(EntryTestResponseDto, {
+      ...savedEntryTest,
+      questionSets: savedEntryTest.questionSets.map((qs) => qs.questionSetId)
+    })
+  }
+
+  async updateEntryTest(
+    entryTestId: string,
+    updateDto: UpdateEntryTestDto,
+    currentUser: User
+  ): Promise<EntryTestResponseDto> {
+    // Find the entry test
+    const entryTest = await this.entryTestRepository.findOne({
+      where: { entryTestId },
+      relations: ['questionSets']
+    })
+
+    if (!entryTest) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
+
+    // Validate question sets if provided
+    if (updateDto.questionSets && updateDto.questionSets.length > 0) {
+      const uniqueIds = Array.from(new Set(updateDto.questionSets))
+      const foundQuestionSets = await this.questionSetRepository.find({
+        where: { questionSetId: In(uniqueIds) },
+        select: ['questionSetId']
+      })
+      const foundIds = new Set(foundQuestionSets.map((qs) => qs.questionSetId))
+      const missing = uniqueIds.filter((id) => !foundIds.has(id))
+
+      if (missing.length > 0) {
+        throw new ValidationException(ErrorCode.QUESTION_SET_002, 'Invalid question set IDs', [
+          {
+            property: 'questionSets',
+            code: ErrorCode.QUESTION_SET_002,
+            message: `Invalid question set IDs: ${missing.join(', ')}`
+          }
+        ])
+      }
+    }
+
+    // Update fields
+    if (updateDto.title !== undefined) {
+      entryTest.title = updateDto.title
+    }
+    if (updateDto.description !== undefined) {
+      entryTest.description = updateDto.description
+    }
+    if (updateDto.status !== undefined) {
+      entryTest.status = updateDto.status
+    }
+    if (updateDto.questionSets !== undefined) {
+      // Business Logic: Compare input question sets with existing ones
+      // If they are equal, do nothing. If different, override with user input.
+
+      // Get current question set IDs from database
+      const currentQuestionSetIds = entryTest.questionSets.map((qs) => qs.questionSetId)
+
+      // Compare the two arrays (order-independent comparison)
+      const areEqual = this.areQuestionSetArraysEqual(currentQuestionSetIds, updateDto.questionSets)
+
+      // Only update if the lists are different
+      if (!areEqual) {
+        // Override with user input - fetch the new question sets
+        const foundQuestionSets = await this.questionSetRepository.find({
+          where: { questionSetId: In(updateDto.questionSets) }
+        })
+        entryTest.questionSets = foundQuestionSets
+      }
+      // If areEqual is true, do nothing - keep existing question sets
+    }
+
+    // Set updated by
+    entryTest.updatedBy = currentUser
+
+    const savedEntryTest = await this.entryTestRepository.save(entryTest)
+
+    if (!savedEntryTest) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST004, 'Failed to update entry test', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST004 }
+      ])
     }
 
     return plainToInstance(EntryTestResponseDto, {
@@ -143,6 +230,7 @@ export class EntryTestService {
 
     query.leftJoinAndSelect('entry_test.questionSets', 'questionSets')
     query.leftJoinAndSelect('entry_test.createdBy', 'createdBy')
+    query.leftJoinAndSelect('entry_test.updatedBy', 'updatedBy')
     query.leftJoinAndSelect('createdBy.role', 'role')
 
     // Search filter
@@ -198,7 +286,7 @@ export class EntryTestService {
   async getEntryTestById(entryTestId: string): Promise<EntryTestResponseDto> {
     const entryTest = await this.entryTestRepository.findOne({
       where: { entryTestId },
-      relations: ['questionSets', 'createdBy']
+      relations: ['questionSets', 'createdBy', 'updatedBy']
     })
 
     if (!entryTest) {
@@ -211,5 +299,17 @@ export class EntryTestService {
       ...entryTest,
       questionSets: entryTest.questionSets.map((qs) => qs.questionSetId)
     })
+  }
+  /**
+   * Compare two arrays of strings for equality (order-independent)
+   * @param arr1 First array
+   * @param arr2 Second array
+   * @returns true if arrays contain the same elements
+   */
+  private areQuestionSetArraysEqual(arr1: string[], arr2: string[]): boolean {
+    if (arr1.length !== arr2.length) return false
+    const sorted1 = [...arr1].sort()
+    const sorted2 = [...arr2].sort()
+    return sorted1.every((id, index) => id === sorted2[index])
   }
 }

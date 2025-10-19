@@ -46,4 +46,8 @@ export class EntryTestEntity extends AbstractEntity {
   @ManyToOne(() => User, { nullable: false })
   @JoinColumn({ name: 'created_by' })
   createdBy: User
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'updated_by' })
+  updatedBy: User | null
 }

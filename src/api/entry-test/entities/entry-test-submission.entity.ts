@@ -31,7 +31,7 @@ export class EntryTestSubmissionEntity extends AbstractEntity {
   score: number | null
 
   @Column({ type: 'jsonb', nullable: true })
-  answered: any
+  answered: Record<string, any> | null
 
   @Column({ type: 'boolean', nullable: true })
   penalty: boolean | null
