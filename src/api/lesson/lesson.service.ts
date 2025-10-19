@@ -118,6 +118,34 @@ export class LessonService {
         throw new ValidationException(ErrorCode.L001, 'Lesson not found')
       }
 
+      // Check if materials exist and create teaching materials
+      if (updateLessonDto.materials && updateLessonDto.materials.length > 0) {
+        const materials = await this.materialRepository.find({ where: { materialId: In(updateLessonDto.materials) } })
+
+        if (materials.length !== updateLessonDto.materials.length) {
+          const foundIds = materials.map((m) => m.materialId)
+          const missingIds = updateLessonDto.materials.filter((id) => !foundIds.includes(id))
+          console.log('Missing material IDs:', missingIds)
+          throw new ValidationException(ErrorCode.M001, `Some materials not found: ${missingIds.join(', ')}`)
+        }
+
+        // Create teaching materials for each material
+        for (const materialId of updateLessonDto.materials) {
+          const existingTeachingMaterial = await this.teachingMaterialRepository.findOne({
+            where: { lesson: { lessonId: id }, material: { materialId: materialId } }
+          })
+
+          if (!existingTeachingMaterial) {
+            const teachingMaterial = this.teachingMaterialRepository.create({
+              lesson: { lessonId: id },
+              material: { materialId: materialId },
+              content: `Material content for lesson ${lesson.lessonName}` // Default content
+            })
+            await this.teachingMaterialRepository.save(teachingMaterial)
+          }
+        }
+      }
+
       await this.lessonRepository.update(id, {
         lessonName: updateLessonDto.lesson_name,
         lessonDescription: updateLessonDto.lesson_description,

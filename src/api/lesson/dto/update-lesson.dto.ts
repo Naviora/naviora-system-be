@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { StringField } from '@decorators/field.decorators'
+import { StringField, UUIDFieldOptional } from '@decorators/field.decorators'
 
 export class UpdateLessonDto {
   @ApiProperty()
@@ -13,4 +13,8 @@ export class UpdateLessonDto {
   @ApiProperty()
   @StringField()
   lesson_name: string
+
+  @ApiProperty({ required: false })
+  @UUIDFieldOptional({ each: true })
+  materials?: string[]
 }
