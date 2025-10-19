@@ -46,14 +46,17 @@ export class ModulesService {
           }
         ])
       }
-      const existingClass = await this.classRepository.findOne({ where: { classId: class_id } })
-      if (!existingClass) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
-          {
-            property: 'class_id',
-            code: ErrorCode.CLASS003
-          }
-        ])
+      let existingClass = null
+      if (class_id !== null && class_id !== '') {
+        existingClass = await this.classRepository.findOne({ where: { classId: class_id } })
+        if (!existingClass) {
+          throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+            {
+              property: 'class_id',
+              code: ErrorCode.CLASS003
+            }
+          ])
+        }
       }
       // Handle banner image upload if provided
       let bannerUrl = createModuleDto.banner
@@ -73,27 +76,14 @@ export class ModulesService {
       if (!newModule) {
         throw new ValidationException(ErrorCode.MODULE002)
       }
-      return {
-        module_id: newModule.moduleId,
-        module_code: newModule.moduleCode,
-        module_name: newModule.moduleName,
-        module_description: newModule.moduleDescription,
-        banner: newModule.banner,
-        class: {
-          class_id: existingClass.classId,
-          class_code: existingClass.classCode,
-          class_name: existingClass.className,
-          class_type: existingClass.classType
-        },
-        created_at: newModule.createdAt,
-        updated_at: newModule.updatedAt
-      }
+      newModule.class = existingClass || null
+      return newModule
     } catch (error) {
       throw error
     }
   }
 
-  async update(moduleId: string, updateModuleDto: UpdateModuleDto) {
+  async update(moduleId: string, updateModuleDto: UpdateModuleDto, banner?: Express.Multer.File) {
     try {
       // Check if module exists
       const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
@@ -127,7 +117,14 @@ export class ModulesService {
       if (updateModuleDto.module_name !== undefined) moduleEntity.moduleName = updateModuleDto.module_name
       if (updateModuleDto.module_description !== undefined)
         moduleEntity.moduleDescription = updateModuleDto.module_description
-      if (updateModuleDto.banner !== undefined) moduleEntity.banner = updateModuleDto.banner
+
+      // Handle optional banner update (file upload preferred)
+      if (banner) {
+        const uploadResult = await this.cloudinaryService.uploadFile(banner)
+        moduleEntity.banner = uploadResult.secure_url
+      } else if (updateModuleDto.banner !== undefined) {
+        moduleEntity.banner = updateModuleDto.banner
+      }
 
       const updatedModule = await this.moduleRepository.save(moduleEntity)
 
@@ -135,15 +132,7 @@ export class ModulesService {
         throw new ValidationException(ErrorCode.MODULE002, 'Failed to update module')
       }
 
-      return {
-        module_id: updatedModule.moduleId,
-        module_code: updatedModule.moduleCode,
-        module_name: updatedModule.moduleName,
-        module_description: updatedModule.moduleDescription,
-        banner: updatedModule.banner,
-        created_at: updatedModule.createdAt,
-        updated_at: updatedModule.updatedAt
-      }
+      return updatedModule
     } catch (error) {
       throw error
     }
@@ -224,22 +213,53 @@ export class ModulesService {
       }
 
       // Build response based on user role
-      const response: Record<string, any> = {
-        module_id: module.moduleId,
-        module_code: module.moduleCode,
-        module_name: module.moduleName,
-        module_description: module.moduleDescription,
+      const response: {
+        moduleId: string
+        moduleCode: string
+        moduleName: string
+        moduleDescription: string
+        banner: string | null
+        class: {
+          classId: string
+          classCode: string
+          className: string
+          classType: string
+        } | null
+        createdAt: Date
+        updatedAt: Date
+        lessons?: Array<{
+          lessonId: string
+          lessonName: string
+          lessonDescription: string
+        }>
+        isAssigned?: boolean
+        assignment?: {
+          isActive: boolean
+          endDate: Date | null
+        }
+        assignedLecturers?: Array<{
+          lecturerId: string
+          lecturerName: string
+          lecturerEmail: string
+          isActive: boolean
+          endDate: Date | null
+        }>
+      } = {
+        moduleId: module.moduleId,
+        moduleCode: module.moduleCode,
+        moduleName: module.moduleName,
+        moduleDescription: module.moduleDescription,
         banner: module.banner,
         class: module.class
           ? {
-              class_id: module.class.classId,
-              class_code: module.class.classCode,
-              class_name: module.class.className,
-              class_type: module.class.classType
+              classId: module.class.classId,
+              classCode: module.class.classCode,
+              className: module.class.className,
+              classType: module.class.classType
             }
           : null,
-        created_at: module.createdAt,
-        updated_at: module.updatedAt
+        createdAt: module.createdAt,
+        updatedAt: module.updatedAt
       }
 
       // Role-specific data
@@ -247,33 +267,74 @@ export class ModulesService {
         // Students see lessons
         response.lessons =
           module.lessons?.map((lesson) => ({
-            lesson_id: lesson.lessonId,
-            lesson_name: lesson.lessonName,
-            lesson_description: lesson.lessonDescription
+            lessonId: lesson.lessonId,
+            lessonName: lesson.lessonName,
+            lessonDescription: lesson.lessonDescription
           })) || []
       } else if (currentUser.role?.name === RoleInAccount.Lecturer) {
         // Lecturers see if they are assigned and their assignment details
         const userAssignment = module.teachingModules?.find((tm) => tm.lecturer.id === currentUser.id)
-        response.is_assigned = !!userAssignment
+        response.isAssigned = !!userAssignment
         if (userAssignment) {
           response.assignment = {
-            is_active: userAssignment.isActive,
-            end_date: userAssignment.endDate
+            isActive: userAssignment.isActive,
+            endDate: userAssignment.endDate
           }
         }
       } else if (currentUser.role?.name === RoleInAccount.Admin || currentUser.role?.name === RoleInAccount.Principal) {
         // Admin/Principal see all assigned lecturers
-        response.assigned_lecturers =
+        response.assignedLecturers =
           module.teachingModules?.map((tm) => ({
-            lecturer_id: tm.lecturer.id,
-            lecturer_name: tm.lecturer.name,
-            lecturer_email: tm.lecturer.email,
-            is_active: tm.isActive,
-            end_date: tm.endDate
+            lecturerId: tm.lecturer.id,
+            lecturerName: tm.lecturer.name,
+            lecturerEmail: tm.lecturer.email,
+            isActive: tm.isActive,
+            endDate: tm.endDate
           })) || []
       }
 
       return response
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getModuleWithLessons(moduleId: string) {
+    try {
+      // Find module with lessons
+      const module = await this.moduleRepository
+        .createQueryBuilder('module')
+        .leftJoinAndSelect('module.lessons', 'lessons')
+        .leftJoinAndSelect('module.class', 'class')
+        .where('module.moduleId = :moduleId', { moduleId })
+        .getOne()
+
+      if (!module) {
+        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+          {
+            property: 'module_id',
+            code: ErrorCode.MODULE003
+          }
+        ])
+      }
+
+      return {
+        moduleId: module.moduleId,
+        moduleCode: module.moduleCode,
+        moduleName: module.moduleName,
+        moduleDescription: module.moduleDescription,
+        banner: module.banner,
+        createdAt: module.createdAt,
+        updatedAt: module.updatedAt,
+        lessons:
+          module.lessons?.map((lesson) => ({
+            lessonId: lesson.lessonId,
+            lessonName: lesson.lessonName,
+            lessonDescription: lesson.lessonDescription,
+            createdAt: lesson.createdAt,
+            updatedAt: lesson.updatedAt
+          })) || []
+      }
     } catch (error) {
       throw error
     }
@@ -365,16 +426,41 @@ export class ModulesService {
       }
 
       return {
-        module_id: moduleEntity.moduleId,
-        module_code: moduleEntity.moduleCode,
-        module_name: moduleEntity.moduleName,
-        assigned_lecturers: lecturers.map((lecturer) => ({
-          lecturer_id: lecturer.id,
-          lecturer_name: lecturer.name,
-          lecturer_email: lecturer.email,
-          is_active: true,
-          end_date: assignLecturersDto.end_date || null
+        moduleId: moduleEntity.moduleId,
+        moduleCode: moduleEntity.moduleCode,
+        moduleName: moduleEntity.moduleName,
+        assignedLecturers: lecturers.map((lecturer) => ({
+          lecturerId: lecturer.id,
+          lecturerName: lecturer.name,
+          lecturerEmail: lecturer.email,
+          isActive: true,
+          endDate: assignLecturersDto.end_date || null
         }))
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async softDelete(moduleId: string) {
+    try {
+      const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
+      if (!moduleEntity) {
+        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+          {
+            property: 'module_id',
+            code: ErrorCode.MODULE003
+          }
+        ])
+      }
+
+      await this.moduleRepository.softDelete({ moduleId })
+
+      const deleted = await this.moduleRepository.findOne({ where: { moduleId }, withDeleted: true })
+
+      return {
+        module_id: moduleId,
+        deleted_at: deleted?.deletedAt as Date
       }
     } catch (error) {
       throw error
