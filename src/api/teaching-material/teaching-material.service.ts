@@ -39,8 +39,8 @@ export class TeachingMaterialService {
       }
 
       const teachingMaterial = this.teachingMaterialRepository.create({
-        lessonId: createTeachingMaterialDto.lesson_id,
-        materialId: createTeachingMaterialDto.material_id,
+        lesson: lesson,
+        material: material,
         content: createTeachingMaterialDto.content
       })
       const savedTeachingMaterial = await this.teachingMaterialRepository.save(teachingMaterial)

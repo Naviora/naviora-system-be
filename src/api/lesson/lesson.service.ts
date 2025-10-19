@@ -9,6 +9,7 @@ import { ErrorCode } from '@constants/error-code.constant'
 import { ModuleEntity } from '@api/module/entities/module.entity'
 import { paginate } from '@utils/offset-pagination'
 import { ListLessonReqDto } from './dto/list-lesson.req.dto'
+import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
 
 @Injectable()
 export class LessonService {
@@ -17,7 +18,10 @@ export class LessonService {
     private readonly lessonRepository: Repository<LessonEntity>,
 
     @InjectRepository(ModuleEntity)
-    private readonly moduleRepository: Repository<ModuleEntity>
+    private readonly moduleRepository: Repository<ModuleEntity>,
+
+    @InjectRepository(TeachingMaterial)
+    private readonly teachingMaterialRepository: Repository<TeachingMaterial>
   ) {}
 
   async create(createLessonDto: CreateLessonDto) {
@@ -67,6 +71,11 @@ export class LessonService {
       if (!lesson) {
         throw new ValidationException(ErrorCode.L001, 'Lesson not found')
       }
+      const teachingMaterials = await this.teachingMaterialRepository.find({ where: { lessonId: id } })
+      if (teachingMaterials.length === 0) {
+        throw new ValidationException(ErrorCode.T001, 'Teaching material not found')
+      }
+
       return lesson
     } catch (error) {
       throw error

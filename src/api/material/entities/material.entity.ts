@@ -1,5 +1,6 @@
+import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
 import { AbstractEntity } from '@database/entities/base.entity'
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 
 export enum MaterialType {
   VIDEO = 'video',
@@ -26,4 +27,7 @@ export class MaterialEntity extends AbstractEntity {
 
   @Column({ type: 'varchar', nullable: false })
   materialPath: string
+
+  @OneToMany(() => TeachingMaterial, (teachingMaterial) => teachingMaterial.material, { nullable: true })
+  teachingMaterials: TeachingMaterial[]
 }

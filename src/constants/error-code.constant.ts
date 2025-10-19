@@ -78,5 +78,8 @@ export enum ErrorCode {
   L002 = 'lesson.error.lesson_not_found',
 
   // Error of Material
-  M001 = 'material.error.material_not_found'
+  M001 = 'material.error.material_not_found',
+
+  // Error of Teaching Material
+  T001 = 'teaching_material.error.teaching_material_not_found'
 }
