@@ -127,4 +127,12 @@ export class EntryTestController {
   ): Promise<EntryTestResponseDto> {
     return await this.entryTestService.getEntryTestById(entryTestId)
   }
+
+  @Get('latest/active')
+  @Roles(RoleInAccount.Student)
+  @ApiOperation({ summary: 'Get the latest active entry test for student' })
+  @ResponseMessage('Latest active entry test retrieved successfully')
+  async getLatestActiveEntryTest(): Promise<EntryTestResponseDto | null> {
+    return await this.entryTestService.getLatestActiveEntryTestForStudent()
+  }
 }

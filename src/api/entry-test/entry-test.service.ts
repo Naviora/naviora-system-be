@@ -222,6 +222,12 @@ export class EntryTestService {
 
     const savedSubmission = await this.entryTestSubmissionRepository.save(submission)
 
+    // Mark user as participated
+    if (!currentUser.hasParticipatedEntryTest) {
+      currentUser.hasParticipatedEntryTest = true
+      await this.entryTestSubmissionRepository.manager.getRepository(User).save(currentUser)
+    }
+
     return plainToInstance(EntryTestSubmissionResponseDto, savedSubmission)
   }
 
@@ -293,6 +299,46 @@ export class EntryTestService {
       throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
       ])
+    }
+
+    return plainToInstance(EntryTestResponseDto, {
+      ...entryTest,
+      questionSets: entryTest.questionSets.map((qs) => qs.questionSetId)
+    })
+  }
+
+  async getLatestActiveEntryTestForStudent(): Promise<EntryTestResponseDto | null> {
+    const now = new Date()
+
+    // Find the latest active entry test that is currently within the time window
+    const entryTest = await this.entryTestRepository
+      .createQueryBuilder('entry_test')
+      .leftJoinAndSelect('entry_test.questionSets', 'questionSets')
+      .leftJoinAndSelect('entry_test.createdBy', 'createdBy')
+      .leftJoinAndSelect('entry_test.updatedBy', 'updatedBy')
+      .where('entry_test.status = :status', { status: ExamStatus.ACTIVE })
+      .andWhere('entry_test.startTime <= :now', { now })
+      .andWhere('entry_test.endTime >= :now', { now })
+      .orderBy('entry_test.startTime', 'DESC')
+      .getOne()
+
+    if (!entryTest) {
+      // If no entry test found within time window, try to find the latest ACTIVE entry test regardless of time
+      const latestActiveTest = await this.entryTestRepository
+        .createQueryBuilder('entry_test')
+        .leftJoinAndSelect('entry_test.questionSets', 'questionSets')
+        .leftJoinAndSelect('entry_test.createdBy', 'createdBy')
+        .leftJoinAndSelect('entry_test.updatedBy', 'updatedBy')
+        .where('entry_test.status = :status', { status: ExamStatus.ACTIVE })
+        .orderBy('entry_test.startTime', 'DESC')
+        .getOne()
+
+      if (!latestActiveTest) return null
+
+      return plainToInstance(EntryTestResponseDto, {
+        ...latestActiveTest,
+        questionSets: latestActiveTest.questionSets.map((qs) => qs.questionSetId)
+      })
     }
 
     return plainToInstance(EntryTestResponseDto, {

@@ -71,4 +71,7 @@ export class User extends AbstractEntity {
 
   @Column({ type: 'varchar', nullable: true, unique: true })
   username: string
+
+  @Column({ type: 'boolean', nullable: false, default: false })
+  hasParticipatedEntryTest: boolean
 }
