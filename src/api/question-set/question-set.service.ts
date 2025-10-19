@@ -27,8 +27,8 @@ export class QuestionSetService {
 
     // Validate content is non-empty
     if (!Array.isArray(createDto.questions) || createDto.questions.length === 0) {
-      throw new ValidationException(ErrorCode.V004, 'content is required', [
-        { property: 'content', code: ErrorCode.V004 }
+      throw new ValidationException(ErrorCode.V004, 'Questions is required', [
+        { property: 'questions', code: ErrorCode.V004 }
       ])
     }
 
@@ -42,7 +42,21 @@ export class QuestionSetService {
     const missing = uniqueIds.filter((id) => !foundIds.has(id))
     if (missing.length > 0) {
       throw new ValidationException(ErrorCode.Q001, 'Invalid question IDs', [
-        { property: 'content', code: ErrorCode.Q001, message: `Invalid question IDs: ${missing.join(', ')}` }
+        { property: 'questions', code: ErrorCode.Q001, message: `Invalid question IDs: ${missing.join(', ')}` }
+      ])
+    }
+
+    // Validate that the number of questions matches the config total_questions
+    const actualQuestionCount = foundIds.size
+    const expectedQuestionCount = createDto.config.general.total_questions
+
+    if (actualQuestionCount !== expectedQuestionCount) {
+      throw new ValidationException(ErrorCode.Q005, 'Question count mismatch', [
+        {
+          property: 'questions',
+          code: ErrorCode.Q005,
+          message: `Expected ${expectedQuestionCount} questions but got ${actualQuestionCount}`
+        }
       ])
     }
 

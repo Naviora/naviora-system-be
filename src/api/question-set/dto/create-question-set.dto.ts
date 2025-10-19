@@ -8,17 +8,23 @@ import {
   IsString,
   IsUUID,
   MaxLength,
-  ValidateNested
+  ValidateNested,
+  Min,
+  Max
 } from 'class-validator'
 import { Type } from 'class-transformer'
 
 class GeneralConfigDto {
   @ApiProperty({ default: 60 })
   @IsInt()
+  @Min(1)
+  @Max(480) // Maximum 8 hours
   duration_minutes: number
 
   @ApiProperty({ default: 50 })
   @IsInt()
+  @Min(1)
+  @Max(1000) // Maximum 1000 questions
   total_questions: number
 
   @ApiProperty({ default: false })
@@ -41,6 +47,8 @@ class ScoringConfigDto {
 
   @ApiProperty({ default: 70 })
   @IsInt()
+  @Min(0)
+  @Max(100)
   passing_score: number
 }
 
@@ -51,6 +59,8 @@ class BehaviorConfigDto {
 
   @ApiProperty({ default: 1 })
   @IsInt()
+  @Min(1)
+  @Max(10)
   max_attempts: number
 }
 
