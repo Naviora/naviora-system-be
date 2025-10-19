@@ -42,7 +42,8 @@ import { TeachingModule } from '@api/module/entities/teaching-module.entity'
 import { QuestionModule } from './api/question/question.module'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
-import { MaterialModule } from './api/material/material.module';
+import { MaterialModule } from './api/material/material.module'
+import { MaterialEntity } from '@api/material/entities/material.entity'
 
 @Module({
   imports: [
@@ -70,7 +71,8 @@ import { MaterialModule } from './api/material/material.module';
             LessonEntity,
             TeachingModule,
             QuestionEntity,
-            AnswerEntity
+            AnswerEntity,
+            MaterialEntity
           ]
         }
       },
