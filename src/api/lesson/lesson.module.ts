@@ -5,9 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { ModuleEntity } from '@api/module/entities/module.entity'
 import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
+import { MaterialEntity } from '@api/material/entities/material.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LessonEntity, ModuleEntity, TeachingMaterial])],
+  imports: [TypeOrmModule.forFeature([LessonEntity, ModuleEntity, TeachingMaterial, MaterialEntity])],
   controllers: [LessonController],
   providers: [LessonService]
 })

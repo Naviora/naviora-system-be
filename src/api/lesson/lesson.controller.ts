@@ -61,6 +61,21 @@ export class LessonController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a lesson' })
+  @ApiBody({
+    description: 'Data update lesson',
+    type: UpdateLessonDto,
+    examples: {
+      example1: {
+        summary: 'Update a lesson',
+        value: {
+          lesson_name: 'Lesson 1',
+          lesson_description: 'Lesson 1 description',
+          lesson_content: 'Lesson 1 content'
+        }
+      }
+    }
+  })
   @ResponseMessage('Lesson updated successfully')
   async update(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Body() updateLessonDto: UpdateLessonDto) {
     return await this.lessonService.update(id, updateLessonDto)

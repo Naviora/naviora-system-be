@@ -17,6 +17,9 @@ export class LessonEntity extends AbstractEntity {
   @Column({ type: 'varchar', nullable: false })
   lessonDescription: string
 
+  @Column({ type: 'text', nullable: true })
+  lessonContent: string
+
   @ManyToOne(() => ModuleEntity, (module) => module.lessons)
   @JoinColumn({ name: 'module_id' })
   module: ModuleEntity
