@@ -48,6 +48,8 @@ import { TeachingMaterialModule } from './api/teaching-material/teaching-materia
 import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
 import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
 import { QuestionSetModule } from './api/question-set/question-set.module'
+import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
+import { EntryTestModule } from './api/entry-test/entry-test.module'
 
 @Module({
   imports: [
@@ -78,7 +80,8 @@ import { QuestionSetModule } from './api/question-set/question-set.module'
             AnswerEntity,
             MaterialEntity,
             TeachingMaterial,
-            QuestionSetEntity
+            QuestionSetEntity,
+            EntryTestEntity
           ]
         }
       },
@@ -152,7 +155,8 @@ import { QuestionSetModule } from './api/question-set/question-set.module'
     QuestionModule,
     MaterialModule,
     TeachingMaterialModule,
-    QuestionSetModule
+    QuestionSetModule,
+    EntryTestModule
   ],
   controllers: [AppController],
   providers: [

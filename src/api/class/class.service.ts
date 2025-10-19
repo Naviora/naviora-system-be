@@ -16,6 +16,8 @@ import { AssignLecturersDto } from './dto/assign-lecturers-to-class.dto'
 import { TeachingAssignment } from './entities/teaching-assignment.entity'
 import { User } from '@api/user/entities/user.entity'
 import { RoleInAccount } from '@common/enums/account-role.enum'
+import { plainToInstance } from 'class-transformer'
+import { ClassDTO } from './dto/class.dto'
 
 @Injectable()
 export class ClassService {
@@ -100,10 +102,23 @@ export class ClassService {
       skipCount: false,
       takeAll: false
     })
+    const mappedClasses = classes.map((c) =>
+      plainToInstance(ClassDTO, {
+        class_id: c.classId,
+        class_code: c.classCode,
+        class_name: c.className,
+        class_type: c.classType,
+        start_date: c.startDate,
+        end_date: c.endDate,
+        is_active: c.isActive,
+        created_at: c.createdAt,
+        updated_at: c.updatedAt
+      })
+    )
 
     return {
-      classes,
-      meta: metaDto
+      classes: mappedClasses,
+      pagination: metaDto
     }
   }
 

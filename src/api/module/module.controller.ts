@@ -20,7 +20,6 @@ import { CreateModuleDto } from './dto/create-module.dto'
 import { UpdateModuleDto } from './dto/update-module.dto'
 import { GetModulesQueryDto } from './dto/get-modules-query.dto'
 import { AssignLecturersToModuleDto } from './dto/assign-lecturers-to-module.dto'
-import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
@@ -84,15 +83,8 @@ export class ModulesController {
   @ApiOperation({ summary: 'Get Modules', description: 'Get list of modules with pagination, search and filters' })
   @Get()
   @ResponseMessage('Get Modules successfully')
-  async getModules(@Query() query: GetModulesQueryDto): Promise<OffsetPaginatedDto<unknown>> {
-    const { modules, meta } = await this.modulesService.getModules(query)
-
-    return new OffsetPaginatedDto<unknown>({
-      statusCode: 200,
-      message: 'Get Modules successfully',
-      data: modules as unknown[],
-      meta
-    })
+  async getModules(@Query() query: GetModulesQueryDto) {
+    return await this.modulesService.getModules(query)
   }
 
   @Get(':moduleId')

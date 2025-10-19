@@ -169,7 +169,7 @@ export class ModulesService {
 
     return {
       modules,
-      meta: metaDto
+      pagination: metaDto
     }
   }
 

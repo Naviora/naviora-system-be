@@ -9,9 +9,6 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
 import { GetClassesQueryDto } from './dto/get-classes-query.dto'
-import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
-import { ClassDTO } from './dto/class.dto'
-import { plainToInstance } from 'class-transformer'
 import { AssignLecturersDto } from './dto/assign-lecturers-to-class.dto'
 import { ClassDetailDTO } from './dto/class-detail.dto'
 
@@ -64,29 +61,8 @@ export class ClassController {
   @ApiBearerAuth()
   @Get()
   @ResponseMessage('Get Classes successfully')
-  async getClasses(@Query() query: GetClassesQueryDto): Promise<OffsetPaginatedDto<ClassDTO>> {
-    const { classes, meta } = await this.classService.getClasses(query)
-
-    const mappedClasses = classes.map((c) =>
-      plainToInstance(ClassDTO, {
-        class_id: c.classId,
-        class_code: c.classCode,
-        class_name: c.className,
-        class_type: c.classType,
-        start_date: c.startDate,
-        end_date: c.endDate,
-        is_active: c.isActive,
-        created_at: c.createdAt,
-        updated_at: c.updatedAt
-      })
-    )
-
-    return new OffsetPaginatedDto<ClassDTO>({
-      statusCode: 200,
-      message: 'Get Classes successfully',
-      data: mappedClasses,
-      meta
-    })
+  async getClasses(@Query() query: GetClassesQueryDto) {
+    return await this.classService.getClasses(query)
   }
 
   @Get(':classId')
