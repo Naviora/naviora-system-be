@@ -1,5 +1,5 @@
 import { AbstractEntity } from '@database/entities/base.entity'
-import { Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import { QuestionDifficulty, QuestionType } from '@common/enums/question.enum'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
 

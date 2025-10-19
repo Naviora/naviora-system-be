@@ -42,6 +42,7 @@ import { TeachingModule } from '@api/module/entities/teaching-module.entity'
 import { QuestionModule } from './api/question/question.module'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
+import { MaterialModule } from './api/material/material.module';
 
 @Module({
   imports: [
@@ -140,7 +141,8 @@ import { AnswerEntity } from '@api/answer/entities/answer.entity'
     ]),
     LessonModule,
     AnswerModule,
-    QuestionModule
+    QuestionModule,
+    MaterialModule
   ],
   controllers: [AppController],
   providers: [
