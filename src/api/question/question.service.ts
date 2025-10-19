@@ -108,6 +108,11 @@ export class QuestionService {
         .orderBy('questions.createdAt', 'DESC')
         .leftJoinAndSelect('questions.answers', 'answers')
 
+      // Search filter
+      if (reqDto.q) {
+        query.andWhere('questions.content ILIKE :search', { search: `%${reqDto.q}%` })
+      }
+
       const [questions, metaDto] = await paginate<QuestionEntity>(query, reqDto, {
         skipCount: false,
         takeAll: false
