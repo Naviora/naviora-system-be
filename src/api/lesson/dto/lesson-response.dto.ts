@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { MaterialType } from '@api/material/entities/material.entity'
+import { MaterialType } from '@common/enums/material.enum'
 import { Exclude, Expose } from 'class-transformer'
 
 @Expose()

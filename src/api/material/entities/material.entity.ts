@@ -1,15 +1,7 @@
 import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
+import { MaterialType } from '@common/enums/material.enum'
 import { AbstractEntity } from '@database/entities/base.entity'
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
-
-export enum MaterialType {
-  VIDEO = 'video',
-  PDF = 'pdf',
-  DOCUMENT = 'document',
-  IMAGE = 'image',
-  AUDIO = 'audio',
-  OTHER = 'other'
-}
 
 @Entity('material')
 export class MaterialEntity extends AbstractEntity {

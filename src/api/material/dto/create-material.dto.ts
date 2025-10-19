@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { MaterialType } from '../entities/material.entity'
+import { MaterialType } from '@common/enums/material.enum'
 import { EnumField, StringField, URLField } from '@decorators/field.decorators'
 
 export class CreateMaterialDto {

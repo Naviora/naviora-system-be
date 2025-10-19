@@ -15,12 +15,12 @@ import { CreateMaterialDto } from './dto/create-material.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiConsumes, ApiParam } from '@nestjs/swagger'
 import { ResponseMessage } from '@decorators/response-message.decorator'
-import { MaterialType } from '@api/material/entities/material.entity'
 import { RolesGuard } from '@guards/roles.guard'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { User } from '@api/user/entities/user.entity'
+import { MaterialType } from '@common/enums/material.enum'
 @Controller({
   path: 'materials',
   version: '1'

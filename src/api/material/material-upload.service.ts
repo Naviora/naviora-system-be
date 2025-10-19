@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { MaterialService } from './material.service'
-import { MaterialType } from './entities/material.entity'
 import { CreateMaterialResDto } from './dto/create-material.res.dto'
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary'
 import { CloudinaryResponse } from '@cloudinary/dtos/cloudinary-response'
@@ -10,6 +9,7 @@ import { plainToInstance } from 'class-transformer'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
+import { MaterialType } from '@common/enums/material.enum'
 
 export type UploadMaterialDto = {
   material_name: string
