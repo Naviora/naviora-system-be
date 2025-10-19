@@ -147,13 +147,11 @@ export class DatabaseSeederService {
   private async seedModule(): Promise<void> {
     this.logger.log('Seeding module...')
 
-    // Get the created class
-    const classEntity = await this.dataSource.getRepository(Class).findOne({
-      where: { classCode: 'SINH12-2024' }
-    })
+    // Get all created classes
+    const classes = await this.dataSource.getRepository(Class).find()
 
-    if (!classEntity) {
-      this.logger.error('Class not found for module creation')
+    if (classes.length === 0) {
+      this.logger.error('No classes found for module creation')
       return
     }
 
@@ -163,12 +161,26 @@ export class DatabaseSeederService {
       })
 
       if (!existingModule) {
+        // Find appropriate class based on module code
+        let targetClass = classes.find((c) => c.classCode.includes('SINH12'))
+
+        if (moduleData.moduleCode.includes('SINH11')) {
+          targetClass = classes.find((c) => c.classCode.includes('SINH11'))
+        } else if (moduleData.moduleCode.includes('SINH10')) {
+          targetClass = classes.find((c) => c.classCode.includes('SINH10'))
+        }
+
+        if (!targetClass) {
+          this.logger.warn(`No appropriate class found for module: ${moduleData.moduleCode}`)
+          continue
+        }
+
         const module = this.dataSource.getRepository(ModuleEntity).create({
           moduleCode: moduleData.moduleCode,
           moduleName: moduleData.moduleName,
           moduleDescription: moduleData.moduleDescription,
           banner: moduleData.banner,
-          class: classEntity
+          class: targetClass
         })
 
         await this.dataSource.getRepository(ModuleEntity).save(module)
@@ -182,13 +194,11 @@ export class DatabaseSeederService {
   private async seedLesson(): Promise<void> {
     this.logger.log('Seeding lesson...')
 
-    // Get the created module
-    const moduleEntity = await this.dataSource.getRepository(ModuleEntity).findOne({
-      where: { moduleCode: 'SINH12-MODULE-01' }
-    })
+    // Get all created modules
+    const modules = await this.dataSource.getRepository(ModuleEntity).find()
 
-    if (!moduleEntity) {
-      this.logger.error('Module not found for lesson creation')
+    if (modules.length === 0) {
+      this.logger.error('No modules found for lesson creation')
       return
     }
 
@@ -198,8 +208,22 @@ export class DatabaseSeederService {
       })
 
       if (!existingLesson) {
+        // Find appropriate module - default to SINH12-MODULE-01 for now
+        // In a more complex system, you might want to map lessons to specific modules
+        let targetModule = modules.find((m) => m.moduleCode === 'SINH12-MODULE-01')
+
+        if (!targetModule) {
+          // Fallback to any SINH12 module
+          targetModule = modules.find((m) => m.moduleCode.includes('SINH12'))
+        }
+
+        if (!targetModule) {
+          this.logger.warn(`No appropriate module found for lesson: ${lessonData.lessonName}`)
+          continue
+        }
+
         const lesson = this.dataSource.getRepository(LessonEntity).create({
-          moduleId: moduleEntity.moduleId,
+          moduleId: targetModule.moduleId,
           lessonName: lessonData.lessonName,
           lessonDescription: lessonData.lessonDescription
         })
@@ -215,13 +239,11 @@ export class DatabaseSeederService {
   private async seedQuestionsAndAnswers(): Promise<void> {
     this.logger.log('Seeding questions and answers...')
 
-    // Get the created lesson
-    const lessonEntity = await this.dataSource.getRepository(LessonEntity).findOne({
-      where: { lessonName: 'Cơ chế di truyền và biến dị' }
-    })
+    // Get all created lessons
+    const lessons = await this.dataSource.getRepository(LessonEntity).find()
 
-    if (!lessonEntity) {
-      this.logger.error('Lesson not found for question creation')
+    if (lessons.length === 0) {
+      this.logger.error('No lessons found for question creation')
       return
     }
 
@@ -232,9 +254,23 @@ export class DatabaseSeederService {
       })
 
       if (!existingQuestion) {
+        // Find appropriate lesson - default to 'Cơ chế di truyền và biến dị' for now
+        // In a more complex system, you might want to map questions to specific lessons
+        let targetLesson = lessons.find((l) => l.lessonName === 'Cơ chế di truyền và biến dị')
+
+        if (!targetLesson) {
+          // Fallback to any lesson
+          targetLesson = lessons[0]
+        }
+
+        if (!targetLesson) {
+          this.logger.warn(`No appropriate lesson found for question: ${questionData.content.substring(0, 50)}...`)
+          continue
+        }
+
         // Create question
         const question = this.dataSource.getRepository(QuestionEntity).create({
-          lessonId: lessonEntity.lessonId,
+          lessonId: targetLesson.lessonId,
           content: questionData.content,
           type: questionData.type,
           difficulty: questionData.difficulty,
