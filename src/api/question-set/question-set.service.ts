@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, In } from 'typeorm'
+import { Repository, In, Like } from 'typeorm'
 import { QuestionSetEntity } from './entities/question-set.entity'
 import { CreateQuestionSetDto } from './dto/create-question-set.dto'
+import { GetQuestionSetsQueryDto } from './dto/get-question-sets-query.dto'
+import { QuestionSetResponseDto } from './dto/question-set-response.dto'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
+import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
+import { paginate } from '@utils/offset-pagination'
 
 @Injectable()
 export class QuestionSetService {
@@ -74,5 +78,45 @@ export class QuestionSetService {
     }
 
     return savedQuestionSet
+  }
+
+  async getQuestionSets(queryDto: GetQuestionSetsQueryDto) {
+    const query = this.questionSetRepository.createQueryBuilder('question_set')
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('question_set.title ILIKE :search OR question_set.description ILIKE :search', {
+        search: `%${queryDto.q}%`
+      })
+    }
+
+    // Lecturer filter
+    if (queryDto.lecturerId) {
+      query.andWhere('question_set.lecturer_id = :lecturerId', { lecturerId: queryDto.lecturerId })
+    }
+
+    // Sorting
+    const validSortFields = ['title', 'description', 'createdAt', 'updatedAt']
+    const sortMapping: Record<string, string> = {
+      title: 'title',
+      description: 'description',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    query.orderBy(`question_set.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [questionSets, metaDto] = await paginate<QuestionSetEntity>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      questionSets,
+      meta: metaDto
+    }
   }
 }
