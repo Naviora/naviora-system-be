@@ -14,6 +14,10 @@ export class LecturerDetailDto {
   @ApiProperty()
   @Expose()
   email: string
+
+  @ApiProperty()
+  @Expose()
+  avatar: string
 }
 
 export class GeneralConfigDetailDto {

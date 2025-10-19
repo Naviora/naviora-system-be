@@ -12,7 +12,6 @@ import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
 import { paginate } from '@utils/offset-pagination'
 import { plainToInstance } from 'class-transformer'
-import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { QuestionSetResponseDto } from './dto/question-set-response.dto'
 
 @Injectable()
@@ -174,7 +173,8 @@ export class QuestionSetService {
       lecturer: {
         userId: questionSet.lecturer.id,
         name: questionSet.lecturer.name,
-        email: questionSet.lecturer.email
+        email: questionSet.lecturer.email,
+        avatar: questionSet.lecturer.avatar
       },
       createdAt: questionSet.createdAt,
       updatedAt: questionSet.updatedAt

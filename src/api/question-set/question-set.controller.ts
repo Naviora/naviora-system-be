@@ -3,7 +3,6 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { QuestionSetService } from './question-set.service'
 import { CreateQuestionSetDto } from './dto/create-question-set.dto'
 import { GetQuestionSetsQueryDto } from './dto/get-question-sets-query.dto'
-import { QuestionSetResponseDto } from './dto/question-set-response.dto'
 import { QuestionSetDetailResponseDto } from './dto/question-set-detail-response.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { CurrentUser } from '@decorators/current-user.decorator'
@@ -11,7 +10,6 @@ import { User } from '@api/user/entities/user.entity'
 import { Roles } from '@decorators/roles.decorator'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { RolesGuard } from '@guards/roles.guard'
-import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 
 @ApiTags('Question Sets')
 @Controller({ path: 'question-set', version: '1' })
