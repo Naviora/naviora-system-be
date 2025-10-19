@@ -7,12 +7,14 @@ import { ModuleEntity } from '@api/module/entities/module.entity'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
+import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
 import { RoleInAccounts } from './role-seed-data'
 import { accountStatuses } from './account-seed-data'
 import { classSeedData } from './class.seed'
 import { moduleSeedData } from './module.seed'
 import { lessonSeedData } from './lesson.seed'
 import { questionSeedData } from './question.seed'
+import { questionSetSeedData } from './question-set.seed'
 import { hashString } from '@utils/auth.util'
 
 export class DatabaseSeederService {
@@ -41,6 +43,9 @@ export class DatabaseSeederService {
 
       // Seed questions and answers
       await this.seedQuestionsAndAnswers()
+
+      // Seed question sets
+      await this.seedQuestionSets()
 
       this.logger.log('Database seeding completed successfully!')
     } catch (error) {
@@ -147,13 +152,11 @@ export class DatabaseSeederService {
   private async seedModule(): Promise<void> {
     this.logger.log('Seeding module...')
 
-    // Get the created class
-    const classEntity = await this.dataSource.getRepository(Class).findOne({
-      where: { classCode: 'SINH12-2024' }
-    })
+    // Get all created classes
+    const classes = await this.dataSource.getRepository(Class).find()
 
-    if (!classEntity) {
-      this.logger.error('Class not found for module creation')
+    if (classes.length === 0) {
+      this.logger.error('No classes found for module creation')
       return
     }
 
@@ -163,12 +166,26 @@ export class DatabaseSeederService {
       })
 
       if (!existingModule) {
+        // Find appropriate class based on module code
+        let targetClass = classes.find((c) => c.classCode.includes('SINH12'))
+
+        if (moduleData.moduleCode.includes('SINH11')) {
+          targetClass = classes.find((c) => c.classCode.includes('SINH11'))
+        } else if (moduleData.moduleCode.includes('SINH10')) {
+          targetClass = classes.find((c) => c.classCode.includes('SINH10'))
+        }
+
+        if (!targetClass) {
+          this.logger.warn(`No appropriate class found for module: ${moduleData.moduleCode}`)
+          continue
+        }
+
         const module = this.dataSource.getRepository(ModuleEntity).create({
           moduleCode: moduleData.moduleCode,
           moduleName: moduleData.moduleName,
           moduleDescription: moduleData.moduleDescription,
           banner: moduleData.banner,
-          class: classEntity
+          class: targetClass
         })
 
         await this.dataSource.getRepository(ModuleEntity).save(module)
@@ -182,13 +199,11 @@ export class DatabaseSeederService {
   private async seedLesson(): Promise<void> {
     this.logger.log('Seeding lesson...')
 
-    // Get the created module
-    const moduleEntity = await this.dataSource.getRepository(ModuleEntity).findOne({
-      where: { moduleCode: 'SINH12-MODULE-01' }
-    })
+    // Get all created modules
+    const modules = await this.dataSource.getRepository(ModuleEntity).find()
 
-    if (!moduleEntity) {
-      this.logger.error('Module not found for lesson creation')
+    if (modules.length === 0) {
+      this.logger.error('No modules found for lesson creation')
       return
     }
 
@@ -198,8 +213,22 @@ export class DatabaseSeederService {
       })
 
       if (!existingLesson) {
+        // Find appropriate module - default to SINH12-MODULE-01 for now
+        // In a more complex system, you might want to map lessons to specific modules
+        let targetModule = modules.find((m) => m.moduleCode === 'SINH12-MODULE-01')
+
+        if (!targetModule) {
+          // Fallback to any SINH12 module
+          targetModule = modules.find((m) => m.moduleCode.includes('SINH12'))
+        }
+
+        if (!targetModule) {
+          this.logger.warn(`No appropriate module found for lesson: ${lessonData.lessonName}`)
+          continue
+        }
+
         const lesson = this.dataSource.getRepository(LessonEntity).create({
-          moduleId: moduleEntity.moduleId,
+          moduleId: targetModule.moduleId,
           lessonName: lessonData.lessonName,
           lessonDescription: lessonData.lessonDescription
         })
@@ -215,13 +244,11 @@ export class DatabaseSeederService {
   private async seedQuestionsAndAnswers(): Promise<void> {
     this.logger.log('Seeding questions and answers...')
 
-    // Get the created lesson
-    const lessonEntity = await this.dataSource.getRepository(LessonEntity).findOne({
-      where: { lessonName: 'Cơ chế di truyền và biến dị' }
-    })
+    // Get all created lessons
+    const lessons = await this.dataSource.getRepository(LessonEntity).find()
 
-    if (!lessonEntity) {
-      this.logger.error('Lesson not found for question creation')
+    if (lessons.length === 0) {
+      this.logger.error('No lessons found for question creation')
       return
     }
 
@@ -232,9 +259,23 @@ export class DatabaseSeederService {
       })
 
       if (!existingQuestion) {
+        // Find appropriate lesson - default to 'Cơ chế di truyền và biến dị' for now
+        // In a more complex system, you might want to map questions to specific lessons
+        let targetLesson = lessons.find((l) => l.lessonName === 'Cơ chế di truyền và biến dị')
+
+        if (!targetLesson) {
+          // Fallback to any lesson
+          targetLesson = lessons[0]
+        }
+
+        if (!targetLesson) {
+          this.logger.warn(`No appropriate lesson found for question: ${questionData.content.substring(0, 50)}...`)
+          continue
+        }
+
         // Create question
         const question = this.dataSource.getRepository(QuestionEntity).create({
-          lessonId: lessonEntity.lessonId,
+          lessonId: targetLesson.lessonId,
           content: questionData.content,
           type: questionData.type,
           difficulty: questionData.difficulty,
@@ -265,6 +306,65 @@ export class DatabaseSeederService {
         this.logger.log(`Created question with ${answers.length} answers: ${questionData.content.substring(0, 50)}...`)
       } else {
         this.logger.log(`Question already exists: ${questionData.content.substring(0, 50)}...`)
+      }
+    }
+  }
+
+  private async seedQuestionSets(): Promise<void> {
+    this.logger.log('Seeding question sets...')
+
+    // Get a lecturer user (assuming there's at least one user with lecturer role)
+    const lecturer = await this.dataSource.getRepository(User).findOne({
+      where: { role: { name: 'Lecturer' } },
+      relations: ['role']
+    })
+
+    if (!lecturer) {
+      this.logger.error('No lecturer found for question set creation')
+      return
+    }
+
+    // Get some questions to populate the question sets
+    const questions = await this.dataSource.getRepository(QuestionEntity).find({
+      take: 50 // Get up to 50 questions
+    })
+
+    if (questions.length === 0) {
+      this.logger.error('No questions found for question set creation')
+      return
+    }
+
+    for (const questionSetData of questionSetSeedData) {
+      const existingQuestionSet = await this.dataSource.getRepository(QuestionSetEntity).findOne({
+        where: { title: questionSetData.title }
+      })
+
+      if (!existingQuestionSet) {
+        // Select random questions for this question set
+        const totalQuestions = questionSetData.config.general.total_questions
+        const selectedQuestions = questions
+          .sort(() => 0.5 - Math.random()) // Shuffle questions
+          .slice(0, Math.min(totalQuestions, questions.length))
+          .map((q) => q.questionId)
+
+        // Update the question set data with actual question IDs
+        const questionSetToCreate = {
+          ...questionSetData,
+          questions: selectedQuestions
+        }
+
+        const questionSet = this.dataSource.getRepository(QuestionSetEntity).create({
+          title: questionSetToCreate.title,
+          description: questionSetToCreate.description,
+          questions: questionSetToCreate.questions,
+          config: questionSetToCreate.config,
+          lecturer: lecturer
+        })
+
+        await this.dataSource.getRepository(QuestionSetEntity).save(questionSet)
+        this.logger.log(`Created question set: ${questionSetData.title} with ${selectedQuestions.length} questions`)
+      } else {
+        this.logger.log(`Question set already exists: ${questionSetData.title}`)
       }
     }
   }
