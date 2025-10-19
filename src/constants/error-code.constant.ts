@@ -85,5 +85,7 @@ export enum ErrorCode {
   T001 = 'teaching_material.error.teaching_material_not_found',
 
   // Error of Entry Test
-  ENTRY_TEST001 = 'entry_test.error.entry_test_not_found'
+  ENTRY_TEST001 = 'entry_test.error.entry_test_not_found',
+  ENTRY_TEST002 = 'entry_test.error.student_already_has_a_submission_for_this_entry_test',
+  ENTRY_TEST003 = 'entry_test.error.no_question_sets_available_for_this_entry_test'
 }

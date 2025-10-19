@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, In } from 'typeorm'
 import { EntryTestEntity } from './entities/entry-test.entity'
+import { EntryTestSubmissionEntity } from './entities/entry-test-submission.entity'
 import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
+import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
@@ -12,6 +14,7 @@ import { plainToInstance } from 'class-transformer'
 import { ExamStatus } from '@common/enums/exam-status.enum'
 import { paginate } from '@utils/offset-pagination'
 import { GetEntryTestsQueryDto } from './dto/get-entry-tests-query.dto'
+import { AttemptStatus } from '@common/enums/attempt-status.enum'
 
 @Injectable()
 export class EntryTestService {
@@ -19,7 +22,9 @@ export class EntryTestService {
     @InjectRepository(EntryTestEntity)
     private readonly entryTestRepository: Repository<EntryTestEntity>,
     @InjectRepository(QuestionSetEntity)
-    private readonly questionSetRepository: Repository<QuestionSetEntity>
+    private readonly questionSetRepository: Repository<QuestionSetEntity>,
+    @InjectRepository(EntryTestSubmissionEntity)
+    private readonly entryTestSubmissionRepository: Repository<EntryTestSubmissionEntity>
   ) {}
 
   async create(createDto: CreateEntryTestDto, currentUser: User): Promise<EntryTestResponseDto> {
@@ -71,13 +76,74 @@ export class EntryTestService {
     })
   }
 
+  async startEntryTest(entryTestId: string, currentUser: User): Promise<EntryTestSubmissionResponseDto> {
+    // Find the entry test
+    const entryTest = await this.entryTestRepository.findOne({
+      where: { entryTestId },
+      relations: ['questionSets']
+    })
+
+    if (!entryTest) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
+
+    // Check if entry test is active
+    if (entryTest.status !== ExamStatus.ACTIVE) {
+      throw new ValidationException(ErrorCode.V004, 'Entry test is not active', [
+        { property: 'entryTestId', code: ErrorCode.V004 }
+      ])
+    }
+
+    // Check if student already has a submission for this entry test
+    const existingSubmission = await this.entryTestSubmissionRepository.findOne({
+      where: {
+        studentId: currentUser.id,
+        entryTestId: entryTestId
+      }
+    })
+
+    if (existingSubmission) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST002, 'Student already has a submission for this entry test', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST002 }
+      ])
+    }
+
+    // Randomly select a question set from the entry test's question sets
+    const availableQuestionSets = entryTest.questionSets
+    if (availableQuestionSets.length === 0) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST003, 'No question sets available for this entry test', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST003 }
+      ])
+    }
+    const randomIndex = Math.floor(Math.random() * availableQuestionSets.length)
+    const selectedQuestionSet = availableQuestionSets[randomIndex]
+
+    // Create entry test submission
+    const submission = this.entryTestSubmissionRepository.create({
+      studentId: currentUser.id,
+      entryTestId: entryTestId,
+      questionSetId: selectedQuestionSet.questionSetId,
+      attemptStatus: AttemptStatus.IN_PROGRESS,
+      score: null,
+      answered: null,
+      penalty: null,
+      note: null,
+      submittedAt: null
+    })
+
+    const savedSubmission = await this.entryTestSubmissionRepository.save(submission)
+
+    return plainToInstance(EntryTestSubmissionResponseDto, savedSubmission)
+  }
+
   async getEntryTests(queryDto: GetEntryTestsQueryDto) {
     const query = this.entryTestRepository.createQueryBuilder('entry_test')
 
     query.leftJoinAndSelect('entry_test.questionSets', 'questionSets')
     query.leftJoinAndSelect('entry_test.createdBy', 'createdBy')
     query.leftJoinAndSelect('createdBy.role', 'role')
-    query.leftJoinAndSelect('entry_test.createdBy', 'createdBy')
 
     // Search filter
     if (queryDto.q) {
