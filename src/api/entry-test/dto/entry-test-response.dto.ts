@@ -26,7 +26,7 @@ export class EntryTestResponseDto {
 
   @ApiProperty()
   @Expose()
-  endTime: Date | null
+  endTime: Date
 
   @ApiProperty({ type: [String] })
   @Expose()

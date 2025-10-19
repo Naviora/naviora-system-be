@@ -23,10 +23,10 @@ export class CreateEntryTestDto {
   @IsNotEmpty()
   startTime: string
 
-  @ApiProperty({ required: false })
+  @ApiProperty()
   @IsString()
-  @IsOptional()
-  endTime?: string
+  @IsNotEmpty()
+  endTime: string
 
   @ApiProperty({ type: [String] })
   @IsArray()
