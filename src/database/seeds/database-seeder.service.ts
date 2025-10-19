@@ -315,7 +315,7 @@ export class DatabaseSeederService {
 
     // Get a lecturer user (assuming there's at least one user with lecturer role)
     const lecturer = await this.dataSource.getRepository(User).findOne({
-      where: { role: { name: 'lecturer' } },
+      where: { role: { name: 'Lecturer' } },
       relations: ['role']
     })
 
