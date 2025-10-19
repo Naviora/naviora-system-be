@@ -76,6 +76,8 @@ export class EntryTestService {
 
     query.leftJoinAndSelect('entry_test.questionSets', 'questionSets')
     query.leftJoinAndSelect('entry_test.createdBy', 'createdBy')
+    query.leftJoinAndSelect('createdBy.role', 'role')
+    query.leftJoinAndSelect('entry_test.createdBy', 'createdBy')
 
     // Search filter
     if (queryDto.q) {
@@ -127,21 +129,21 @@ export class EntryTestService {
     }
   }
 
-  // async getEntryTestById(entryTestId: string): Promise<EntryTestResponseDto> {
-  //   const entryTest = await this.entryTestRepository.findOne({
-  //     where: { entryTestId },
-  //     relations: ['questionSets']
-  //   })
+  async getEntryTestById(entryTestId: string): Promise<EntryTestResponseDto> {
+    const entryTest = await this.entryTestRepository.findOne({
+      where: { entryTestId },
+      relations: ['questionSets', 'createdBy']
+    })
 
-  //   if (!entryTest) {
-  //     throw new ValidationException(ErrorCode.Q001, 'Entry test not found', [
-  //       { property: 'entryTestId', code: ErrorCode.Q001 }
-  //     ])
-  //   }
+    if (!entryTest) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
 
-  //   return plainToInstance(EntryTestResponseDto, {
-  //     ...entryTest,
-  //     questionSets: entryTest.questionSets.map((qs) => qs.questionSetId)
-  //   })
-  // }
+    return plainToInstance(EntryTestResponseDto, {
+      ...entryTest,
+      questionSets: entryTest.questionSets.map((qs) => qs.questionSetId)
+    })
+  }
 }

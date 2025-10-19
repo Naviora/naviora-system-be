@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { EntryTestService } from './entry-test.service'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
@@ -52,11 +52,13 @@ export class EntryTestController {
     return await this.entryTestService.getEntryTests(query)
   }
 
-  // @Get(':entryTestId')
-  // @Roles('Lecturer', 'Principal', 'Admin', 'Student')
-  // @ApiOperation({ summary: 'Get a single entry test by ID' })
-  // @ResponseMessage('Entry test retrieved successfully')
-  // async getEntryTestById(@Param('entryTestId') entryTestId: string): Promise<EntryTestResponseDto> {
-  //   return await this.entryTestService.getEntryTestById(entryTestId)
-  // }
+  @Get(':entryTestId')
+  @Roles('Lecturer', 'Principal', 'Admin', 'Student')
+  @ApiOperation({ summary: 'Get a single entry test by ID' })
+  @ResponseMessage('Entry test retrieved successfully')
+  async getEntryTestById(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
+  ): Promise<EntryTestResponseDto> {
+    return await this.entryTestService.getEntryTestById(entryTestId)
+  }
 }
