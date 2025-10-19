@@ -1,15 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common'
+import { Controller, Post, Body, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common'
 import { MaterialService } from './material.service'
+import { MaterialUploadService } from './material-upload.service'
 import { CreateMaterialDto } from './dto/create-material.dto'
-import { UpdateMaterialDto } from './dto/update-material.dto'
 import { JwtPayloadType } from '@api/auth/types/jwt-payload.type'
 import { CurrentUser } from '@decorators/current-user.decorator'
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiConsumes } from '@nestjs/swagger'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { MaterialType } from '@api/material/entities/material.entity'
 import { RolesGuard } from '@guards/roles.guard'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
+import { FileInterceptor } from '@nestjs/platform-express'
 @Controller({
   path: 'materials',
   version: '1'
@@ -19,7 +20,10 @@ import { Roles } from '@decorators/roles.decorator'
 @UseGuards(RolesGuard)
 @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
 export class MaterialController {
-  constructor(private readonly materialService: MaterialService) {}
+  constructor(
+    private readonly materialService: MaterialService,
+    private readonly materialUploadService: MaterialUploadService
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new material' })
@@ -40,5 +44,102 @@ export class MaterialController {
   @ResponseMessage('Material created successfully')
   async create(@Body() createMaterialDto: CreateMaterialDto, @CurrentUser() currentUser: JwtPayloadType) {
     return await this.materialService.create({ ...createMaterialDto, lecturer_id: currentUser.id })
+  }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload file and create material' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Upload file and create material',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File to upload'
+        },
+        material_name: {
+          type: 'string',
+          description: 'Name of the material',
+          example: 'Lecture Video 1'
+        },
+        material_type: {
+          type: 'string',
+          enum: Object.values(MaterialType),
+          description: 'Type of the material',
+          example: MaterialType.VIDEO
+        }
+      },
+      required: ['file', 'material_name', 'material_type']
+    }
+  })
+  @ResponseMessage('File uploaded and material created successfully')
+  async uploadFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('material_name') materialName: string,
+    @Body('material_type') materialType: MaterialType,
+    @CurrentUser() currentUser: JwtPayloadType
+  ) {
+    return await this.materialUploadService.uploadAndCreateMaterial(file, {
+      material_name: materialName,
+      material_type: materialType,
+      lecturer_id: currentUser.id
+    })
+  }
+
+  @Post('upload-to-folder')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload file to specific folder and create material' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Upload file to specific folder and create material',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File to upload'
+        },
+        material_name: {
+          type: 'string',
+          description: 'Name of the material',
+          example: 'Lecture Video 1'
+        },
+        material_type: {
+          type: 'string',
+          enum: Object.values(MaterialType),
+          description: 'Type of the material',
+          example: MaterialType.VIDEO
+        },
+        folder: {
+          type: 'string',
+          description: 'Cloudinary folder name',
+          example: 'lecture-materials',
+          default: 'materials'
+        }
+      },
+      required: ['file', 'material_name', 'material_type']
+    }
+  })
+  @ResponseMessage('File uploaded to folder and material created successfully')
+  async uploadFileToFolder(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('material_name') materialName: string,
+    @Body('material_type') materialType: MaterialType,
+    @Body('folder') folder: string = 'materials',
+    @CurrentUser() currentUser: JwtPayloadType
+  ) {
+    return await this.materialUploadService.uploadAndCreateMaterialWithCustomFolder(
+      file,
+      {
+        material_name: materialName,
+        material_type: materialType,
+        lecturer_id: currentUser.id
+      },
+      folder
+    )
   }
 }

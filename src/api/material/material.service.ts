@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common'
 import { CreateMaterialDto } from './dto/create-material.dto'
-import { UpdateMaterialDto } from './dto/update-material.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { MaterialEntity } from '@api/material/entities/material.entity'
 import { Repository } from 'typeorm'
@@ -13,6 +12,7 @@ export class MaterialService {
     @InjectRepository(MaterialEntity)
     private readonly materialRepository: Repository<MaterialEntity>
   ) {}
+
   async create(createMaterialDto: CreateMaterialDto & { lecturer_id: string }): Promise<CreateMaterialResDto> {
     const material = this.materialRepository.create({
       materialName: createMaterialDto.material_name,
@@ -22,5 +22,13 @@ export class MaterialService {
     })
     const savedMaterial = await this.materialRepository.save(material)
     return plainToInstance(CreateMaterialResDto, savedMaterial)
+  }
+
+  async findById(materialId: string): Promise<MaterialEntity | null> {
+    return await this.materialRepository.findOne({ where: { materialId } })
+  }
+
+  async delete(materialId: string): Promise<void> {
+    await this.materialRepository.delete(materialId)
   }
 }

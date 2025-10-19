@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { MaterialType } from '../entities/material.entity'
 import { DateField, EnumField, StringField, UUIDField } from '@decorators/field.decorators'
+import { Expose } from 'class-transformer'
 
 export class CreateMaterialResDto {
   @ApiProperty({
@@ -8,6 +9,7 @@ export class CreateMaterialResDto {
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @UUIDField()
+  @Expose()
   materialId: string
 
   @ApiProperty({
@@ -15,12 +17,14 @@ export class CreateMaterialResDto {
     example: 'Material 1'
   })
   @StringField()
+  @Expose()
   materialName: string
 
   @ApiProperty({
     description: 'The type of the material',
     example: MaterialType.VIDEO
   })
+  @Expose()
   @EnumField(() => MaterialType)
   materialType: MaterialType
 
@@ -29,6 +33,7 @@ export class CreateMaterialResDto {
     example: 'https://example.com/material.pdf'
   })
   @StringField()
+  @Expose()
   materialPath: string
 
   @ApiProperty({
@@ -36,6 +41,7 @@ export class CreateMaterialResDto {
     example: '2025-01-01'
   })
   @DateField()
+  @Expose()
   createdAt: Date
 
   @ApiProperty({
@@ -43,5 +49,6 @@ export class CreateMaterialResDto {
     example: '2025-01-01'
   })
   @DateField()
+  @Expose()
   updatedAt: Date
 }
