@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common'
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { QuestionSetService } from './question-set.service'
 import { CreateQuestionSetDto } from './dto/create-question-set.dto'
 import { GetQuestionSetsQueryDto } from './dto/get-question-sets-query.dto'
 import { QuestionSetResponseDto } from './dto/question-set-response.dto'
+import { QuestionSetDetailResponseDto } from './dto/question-set-detail-response.dto'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
@@ -55,5 +56,14 @@ export class QuestionSetController {
       data: mappedQuestionSets,
       meta
     })
+  }
+
+  @Get(':questionSetId')
+  @ApiOperation({ summary: 'Get a single question set by ID with full details' })
+  @ResponseMessage('Question set retrieved successfully')
+  async getQuestionSetById(
+    @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string
+  ): Promise<QuestionSetDetailResponseDto> {
+    return await this.questionSetService.getQuestionSetById(questionSetId)
   }
 }

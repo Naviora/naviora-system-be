@@ -1,16 +1,17 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, In, Like } from 'typeorm'
+import { Repository, In } from 'typeorm'
 import { QuestionSetEntity } from './entities/question-set.entity'
 import { CreateQuestionSetDto } from './dto/create-question-set.dto'
 import { GetQuestionSetsQueryDto } from './dto/get-question-sets-query.dto'
-import { QuestionSetResponseDto } from './dto/question-set-response.dto'
+import { ConfigDetailDto, QuestionSetDetailResponseDto } from './dto/question-set-detail-response.dto'
+import { QuestionResponseDto } from '@api/question/dto/question-response.dto'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
-import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
 import { paginate } from '@utils/offset-pagination'
+import { plainToInstance } from 'class-transformer'
 
 @Injectable()
 export class QuestionSetService {
@@ -117,6 +118,47 @@ export class QuestionSetService {
     return {
       questionSets,
       meta: metaDto
+    }
+  }
+
+  async getQuestionSetById(questionSetId: string): Promise<QuestionSetDetailResponseDto> {
+    const questionSet = await this.questionSetRepository.findOne({
+      where: { questionSetId },
+      relations: ['lecturer']
+    })
+
+    if (!questionSet) {
+      throw new ValidationException(ErrorCode.Q001, 'Question set not found', [
+        { property: 'questionSetId', code: ErrorCode.Q001 }
+      ])
+    }
+
+    // Fetch detailed question information with answers
+    const detailedQuestions: QuestionResponseDto[] = []
+
+    if (questionSet.questions && questionSet.questions.length > 0) {
+      const questions = await this.questionRepository.find({
+        where: { questionId: In(questionSet.questions) },
+        relations: ['answers'],
+        order: { createdAt: 'ASC' }
+      })
+
+      detailedQuestions.push(...questions.map((question) => QuestionResponseDto.fromEntity(question)))
+    }
+
+    return {
+      questionSetId: questionSet.questionSetId,
+      title: questionSet.title,
+      description: questionSet.description,
+      questions: detailedQuestions,
+      config: plainToInstance(ConfigDetailDto, questionSet.config),
+      lecturer: {
+        userId: questionSet.lecturer.id,
+        name: questionSet.lecturer.name,
+        email: questionSet.lecturer.email
+      },
+      createdAt: questionSet.createdAt,
+      updatedAt: questionSet.updatedAt
     }
   }
 }
