@@ -1,10 +1,10 @@
-import { Controller, Post, Body, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common'
+import { Controller, Post, Body, UseGuards, UseInterceptors, UploadedFile, Delete, Param } from '@nestjs/common'
 import { MaterialService } from './material.service'
 import { MaterialUploadService } from './material-upload.service'
 import { CreateMaterialDto } from './dto/create-material.dto'
 import { JwtPayloadType } from '@api/auth/types/jwt-payload.type'
 import { CurrentUser } from '@decorators/current-user.decorator'
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiConsumes } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiConsumes, ApiParam } from '@nestjs/swagger'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { MaterialType } from '@api/material/entities/material.entity'
 import { RolesGuard } from '@guards/roles.guard'
@@ -141,5 +141,17 @@ export class MaterialController {
       },
       folder
     )
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete material and its file from Cloudinary' })
+  @ApiParam({
+    name: 'id',
+    description: 'Material ID to delete',
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
+  @ResponseMessage('Material and file deleted successfully')
+  async deleteMaterial(@Param('id') materialId: string) {
+    return await this.materialUploadService.deleteMaterialAndFile(materialId)
   }
 }

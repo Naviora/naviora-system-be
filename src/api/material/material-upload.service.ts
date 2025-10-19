@@ -7,6 +7,9 @@ import { v2 as cloudinary, UploadApiResponse } from 'cloudinary'
 import { CloudinaryResponse } from '@cloudinary/dtos/cloudinary-response'
 import * as streamifier from 'streamifier'
 import { plainToInstance } from 'class-transformer'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
 
 export type UploadMaterialDto = {
   material_name: string
@@ -16,7 +19,11 @@ export type UploadMaterialDto = {
 
 @Injectable()
 export class MaterialUploadService extends CloudinaryService {
-  constructor(private readonly materialService: MaterialService) {
+  constructor(
+    private readonly materialService: MaterialService,
+    @InjectRepository(TeachingMaterial)
+    private readonly teachingMaterialRepository: Repository<TeachingMaterial>
+  ) {
     super()
   }
 
@@ -106,6 +113,9 @@ export class MaterialUploadService extends CloudinaryService {
       if (!material) {
         throw new Error('Material not found')
       }
+
+      // Delete all teaching materials associated with this material
+      await this.teachingMaterialRepository.delete({ material: { materialId: materialId } })
 
       // Extract public_id from Cloudinary URL
       const publicId = this.extractPublicIdFromUrl(material.materialPath)
