@@ -1,8 +1,17 @@
-import { Controller, Post, Body, UseGuards, UseInterceptors, UploadedFile, Delete, Param } from '@nestjs/common'
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Delete,
+  Param,
+  ParseUUIDPipe
+} from '@nestjs/common'
 import { MaterialService } from './material.service'
 import { MaterialUploadService } from './material-upload.service'
 import { CreateMaterialDto } from './dto/create-material.dto'
-import { JwtPayloadType } from '@api/auth/types/jwt-payload.type'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiConsumes, ApiParam } from '@nestjs/swagger'
 import { ResponseMessage } from '@decorators/response-message.decorator'
@@ -11,6 +20,7 @@ import { RolesGuard } from '@guards/roles.guard'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
 import { FileInterceptor } from '@nestjs/platform-express'
+import { User } from '@api/user/entities/user.entity'
 @Controller({
   path: 'materials',
   version: '1'
@@ -42,7 +52,7 @@ export class MaterialController {
     }
   })
   @ResponseMessage('Material created successfully')
-  async create(@Body() createMaterialDto: CreateMaterialDto, @CurrentUser() currentUser: JwtPayloadType) {
+  async create(@Body() createMaterialDto: CreateMaterialDto, @CurrentUser() currentUser: User) {
     return await this.materialService.create({ ...createMaterialDto, lecturer_id: currentUser.id })
   }
 
@@ -80,7 +90,7 @@ export class MaterialController {
     @UploadedFile() file: Express.Multer.File,
     @Body('material_name') materialName: string,
     @Body('material_type') materialType: MaterialType,
-    @CurrentUser() currentUser: JwtPayloadType
+    @CurrentUser() currentUser: User
   ) {
     return await this.materialUploadService.uploadAndCreateMaterial(file, {
       material_name: materialName,
@@ -130,7 +140,7 @@ export class MaterialController {
     @Body('material_name') materialName: string,
     @Body('material_type') materialType: MaterialType,
     @Body('folder') folder: string = 'materials',
-    @CurrentUser() currentUser: JwtPayloadType
+    @CurrentUser() currentUser: User
   ) {
     return await this.materialUploadService.uploadAndCreateMaterialWithCustomFolder(
       file,
@@ -151,7 +161,7 @@ export class MaterialController {
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @ResponseMessage('Material and file deleted successfully')
-  async deleteMaterial(@Param('id') materialId: string) {
+  async deleteMaterial(@Param('id', new ParseUUIDPipe({ version: '4' })) materialId: string) {
     return await this.materialUploadService.deleteMaterialAndFile(materialId)
   }
 }
