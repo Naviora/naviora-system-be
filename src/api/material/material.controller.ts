@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common'
 import { MaterialService } from './material.service'
 import { CreateMaterialDto } from './dto/create-material.dto'
 import { UpdateMaterialDto } from './dto/update-material.dto'
@@ -7,9 +7,17 @@ import { CurrentUser } from '@decorators/current-user.decorator'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { MaterialType } from '@api/material/entities/material.entity'
-@Controller('material')
+import { RolesGuard } from '@guards/roles.guard'
+import { RoleInAccount } from '@common/enums/account-role.enum'
+import { Roles } from '@decorators/roles.decorator'
+@Controller({
+  path: 'materials',
+  version: '1'
+})
 @ApiTags('Material')
 @ApiBearerAuth('Authorization')
+@UseGuards(RolesGuard)
+@Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
 export class MaterialController {
   constructor(private readonly materialService: MaterialService) {}
 
@@ -31,7 +39,7 @@ export class MaterialController {
   })
   @ResponseMessage('Material created successfully')
   async create(@Body() createMaterialDto: CreateMaterialDto, @CurrentUser() currentUser: JwtPayloadType) {
-    return await this.materialService.create({ ...createMaterialDto, lecturerId: currentUser.id })
+    return await this.materialService.create({ ...createMaterialDto, lecturer_id: currentUser.id })
   }
 
   @Get()
