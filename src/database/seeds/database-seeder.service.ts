@@ -7,12 +7,14 @@ import { ModuleEntity } from '@api/module/entities/module.entity'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
+import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
 import { RoleInAccounts } from './role-seed-data'
 import { accountStatuses } from './account-seed-data'
 import { classSeedData } from './class.seed'
 import { moduleSeedData } from './module.seed'
 import { lessonSeedData } from './lesson.seed'
 import { questionSeedData } from './question.seed'
+import { questionSetSeedData } from './question-set.seed'
 import { hashString } from '@utils/auth.util'
 
 export class DatabaseSeederService {
@@ -41,6 +43,9 @@ export class DatabaseSeederService {
 
       // Seed questions and answers
       await this.seedQuestionsAndAnswers()
+
+      // Seed question sets
+      await this.seedQuestionSets()
 
       this.logger.log('Database seeding completed successfully!')
     } catch (error) {
@@ -301,6 +306,65 @@ export class DatabaseSeederService {
         this.logger.log(`Created question with ${answers.length} answers: ${questionData.content.substring(0, 50)}...`)
       } else {
         this.logger.log(`Question already exists: ${questionData.content.substring(0, 50)}...`)
+      }
+    }
+  }
+
+  private async seedQuestionSets(): Promise<void> {
+    this.logger.log('Seeding question sets...')
+
+    // Get a lecturer user (assuming there's at least one user with lecturer role)
+    const lecturer = await this.dataSource.getRepository(User).findOne({
+      where: { role: { name: 'lecturer' } },
+      relations: ['role']
+    })
+
+    if (!lecturer) {
+      this.logger.error('No lecturer found for question set creation')
+      return
+    }
+
+    // Get some questions to populate the question sets
+    const questions = await this.dataSource.getRepository(QuestionEntity).find({
+      take: 50 // Get up to 50 questions
+    })
+
+    if (questions.length === 0) {
+      this.logger.error('No questions found for question set creation')
+      return
+    }
+
+    for (const questionSetData of questionSetSeedData) {
+      const existingQuestionSet = await this.dataSource.getRepository(QuestionSetEntity).findOne({
+        where: { title: questionSetData.title }
+      })
+
+      if (!existingQuestionSet) {
+        // Select random questions for this question set
+        const totalQuestions = questionSetData.config.general.total_questions
+        const selectedQuestions = questions
+          .sort(() => 0.5 - Math.random()) // Shuffle questions
+          .slice(0, Math.min(totalQuestions, questions.length))
+          .map((q) => q.questionId)
+
+        // Update the question set data with actual question IDs
+        const questionSetToCreate = {
+          ...questionSetData,
+          questions: selectedQuestions
+        }
+
+        const questionSet = this.dataSource.getRepository(QuestionSetEntity).create({
+          title: questionSetToCreate.title,
+          description: questionSetToCreate.description,
+          questions: questionSetToCreate.questions,
+          config: questionSetToCreate.config,
+          lecturer: lecturer
+        })
+
+        await this.dataSource.getRepository(QuestionSetEntity).save(questionSet)
+        this.logger.log(`Created question set: ${questionSetData.title} with ${selectedQuestions.length} questions`)
+      } else {
+        this.logger.log(`Question set already exists: ${questionSetData.title}`)
       }
     }
   }
