@@ -6,15 +6,12 @@ import { MaterialEntity } from '@api/material/entities/material.entity'
 import { Repository } from 'typeorm'
 import { CreateMaterialResDto } from '@api/material/dto/create-material.res.dto'
 import { plainToInstance } from 'class-transformer'
-import { ModuleEntity } from '@api/module/entities/module.entity'
 
 @Injectable()
 export class MaterialService {
   constructor(
     @InjectRepository(MaterialEntity)
-    private readonly materialRepository: Repository<MaterialEntity>,
-    @InjectRepository(ModuleEntity)
-    private readonly moduleRepository: Repository<ModuleEntity>
+    private readonly materialRepository: Repository<MaterialEntity>
   ) {}
   async create(createMaterialDto: CreateMaterialDto & { lecturer_id: string }): Promise<CreateMaterialResDto> {
     const material = this.materialRepository.create({
@@ -25,21 +22,5 @@ export class MaterialService {
     })
     const savedMaterial = await this.materialRepository.save(material)
     return plainToInstance(CreateMaterialResDto, savedMaterial)
-  }
-
-  findAll() {
-    return `This action returns all material`
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} material`
-  }
-
-  update(id: number, updateMaterialDto: UpdateMaterialDto) {
-    return `This action updates a #${id} material`
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} material`
   }
 }

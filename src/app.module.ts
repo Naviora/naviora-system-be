@@ -44,6 +44,8 @@ import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
 import { MaterialModule } from './api/material/material.module'
 import { MaterialEntity } from '@api/material/entities/material.entity'
+import { TeachingMaterialModule } from './api/teaching-material/teaching-material.module'
+import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
 
 @Module({
   imports: [
@@ -72,7 +74,8 @@ import { MaterialEntity } from '@api/material/entities/material.entity'
             TeachingModule,
             QuestionEntity,
             AnswerEntity,
-            MaterialEntity
+            MaterialEntity,
+            TeachingMaterial
           ]
         }
       },
@@ -144,7 +147,8 @@ import { MaterialEntity } from '@api/material/entities/material.entity'
     LessonModule,
     AnswerModule,
     QuestionModule,
-    MaterialModule
+    MaterialModule,
+    TeachingMaterialModule
   ],
   controllers: [AppController],
   providers: [

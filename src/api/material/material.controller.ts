@@ -41,24 +41,4 @@ export class MaterialController {
   async create(@Body() createMaterialDto: CreateMaterialDto, @CurrentUser() currentUser: JwtPayloadType) {
     return await this.materialService.create({ ...createMaterialDto, lecturer_id: currentUser.id })
   }
-
-  @Get()
-  findAll() {
-    return this.materialService.findAll()
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.materialService.findOne(+id)
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMaterialDto: UpdateMaterialDto) {
-    return this.materialService.update(+id, updateMaterialDto)
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.materialService.remove(+id)
-  }
 }
