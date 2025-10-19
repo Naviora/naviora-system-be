@@ -34,28 +34,7 @@ export class QuestionSetController {
   @ApiOperation({ summary: 'Get paginated list of question sets' })
   @ResponseMessage('Question sets retrieved successfully')
   async getQuestionSets(@Query() query: GetQuestionSetsQueryDto): Promise<OffsetPaginatedDto<QuestionSetResponseDto>> {
-    const { questionSets, meta } = await this.questionSetService.getQuestionSets(query)
-    const mappedQuestionSets = questionSets.map((q) =>
-      plainToInstance(QuestionSetResponseDto, {
-        questionSetId: q.questionSetId,
-        title: q.title,
-        description: q.description,
-        totalQuestions: q.config.general.total_questions,
-        durationMinutes: q.config.general.duration_minutes,
-        passingScore: q.config.general.passing_score,
-        maxAttempts: q.config.general.max_attempts,
-        lecturer: q.lecturer,
-        createdAt: q.createdAt,
-        updatedAt: q.updatedAt
-      })
-    )
-
-    return new OffsetPaginatedDto<QuestionSetResponseDto>({
-      statusCode: 200,
-      message: 'Question sets retrieved successfully',
-      data: mappedQuestionSets,
-      meta
-    })
+    return await this.questionSetService.getQuestionSets(query)
   }
 
   @Get(':questionSetId')

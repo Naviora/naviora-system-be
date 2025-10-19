@@ -12,6 +12,8 @@ import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
 import { paginate } from '@utils/offset-pagination'
 import { plainToInstance } from 'class-transformer'
+import { OffsetPaginatedDto } from '@common/dto/offset-pagination/paginated.dto'
+import { QuestionSetResponseDto } from './dto/question-set-response.dto'
 
 @Injectable()
 export class QuestionSetService {
@@ -25,11 +27,6 @@ export class QuestionSetService {
   ) {}
 
   async create(createDto: CreateQuestionSetDto, currentUser: User) {
-    // Validate title
-    if (!createDto.title || createDto.title.trim().length === 0) {
-      throw new ValidationException(ErrorCode.V004, 'title is required', [{ property: 'title', code: ErrorCode.V004 }])
-    }
-
     // Validate content is non-empty
     if (!Array.isArray(createDto.questions) || createDto.questions.length === 0) {
       throw new ValidationException(ErrorCode.V004, 'Questions is required', [
@@ -115,10 +112,27 @@ export class QuestionSetService {
       takeAll: false
     })
 
-    return {
-      questionSets,
+    const mappedQuestionSets = questionSets.map((q) =>
+      plainToInstance(QuestionSetResponseDto, {
+        questionSetId: q.questionSetId,
+        title: q.title,
+        description: q.description,
+        totalQuestions: q.config.general.total_questions,
+        durationMinutes: q.config.general.duration_minutes,
+        passingScore: q.config.general.passing_score,
+        maxAttempts: q.config.general.max_attempts,
+        lecturer: q.lecturer,
+        createdAt: q.createdAt,
+        updatedAt: q.updatedAt
+      })
+    )
+
+    return new OffsetPaginatedDto<QuestionSetResponseDto>({
+      statusCode: 200,
+      message: 'Question sets retrieved successfully',
+      data: mappedQuestionSets,
       meta: metaDto
-    }
+    })
   }
 
   async getQuestionSetById(questionSetId: string): Promise<QuestionSetDetailResponseDto> {
