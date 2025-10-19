@@ -13,65 +13,65 @@ import {
 import { Type } from 'class-transformer'
 
 class GeneralConfigDto {
-  @ApiProperty()
+  @ApiProperty({ default: 60 })
   @IsInt()
   duration_minutes: number
 
-  @ApiProperty()
+  @ApiProperty({ default: 50 })
   @IsInt()
   total_questions: number
 
-  @ApiProperty()
+  @ApiProperty({ default: false })
   @IsBoolean()
   allow_review: boolean
 
-  @ApiProperty()
+  @ApiProperty({ default: true })
   @IsBoolean()
   shuffle_questions: boolean
 
-  @ApiProperty()
+  @ApiProperty({ default: true })
   @IsBoolean()
   shuffle_answers: boolean
 }
 
 class ScoringConfigDto {
-  @ApiProperty()
+  @ApiProperty({ default: true })
   @IsBoolean()
   per_question: boolean
 
-  @ApiProperty()
+  @ApiProperty({ default: 70 })
   @IsInt()
   passing_score: number
 }
 
 class BehaviorConfigDto {
-  @ApiProperty()
+  @ApiProperty({ default: false })
   @IsBoolean()
   show_correct_after_submit: boolean
 
-  @ApiProperty()
+  @ApiProperty({ default: 1 })
   @IsInt()
   max_attempts: number
 }
 
 class CompositionConfigDto {
-  @ApiProperty({ type: [String] })
+  @ApiProperty({ type: [String], default: ['question'] })
   @IsArray()
   @IsString({ each: true })
   question_sources: string[]
 
-  @ApiProperty({ type: [String] })
+  @ApiProperty({ type: [String], default: [] })
   @IsArray()
   @IsString({ each: true })
   topics: string[]
 }
 
 class ProctoringConfigDto {
-  @ApiProperty()
+  @ApiProperty({ default: false })
   @IsBoolean()
   enable_tab_tracking: boolean
 
-  @ApiProperty()
+  @ApiProperty({ default: false })
   @IsBoolean()
   enable_copy_paste_restriction: boolean
 }
@@ -119,7 +119,7 @@ export class CreateQuestionSetDto {
   @IsArray()
   @IsUUID('4', { each: true })
   @IsNotEmpty()
-  content: string[]
+  questions: string[]
 
   @ApiProperty({ type: ConfigDto })
   @ValidateNested()

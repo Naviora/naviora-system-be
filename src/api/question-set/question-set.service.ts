@@ -26,14 +26,14 @@ export class QuestionSetService {
     }
 
     // Validate content is non-empty
-    if (!Array.isArray(createDto.content) || createDto.content.length === 0) {
+    if (!Array.isArray(createDto.questions) || createDto.questions.length === 0) {
       throw new ValidationException(ErrorCode.V004, 'content is required', [
         { property: 'content', code: ErrorCode.V004 }
       ])
     }
 
     // Validate question IDs exist
-    const uniqueIds = Array.from(new Set(createDto.content))
+    const uniqueIds = Array.from(new Set(createDto.questions))
     const found = await this.questionRepository.find({
       where: { questionId: In(uniqueIds) },
       select: ['questionId']
@@ -49,25 +49,16 @@ export class QuestionSetService {
     const toSave = this.questionSetRepository.create({
       title: createDto.title,
       description: createDto.description ?? null,
-      content: createDto.content,
+      questions: createDto.questions,
       config: createDto.config,
       lecturer: currentUser
     })
 
-    const saved = await this.questionSetRepository.save(toSave)
-    if (!saved) {
+    const savedQuestionSet = await this.questionSetRepository.save(toSave)
+    if (!savedQuestionSet) {
       throw new ValidationException(ErrorCode.MODULE002, 'Failed to create question set')
     }
 
-    return {
-      question_set_id: saved.questionSetId,
-      lecturer_id: currentUser.id,
-      title: saved.title,
-      description: saved.description,
-      content: saved.content,
-      config: saved.config,
-      created_at: saved.createdAt,
-      updated_at: saved.updatedAt
-    }
+    return savedQuestionSet
   }
 }

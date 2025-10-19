@@ -18,7 +18,7 @@ export class QuestionSetEntity extends AbstractEntity {
   description: string | null
 
   @Column({ type: 'jsonb', nullable: false })
-  content: string[]
+  questions: string[]
 
   @Column({ type: 'jsonb', nullable: false })
   config: Record<string, any>
