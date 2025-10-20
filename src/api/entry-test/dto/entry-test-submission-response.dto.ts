@@ -29,7 +29,7 @@ export class EntryTestSubmissionResponseDto {
 
   @ApiProperty()
   @Expose()
-  answered: any
+  answered: Record<string, any> | null
 
   @ApiProperty()
   @Expose()
