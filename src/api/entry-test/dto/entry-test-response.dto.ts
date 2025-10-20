@@ -38,6 +38,10 @@ export class EntryTestResponseDto {
 
   @ApiProperty()
   @Expose()
+  updatedBy: User | null
+
+  @ApiProperty()
+  @Expose()
   createdAt: Date
 
   @ApiProperty()

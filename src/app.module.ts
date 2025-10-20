@@ -49,6 +49,7 @@ import { TeachingMaterial } from '@api/teaching-material/entities/teaching-mater
 import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
 import { QuestionSetModule } from './api/question-set/question-set.module'
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
+import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { EntryTestModule } from './api/entry-test/entry-test.module'
 
 @Module({
@@ -81,7 +82,8 @@ import { EntryTestModule } from './api/entry-test/entry-test.module'
             MaterialEntity,
             TeachingMaterial,
             QuestionSetEntity,
-            EntryTestEntity
+            EntryTestEntity,
+            EntryTestSubmissionEntity
           ]
         }
       },

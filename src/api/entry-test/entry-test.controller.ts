@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { EntryTestService } from './entry-test.service'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
+import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
+import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
 import { Roles } from '@decorators/roles.decorator'
@@ -44,6 +46,70 @@ export class EntryTestController {
     return await this.entryTestService.create(createDto, currentUser)
   }
 
+  @Post('start')
+  @Roles(RoleInAccount.Student)
+  @ApiOperation({ summary: 'Start a new entry test' })
+  @ApiBody({
+    description: 'Payload to start entry test',
+    schema: {
+      type: 'object',
+      properties: {
+        entryTestId: {
+          type: 'string',
+          format: 'uuid',
+          description: 'Entry test ID to start'
+        }
+      },
+      required: ['entryTestId']
+    },
+    examples: {
+      example1: {
+        summary: 'Start an entry test',
+        value: {
+          entryTestId: 'uuid'
+        }
+      }
+    }
+  })
+  @ResponseMessage('Entry test started successfully')
+  async startEntryTest(
+    @Body('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @CurrentUser() currentUser: User
+  ): Promise<EntryTestSubmissionResponseDto> {
+    return await this.entryTestService.startEntryTest(entryTestId, currentUser)
+  }
+
+  @Patch(':entryTestId')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({ summary: 'Update an entry test' })
+  @ApiBody({
+    description: 'Payload to update entry test',
+    type: UpdateEntryTestDto,
+    examples: {
+      example1: {
+        summary: 'Update entry test title and status',
+        value: {
+          title: 'Updated Entry Test Title',
+          status: 'ACTIVE'
+        }
+      },
+      example2: {
+        summary: 'Update entry test question sets',
+        value: {
+          questionSets: ['uuid1', 'uuid2', 'uuid3']
+        }
+      }
+    }
+  })
+  @ResponseMessage('Entry test updated successfully')
+  async updateEntryTest(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @Body() updateDto: UpdateEntryTestDto,
+    @CurrentUser() currentUser: User
+  ): Promise<EntryTestResponseDto> {
+    return await this.entryTestService.updateEntryTest(entryTestId, updateDto, currentUser)
+  }
+
   @Get()
   @Roles('Lecturer', 'Principal', 'Admin', 'Student')
   @ApiOperation({ summary: 'Get paginated list of entry tests' })
@@ -60,5 +126,13 @@ export class EntryTestController {
     @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
   ): Promise<EntryTestResponseDto> {
     return await this.entryTestService.getEntryTestById(entryTestId)
+  }
+
+  @Get('latest/active')
+  @Roles(RoleInAccount.Student)
+  @ApiOperation({ summary: 'Get the latest active entry test for student' })
+  @ResponseMessage('Latest active entry test retrieved successfully')
+  async getLatestActiveEntryTest(): Promise<EntryTestResponseDto | null> {
+    return await this.entryTestService.getLatestActiveEntryTestForStudent()
   }
 }
