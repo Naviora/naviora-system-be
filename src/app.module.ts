@@ -51,6 +51,7 @@ import { QuestionSetModule } from './api/question-set/question-set.module'
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { EntryTestModule } from './api/entry-test/entry-test.module'
+import { WebRTCModule } from './api/webrtc/webrtc.module'
 
 @Module({
   imports: [
@@ -158,7 +159,8 @@ import { EntryTestModule } from './api/entry-test/entry-test.module'
     MaterialModule,
     TeachingMaterialModule,
     QuestionSetModule,
-    EntryTestModule
+    EntryTestModule,
+    WebRTCModule
   ],
   controllers: [AppController],
   providers: [
