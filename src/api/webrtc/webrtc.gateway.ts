@@ -76,13 +76,18 @@ export class WebRTCGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { roomId: string; offer: RTCSessionDescriptionInit; targetUserId: string },
     @ConnectedSocket() client: Socket
   ) {
-    this.logger.log(`Offer from ${client.id} to ${data.targetUserId}`)
+    const fromUserId = this.webrtcService.getUserIdBySocketId(client.id)
+    this.logger.log(`Offer from ${fromUserId} (${client.id}) to ${data.targetUserId}`)
+
     const targetSocketId = this.webrtcService.getUserSocketId(data.roomId, data.targetUserId)
     if (targetSocketId) {
+      this.logger.log(`Forwarding offer to ${data.targetUserId} (${targetSocketId})`)
       client.to(targetSocketId).emit('offer', {
         offer: data.offer,
-        fromUserId: this.webrtcService.getUserIdBySocketId(client.id)
+        fromUserId: fromUserId
       })
+    } else {
+      this.logger.warn(`Target user ${data.targetUserId} not found in room ${data.roomId}`)
     }
   }
 
@@ -91,13 +96,18 @@ export class WebRTCGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { roomId: string; answer: RTCSessionDescriptionInit; targetUserId: string },
     @ConnectedSocket() client: Socket
   ) {
-    this.logger.log(`Answer from ${client.id} to ${data.targetUserId}`)
+    const fromUserId = this.webrtcService.getUserIdBySocketId(client.id)
+    this.logger.log(`Answer from ${fromUserId} (${client.id}) to ${data.targetUserId}`)
+
     const targetSocketId = this.webrtcService.getUserSocketId(data.roomId, data.targetUserId)
     if (targetSocketId) {
+      this.logger.log(`Forwarding answer to ${data.targetUserId} (${targetSocketId})`)
       client.to(targetSocketId).emit('answer', {
         answer: data.answer,
-        fromUserId: this.webrtcService.getUserIdBySocketId(client.id)
+        fromUserId: fromUserId
       })
+    } else {
+      this.logger.warn(`Target user ${data.targetUserId} not found in room ${data.roomId}`)
     }
   }
 
@@ -106,13 +116,18 @@ export class WebRTCGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { roomId: string; candidate: RTCIceCandidateInit; targetUserId: string },
     @ConnectedSocket() client: Socket
   ) {
-    this.logger.log(`ICE candidate from ${client.id} to ${data.targetUserId}`)
+    const fromUserId = this.webrtcService.getUserIdBySocketId(client.id)
+    this.logger.log(`ICE candidate from ${fromUserId} (${client.id}) to ${data.targetUserId}`)
+
     const targetSocketId = this.webrtcService.getUserSocketId(data.roomId, data.targetUserId)
     if (targetSocketId) {
+      this.logger.log(`Forwarding ICE candidate to ${data.targetUserId} (${targetSocketId})`)
       client.to(targetSocketId).emit('ice-candidate', {
         candidate: data.candidate,
-        fromUserId: this.webrtcService.getUserIdBySocketId(client.id)
+        fromUserId: fromUserId
       })
+    } else {
+      this.logger.warn(`Target user ${data.targetUserId} not found in room ${data.roomId}`)
     }
   }
 
@@ -124,11 +139,59 @@ export class WebRTCGateway implements OnGatewayConnection, OnGatewayDisconnect {
     })
   }
 
-  @SubscribeMessage('stop-screen-share')
-  handleStopScreenShare(@MessageBody() data: { roomId: string; userId: string }, @ConnectedSocket() client: Socket) {
-    this.logger.log(`User ${data.userId} stopping screen share in room ${data.roomId}`)
-    client.to(data.roomId).emit('screen-share-stopped', {
-      userId: data.userId
+  @SubscribeMessage('send-message')
+  handleSendMessage(
+    @MessageBody() data: { roomId: string; userId: string; message: string; timestamp: number },
+    @ConnectedSocket() client: Socket
+  ) {
+    this.logger.log(`Message from ${data.userId} in room ${data.roomId}: ${data.message}`)
+    client.to(data.roomId).emit('new-message', {
+      userId: data.userId,
+      message: data.message,
+      timestamp: data.timestamp
     })
+  }
+
+  @SubscribeMessage('raise-hand')
+  handleRaiseHand(@MessageBody() data: { roomId: string; userId: string }, @ConnectedSocket() client: Socket) {
+    this.logger.log(`User ${data.userId} raised hand in room ${data.roomId}`)
+    client.to(data.roomId).emit('hand-raised', {
+      userId: data.userId,
+      timestamp: Date.now()
+    })
+  }
+
+  @SubscribeMessage('lower-hand')
+  handleLowerHand(@MessageBody() data: { roomId: string; userId: string }, @ConnectedSocket() client: Socket) {
+    this.logger.log(`User ${data.userId} lowered hand in room ${data.roomId}`)
+    client.to(data.roomId).emit('hand-lowered', {
+      userId: data.userId,
+      timestamp: Date.now()
+    })
+  }
+
+  @SubscribeMessage('start-recording')
+  handleStartRecording(@MessageBody() data: { roomId: string; userId: string }, @ConnectedSocket() client: Socket) {
+    this.logger.log(`User ${data.userId} started recording in room ${data.roomId}`)
+    client.to(data.roomId).emit('recording-started', {
+      userId: data.userId,
+      timestamp: Date.now()
+    })
+  }
+
+  @SubscribeMessage('stop-recording')
+  handleStopRecording(@MessageBody() data: { roomId: string; userId: string }, @ConnectedSocket() client: Socket) {
+    this.logger.log(`User ${data.userId} stopped recording in room ${data.roomId}`)
+    client.to(data.roomId).emit('recording-stopped', {
+      userId: data.userId,
+      timestamp: Date.now()
+    })
+  }
+
+  @SubscribeMessage('debug-room-state')
+  handleDebugRoomState(@MessageBody() data: { roomId: string }, @ConnectedSocket() client: Socket) {
+    const roomState = this.webrtcService.getRoomState(data.roomId)
+    this.logger.log(`Room state for ${data.roomId}:`, roomState)
+    client.emit('room-state-debug', roomState)
   }
 }

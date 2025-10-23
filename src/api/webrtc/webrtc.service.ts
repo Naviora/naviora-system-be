@@ -48,7 +48,16 @@ export class WebRTCService {
     const room = this.rooms.get(roomId)
     if (room) {
       const user = room.find((u) => u.userId === userId)
-      return user ? user.socketId : null
+      if (user) {
+        this.logger.log(`Found user ${userId} with socket ${user.socketId} in room ${roomId}`)
+        return user.socketId
+      } else {
+        this.logger.warn(
+          `User ${userId} not found in room ${roomId}. Available users: ${room.map((u) => u.userId).join(', ')}`
+        )
+      }
+    } else {
+      this.logger.warn(`Room ${roomId} not found`)
     }
     return null
   }
@@ -94,5 +103,25 @@ export class WebRTCService {
       this.rooms.delete(roomId)
       this.logger.log(`Room ${roomId} deleted`)
     }
+  }
+
+  getRoomState(roomId: string): any {
+    const room = this.rooms.get(roomId)
+    return {
+      roomId,
+      users: room || [],
+      totalUsers: room ? room.length : 0
+    }
+  }
+
+  getAllRoomsState(): any {
+    const rooms = {}
+    for (const [roomId, users] of this.rooms.entries()) {
+      rooms[roomId] = {
+        users: users,
+        totalUsers: users.length
+      }
+    }
+    return rooms
   }
 }
