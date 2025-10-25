@@ -1,14 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import {
-  IsArray,
-  IsBoolean,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-  ValidateNested
-} from 'class-validator'
+import { IsArray, IsBoolean, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator'
 import { Type } from 'class-transformer'
 import { NumberField } from '@decorators/field.decorators'
 

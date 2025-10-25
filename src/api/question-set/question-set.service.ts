@@ -248,6 +248,23 @@ export class QuestionSetService {
       }
     }
 
+    // Validate config if provided - ensure total_questions matches actual questions
+    if (updateDto.config) {
+      const questionsToValidate = updateDto.questions || questionSet.questions
+      const actualQuestionCount = questionsToValidate.length
+      const expectedQuestionCount = updateDto.config.general?.total_questions
+
+      if (expectedQuestionCount !== undefined && actualQuestionCount !== expectedQuestionCount) {
+        throw new ValidationException(ErrorCode.Q005, 'Config total_questions does not match the number of questions', [
+          {
+            property: 'config.general.total_questions',
+            code: ErrorCode.Q005,
+            message: `Config expects ${expectedQuestionCount} questions but found ${actualQuestionCount} questions`
+          }
+        ])
+      }
+    }
+
     // Update fields
     const updateData: Partial<QuestionSetEntity> = {
       updatedBy: currentUser
