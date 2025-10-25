@@ -22,4 +22,11 @@ export class QuestionSetEntity extends AbstractEntity {
 
   @Column({ type: 'jsonb', nullable: false })
   config: Record<string, any>
+
+  @Column({ type: 'boolean', nullable: false, default: false })
+  isInUse: boolean
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'updated_by' })
+  updatedBy: User | null
 }

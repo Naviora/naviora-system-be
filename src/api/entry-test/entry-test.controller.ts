@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { EntryTestService } from './entry-test.service'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
@@ -134,5 +134,16 @@ export class EntryTestController {
   @ResponseMessage('Latest active entry test retrieved successfully')
   async getLatestActiveEntryTest(): Promise<EntryTestResponseDto | null> {
     return await this.entryTestService.getLatestActiveEntryTestForStudent()
+  }
+
+  @Delete(':entryTestId')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({ summary: 'Soft delete an entry test' })
+  @ResponseMessage('Entry test deleted successfully')
+  async deleteEntryTest(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @CurrentUser() currentUser: User
+  ) {
+    return await this.entryTestService.softDeleteEntryTest(entryTestId, currentUser)
   }
 }

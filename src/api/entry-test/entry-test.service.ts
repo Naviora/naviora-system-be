@@ -29,11 +29,11 @@ export class EntryTestService {
   ) {}
 
   async create(createDto: CreateEntryTestDto, currentUser: User): Promise<EntryTestResponseDto> {
-    // Validate question sets exist
+    // Validate question sets exist and are not in use
     const uniqueIds = Array.from(new Set(createDto.questionSets))
     const foundQuestionSets = await this.questionSetRepository.find({
       where: { questionSetId: In(uniqueIds) },
-      select: ['questionSetId']
+      select: ['questionSetId', 'isInUse']
     })
     const foundIds = new Set(foundQuestionSets.map((qs) => qs.questionSetId))
     const missing = uniqueIds.filter((id) => !foundIds.has(id))
@@ -41,6 +41,19 @@ export class EntryTestService {
     if (missing.length > 0) {
       throw new ValidationException(ErrorCode.Q001, 'Invalid question set IDs', [
         { property: 'questionSets', code: ErrorCode.Q001, message: `Invalid question set IDs: ${missing.join(', ')}` }
+      ])
+    }
+
+    // Check if any question sets are already in use
+    const inUseQuestionSets = foundQuestionSets.filter((qs) => qs.isInUse)
+    if (inUseQuestionSets.length > 0) {
+      const inUseIds = inUseQuestionSets.map((qs) => qs.questionSetId)
+      throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Question sets are already in use', [
+        {
+          property: 'questionSets',
+          code: ErrorCode.QUESTION_SET_005,
+          message: `Question sets already in use: ${inUseIds.join(', ')}`
+        }
       ])
     }
 
@@ -66,6 +79,9 @@ export class EntryTestService {
     })
 
     const savedEntryTest = await this.entryTestRepository.save(entryTest)
+
+    // Set isInUse = true for all question sets used in this entry test
+    await this.questionSetRepository.update({ questionSetId: In(Array.from(foundIds)) }, { isInUse: true })
 
     if (!savedEntryTest) {
       throw new ValidationException(ErrorCode.MODULE002, 'Failed to create entry test')
@@ -99,7 +115,7 @@ export class EntryTestService {
       const uniqueIds = Array.from(new Set(updateDto.questionSets))
       const foundQuestionSets = await this.questionSetRepository.find({
         where: { questionSetId: In(uniqueIds) },
-        select: ['questionSetId']
+        select: ['questionSetId', 'isInUse']
       })
       const foundIds = new Set(foundQuestionSets.map((qs) => qs.questionSetId))
       const missing = uniqueIds.filter((id) => !foundIds.has(id))
@@ -110,6 +126,22 @@ export class EntryTestService {
             property: 'questionSets',
             code: ErrorCode.QUESTION_SET_002,
             message: `Invalid question set IDs: ${missing.join(', ')}`
+          }
+        ])
+      }
+
+      // Check if any question sets are already in use (excluding current ones)
+      const currentQuestionSetIds = entryTest.questionSets.map((qs) => qs.questionSetId)
+      const inUseQuestionSets = foundQuestionSets.filter(
+        (qs) => qs.isInUse && !currentQuestionSetIds.includes(qs.questionSetId)
+      )
+      if (inUseQuestionSets.length > 0) {
+        const inUseIds = inUseQuestionSets.map((qs) => qs.questionSetId)
+        throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Question sets are already in use', [
+          {
+            property: 'questionSets',
+            code: ErrorCode.QUESTION_SET_005,
+            message: `Question sets already in use: ${inUseIds.join(', ')}`
           }
         ])
       }
@@ -137,6 +169,22 @@ export class EntryTestService {
 
       // Only update if the lists are different
       if (!areEqual) {
+        // Find question sets that are being removed (no longer in the new list)
+        const removedQuestionSetIds = currentQuestionSetIds.filter((id) => !updateDto.questionSets.includes(id))
+
+        // Find question sets that are being added (new ones not in the current list)
+        const addedQuestionSetIds = updateDto.questionSets.filter((id) => !currentQuestionSetIds.includes(id))
+
+        // Set isInUse = false for removed question sets
+        if (removedQuestionSetIds.length > 0) {
+          await this.questionSetRepository.update({ questionSetId: In(removedQuestionSetIds) }, { isInUse: false })
+        }
+
+        // Set isInUse = true for added question sets
+        if (addedQuestionSetIds.length > 0) {
+          await this.questionSetRepository.update({ questionSetId: In(addedQuestionSetIds) }, { isInUse: true })
+        }
+
         // Override with user input - fetch the new question sets
         const foundQuestionSets = await this.questionSetRepository.find({
           where: { questionSetId: In(updateDto.questionSets) }
@@ -346,6 +394,38 @@ export class EntryTestService {
       questionSets: entryTest.questionSets.map((qs) => qs.questionSetId)
     })
   }
+  async softDeleteEntryTest(entryTestId: string, currentUser: User) {
+    // Find the entry test with question sets
+    const entryTest = await this.entryTestRepository.findOne({
+      where: { entryTestId },
+      relations: ['questionSets']
+    })
+
+    if (!entryTest) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
+
+    // Get question set IDs to set isInUse = false
+    const questionSetIds = entryTest.questionSets.map((qs) => qs.questionSetId)
+
+    // Set isInUse = false for all question sets used in this entry test
+    if (questionSetIds.length > 0) {
+      await this.questionSetRepository.update({ questionSetId: In(questionSetIds) }, { isInUse: false })
+    }
+
+    // Set updatedBy before soft delete
+    await this.entryTestRepository.update(entryTestId, {
+      updatedBy: currentUser
+    })
+
+    // Perform soft delete
+    await this.entryTestRepository.softDelete(entryTestId)
+
+    return { message: 'Entry test deleted successfully' }
+  }
+
   /**
    * Compare two arrays of strings for equality (order-independent)
    * @param arr1 First array
