@@ -88,7 +88,8 @@ export enum ErrorCode {
   QUESTION_SET_001 = 'question_set.error.question_set_not_found',
   QUESTION_SET_002 = 'question_set.error.invalid_question_set_ids',
   QUESTION_SET_003 = 'question_set.error.question_count_mismatch',
-
+  QUESTION_SET_004 = 'question_set.error.cannot_update_questions_or_config_when_in_use',
+  QUESTION_SET_005 = 'question.error.cannot_delete_question_set_in_use',
   // Error of Entry Test
   ENTRY_TEST001 = 'entry_test.error.entry_test_not_found',
   ENTRY_TEST002 = 'entry_test.error.student_already_has_a_submission_for_this_entry_test',
