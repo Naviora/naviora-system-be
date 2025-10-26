@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { EntryTestService } from './entry-test.service'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
 import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
+import { SubmitEntryTestDto } from './dto/submit-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
@@ -77,6 +78,40 @@ export class EntryTestController {
     @CurrentUser() currentUser: User
   ): Promise<EntryTestSubmissionResponseDto> {
     return await this.entryTestService.startEntryTest(entryTestId, currentUser)
+  }
+
+  @Post('submit/:entryTestId&:questionSetId')
+  @Roles(RoleInAccount.Student)
+  @ApiOperation({ summary: 'Submit entry test answers' })
+  @ApiBody({
+    description: 'Payload to submit entry test answers',
+    type: SubmitEntryTestDto,
+    examples: {
+      example1: {
+        summary: 'Submit entry test answers',
+        value: {
+          answered: [
+            {
+              questionId: '123e4567-e89b-12d3-a456-426614174000',
+              answerId: '123e4567-e89b-12d3-a456-426614174001'
+            },
+            {
+              questionId: '123e4567-e89b-12d3-a456-426614174002',
+              answerId: '123e4567-e89b-12d3-a456-426614174003'
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ResponseMessage('Entry test submitted successfully')
+  async submitEntryTest(
+    @Param('submissionId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @Param('submissionId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
+    @Body() submitDto: SubmitEntryTestDto,
+    @CurrentUser() currentUser: User
+  ): Promise<EntryTestSubmissionResponseDto> {
+    return await this.entryTestService.submitEntryTest(entryTestId, questionSetId, submitDto, currentUser)
   }
 
   @Patch(':entryTestId')

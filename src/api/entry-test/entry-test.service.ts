@@ -4,8 +4,11 @@ import { Repository, In } from 'typeorm'
 import { EntryTestEntity } from './entities/entry-test.entity'
 import { EntryTestSubmissionEntity } from './entities/entry-test-submission.entity'
 import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
+import { QuestionEntity } from '@api/question/entities/question.entity'
+import { AnswerEntity } from '@api/answer/entities/answer.entity'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
 import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
+import { SubmitEntryTestDto } from './dto/submit-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
 import { ValidationException } from '@exceptions/validation.exception'
@@ -25,7 +28,11 @@ export class EntryTestService {
     @InjectRepository(QuestionSetEntity)
     private readonly questionSetRepository: Repository<QuestionSetEntity>,
     @InjectRepository(EntryTestSubmissionEntity)
-    private readonly entryTestSubmissionRepository: Repository<EntryTestSubmissionEntity>
+    private readonly entryTestSubmissionRepository: Repository<EntryTestSubmissionEntity>,
+    @InjectRepository(QuestionEntity)
+    private readonly questionRepository: Repository<QuestionEntity>,
+    @InjectRepository(AnswerEntity)
+    private readonly answerRepository: Repository<AnswerEntity>
   ) {}
 
   async create(createDto: CreateEntryTestDto, currentUser: User): Promise<EntryTestResponseDto> {
@@ -424,6 +431,113 @@ export class EntryTestService {
     await this.entryTestRepository.softDelete(entryTestId)
 
     return { message: 'Entry test deleted successfully' }
+  }
+
+  async submitEntryTest(
+    entryTestId: string,
+    questionSetId: string,
+    submitDto: SubmitEntryTestDto,
+    currentUser: User
+  ): Promise<EntryTestSubmissionResponseDto> {
+    // Find the submission
+    const submission = await this.entryTestSubmissionRepository.findOne({
+      where: { entryTestId, questionSetId, studentId: currentUser.id },
+      relations: ['student', 'entryTest', 'questionSet']
+    })
+
+    if (!submission) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Submission not found', [
+        { property: 'submissionId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
+
+    // Check if submission belongs to current user
+    if (submission.studentId !== currentUser.id) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Unauthorized access to submission', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
+
+    // Check if submission is still in progress
+    if (submission.attemptStatus !== AttemptStatus.IN_PROGRESS) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Submission has already been completed', [
+        { property: 'submissionId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
+
+    // Validate that all submitted questions belong to the question set
+    const questionIds = submission.questionSet.questions
+    const submittedQuestionIds = submitDto.answered.map((answer) => answer.questionId)
+    const invalidQuestions = submittedQuestionIds.filter((id) => !questionIds.includes(id))
+
+    if (invalidQuestions.length > 0) {
+      throw new ValidationException(ErrorCode.Q001, 'Invalid question IDs in submission', [
+        { property: 'answered', code: ErrorCode.Q001, message: `Invalid question IDs: ${invalidQuestions.join(', ')}` }
+      ])
+    }
+
+    // Validate that all answers exist and belong to their respective questions
+    const allAnswerIds = submitDto.answered.map((answer) => answer.answerId)
+    const answers = await this.answerRepository.find({
+      where: { answerId: In(allAnswerIds) },
+      relations: ['question']
+    })
+
+    const foundAnswerIds = new Set(answers.map((answer) => answer.answerId))
+    const missingAnswers = allAnswerIds.filter((id) => !foundAnswerIds.has(id))
+
+    if (missingAnswers.length > 0) {
+      throw new ValidationException(ErrorCode.Q001, 'Invalid answer IDs in submission', [
+        { property: 'answered', code: ErrorCode.Q001, message: `Invalid answer IDs: ${missingAnswers.join(', ')}` }
+      ])
+    }
+
+    // Validate answer-question relationships
+    for (const submittedAnswer of submitDto.answered) {
+      const answer = answers.find((a) => a.answerId === submittedAnswer.answerId)
+      if (answer && answer.question.questionId !== submittedAnswer.questionId) {
+        throw new ValidationException(ErrorCode.Q001, 'Answer does not belong to the specified question', [
+          {
+            property: 'answered',
+            code: ErrorCode.Q001,
+            message: `Answer ${submittedAnswer.answerId} does not belong to question ${submittedAnswer.questionId}`
+          }
+        ])
+      }
+    }
+
+    // Calculate score
+    const score = await this.calculateScore(submitDto.answered, submission.questionSet.questions)
+
+    // Update submission
+    submission.answered = submitDto.answered
+    submission.score = score
+    submission.attemptStatus = AttemptStatus.SUBMITTED
+    submission.submittedAt = new Date()
+
+    const savedSubmission = await this.entryTestSubmissionRepository.save(submission)
+
+    return plainToInstance(EntryTestSubmissionResponseDto, savedSubmission)
+  }
+
+  private async calculateScore(
+    answered: { questionId: string; answerId: string }[],
+    questionIds: string[]
+  ): Promise<number> {
+    const totalQuestions = questionIds.length
+
+    // Get all submitted answers with their isCorrect field
+    const submittedAnswerIds = answered.map((answer) => answer.answerId)
+    const answers = await this.answerRepository.find({
+      where: { answerId: In(submittedAnswerIds) },
+      select: ['answerId', 'isCorrect']
+    })
+
+    // Count correct answers
+    const correctAnswers = answers.filter((answer) => answer.isCorrect).length
+
+    // Calculate percentage score
+    return Math.round((correctAnswers / totalQuestions) * 100)
   }
 
   /**
