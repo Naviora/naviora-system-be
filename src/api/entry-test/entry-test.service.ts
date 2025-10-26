@@ -23,6 +23,8 @@ import { AttemptStatus } from '@common/enums/attempt-status.enum'
 @Injectable()
 export class EntryTestService {
   constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(EntryTestEntity)
     private readonly entryTestRepository: Repository<EntryTestEntity>,
     @InjectRepository(QuestionSetEntity)
@@ -278,9 +280,10 @@ export class EntryTestService {
     const savedSubmission = await this.entryTestSubmissionRepository.save(submission)
 
     // Mark user as participated
-    if (!currentUser.hasParticipatedEntryTest) {
-      currentUser.hasParticipatedEntryTest = true
-      await this.entryTestSubmissionRepository.manager.getRepository(User).save(currentUser)
+    const user = await this.userRepository.findOne({ where: { id: currentUser.id } })
+    if (!user.hasParticipatedEntryTest) {
+      user.hasParticipatedEntryTest = true
+      await this.userRepository.save(user)
     }
 
     return plainToInstance(EntryTestSubmissionResponseDto, savedSubmission)

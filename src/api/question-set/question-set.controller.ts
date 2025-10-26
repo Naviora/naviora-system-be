@@ -15,12 +15,12 @@ import { RolesGuard } from '@guards/roles.guard'
 @ApiTags('Question Sets')
 @Controller({ path: 'question-set', version: '1' })
 @UseGuards(RolesGuard)
-@Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
 @ApiBearerAuth('Authorization')
 export class QuestionSetController {
   constructor(private readonly questionSetService: QuestionSetService) {}
 
   @Post()
+  @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Create a new question set (exam test set)' })
   @ApiBody({ description: 'Payload to create question set', type: CreateQuestionSetDto })
   @ResponseMessage('Question set created successfully')
@@ -29,6 +29,7 @@ export class QuestionSetController {
   }
 
   @Get()
+  @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Get paginated list of question sets' })
   @ResponseMessage('Question sets retrieved successfully')
   async getQuestionSets(@Query() query: GetQuestionSetsQueryDto) {
@@ -36,6 +37,7 @@ export class QuestionSetController {
   }
 
   @Get(':questionSetId')
+  @Roles(RoleInAccount.Student, RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Get a single question set by ID with full details' })
   @ResponseMessage('Question set retrieved successfully')
   async getQuestionSetById(
@@ -45,6 +47,7 @@ export class QuestionSetController {
   }
 
   @Patch(':questionSetId')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Update a question set' })
   @ApiBody({ description: 'Payload to update question set', type: UpdateQuestionSetDto })
   @ResponseMessage('Question set updated successfully')
@@ -57,6 +60,7 @@ export class QuestionSetController {
   }
 
   @Delete(':questionSetId')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Soft delete a question set' })
   @ResponseMessage('Question set deleted successfully')
   async delete(

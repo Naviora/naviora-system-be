@@ -7,10 +7,12 @@ import { EntryTestSubmissionEntity } from './entities/entry-test-submission.enti
 import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
+import { User } from '@api/user/entities/user.entity'
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
+      User,
       EntryTestEntity,
       EntryTestSubmissionEntity,
       QuestionSetEntity,

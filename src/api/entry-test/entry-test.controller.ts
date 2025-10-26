@@ -92,12 +92,44 @@ export class EntryTestController {
         value: {
           answered: [
             {
-              questionId: '123e4567-e89b-12d3-a456-426614174000',
-              answerId: '123e4567-e89b-12d3-a456-426614174001'
+              questionId: 'question1id',
+              answerId: 'answer1id'
             },
             {
-              questionId: '123e4567-e89b-12d3-a456-426614174002',
-              answerId: '123e4567-e89b-12d3-a456-426614174003'
+              questionId: 'question2id',
+              answerId: 'answer2id'
+            },
+            {
+              questionId: 'question3id',
+              answerId: 'answer3id'
+            },
+            {
+              questionId: 'question4id',
+              answerId: 'answer4id'
+            },
+            {
+              questionId: 'question5id',
+              answerId: 'answer5id'
+            },
+            {
+              questionId: 'question6id',
+              answerId: 'answer6id'
+            },
+            {
+              questionId: 'question7id',
+              answerId: 'answer7id'
+            },
+            {
+              questionId: 'question8id',
+              answerId: 'answer8id'
+            },
+            {
+              questionId: 'question9id',
+              answerId: 'answer9id'
+            },
+            {
+              questionId: 'question10id',
+              answerId: 'answer10id'
             }
           ]
         }
@@ -106,8 +138,8 @@ export class EntryTestController {
   })
   @ResponseMessage('Entry test submitted successfully')
   async submitEntryTest(
-    @Param('submissionId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
-    @Param('submissionId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
     @Body() submitDto: SubmitEntryTestDto,
     @CurrentUser() currentUser: User
   ): Promise<EntryTestSubmissionResponseDto> {
@@ -146,7 +178,7 @@ export class EntryTestController {
   }
 
   @Get()
-  @Roles('Lecturer', 'Principal', 'Admin', 'Student')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of entry tests' })
   @ResponseMessage('Entry tests retrieved successfully')
   async getEntryTests(@Query() query: GetEntryTestsQueryDto) {
@@ -154,7 +186,7 @@ export class EntryTestController {
   }
 
   @Get(':entryTestId')
-  @Roles('Lecturer', 'Principal', 'Admin', 'Student')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get a single entry test by ID' })
   @ResponseMessage('Entry test retrieved successfully')
   async getEntryTestById(
