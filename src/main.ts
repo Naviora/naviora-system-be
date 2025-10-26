@@ -16,9 +16,13 @@ import { AppDataSource } from '@database/data-source'
 import { GlobalExceptionFilter } from '@filters/global-exception.filter'
 import { TransformInterceptor } from 'src/interceptors/transform.interceptor'
 import { DatabaseSeederService } from '@database/seeds/database-seeder.service'
+import { IoAdapter } from '@nestjs/platform-socket.io'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
+
+  // Setup Socket.IO adapter BEFORE other configurations
+  app.useWebSocketAdapter(new IoAdapter(app))
 
   // Setup security headers
   app.use(helmet())
