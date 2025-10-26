@@ -5,7 +5,7 @@ export class ScoreRangeDto {
     description: 'Score range (e.g., "0-10", "10-20")',
     example: '0-10'
   })
-  range: string
+  score: string
 
   @ApiProperty({
     description: 'Number of students in this score range',

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, In, Not } from 'typeorm'
+import { Repository, In } from 'typeorm'
 import { EntryTestEntity } from './entities/entry-test.entity'
 import { EntryTestSubmissionEntity } from './entities/entry-test-submission.entity'
 import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
@@ -619,20 +619,19 @@ export class EntryTestService {
     const ranges: ScoreRangeDto[] = []
     const totalSubmissions = scores.length
 
-    // Create ranges: 0-1, 1-2, 2-3, ..., 9-10
-    for (let i = 0; i < 10; i++) {
-      const minScore = i
-      const maxScore = i + 1
-      const rangeLabel = `${minScore}-${maxScore}`
+    // Create ranges with 0.25 increments: 0.0, 0.25, 0.5, 0.75, 1.0, ..., 10.0
+    for (let i = 0; i <= 40; i++) {
+      const score = i * 0.25
+      const rangeLabel = score.toString()
 
-      // Count scores in this range
-      const count = scores.filter((score) => score >= minScore && score < maxScore).length
+      // Count scores that match this exact score (with small tolerance for floating point precision)
+      const count = scores.filter((s) => Math.abs(s - score) < 0.01).length
 
       // Calculate percentage
       const percentage = Math.round((count / totalSubmissions) * 100 * 100) / 100
 
       ranges.push({
-        range: rangeLabel,
+        score: rangeLabel,
         count,
         percentage
       })
