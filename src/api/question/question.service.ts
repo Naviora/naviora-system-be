@@ -28,14 +28,14 @@ export class QuestionService {
   ) {}
   async create(createQuestionDto: CreateQuestionDto): Promise<CreateQuestionResponseDto> {
     try {
-      // 1. Check if the lesson exists
-      const lesson = await this.lessonRepository.findOne({ where: { lessonId: createQuestionDto.lesson_id } })
-      if (!lesson) {
-        throw new ValidationException(ErrorCode.L001, 'Lesson not found')
-      }
+      // 1. TODO: Skip for new version if the lesson exists
+      // const lesson = await this.lessonRepository.findOne({ where: { lessonId: createQuestionDto.lesson_id } })
+      // if (!lesson) {
+      //   throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+      // }
 
       const newQuestion = this.questionRepository.create({
-        lessonId: createQuestionDto.lesson_id,
+        lessonId: createQuestionDto.lesson_id || null,
         content: createQuestionDto.content,
         type: createQuestionDto.type,
         difficulty: createQuestionDto.difficulty,
