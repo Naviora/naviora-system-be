@@ -8,7 +8,7 @@ export class QuestionEntity extends AbstractEntity {
   @PrimaryGeneratedColumn('uuid', { primaryKeyConstraintName: 'PK_question_id' })
   questionId: string
 
-  @Column({ type: 'uuid', nullable: false, name: 'lesson_id' })
+  @Column({ type: 'uuid', nullable: true, name: 'lesson_id' })
   lessonId: string
 
   @Column({ type: 'text', nullable: false })
