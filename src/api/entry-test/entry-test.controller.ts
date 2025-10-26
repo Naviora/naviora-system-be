@@ -154,6 +154,15 @@ export class EntryTestController {
     description: 'Payload to update entry test',
     type: UpdateEntryTestDto,
     examples: {
+      example: {
+        summary: 'Update entry test',
+        value: {
+          title: 'Updated Entry Test Title',
+          status: 'ACTIVE',
+          endTime: '2024-12-31T23:59:59.000Z',
+          questionSets: ['uuid1', 'uuid2', 'uuid3']
+        }
+      },
       example1: {
         summary: 'Update entry test title and status',
         value: {
@@ -165,6 +174,12 @@ export class EntryTestController {
         summary: 'Update entry test question sets',
         value: {
           questionSets: ['uuid1', 'uuid2', 'uuid3']
+        }
+      },
+      example3: {
+        summary: 'Update entry test end time',
+        value: {
+          endTime: '2024-12-31T23:59:59.000Z'
         }
       }
     }

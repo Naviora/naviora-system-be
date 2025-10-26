@@ -167,6 +167,16 @@ export class EntryTestService {
     if (updateDto.status !== undefined) {
       entryTest.status = updateDto.status
     }
+    if (updateDto.endTime !== undefined) {
+      // Validate that end time is after start time
+      const newEndTime = new Date(updateDto.endTime)
+      if (newEndTime <= entryTest.startTime) {
+        throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+          { property: 'endTime', code: ErrorCode.V004 }
+        ])
+      }
+      entryTest.endTime = newEndTime
+    }
     if (updateDto.questionSets !== undefined) {
       // Business Logic: Compare input question sets with existing ones
       // If they are equal, do nothing. If different, override with user input.
