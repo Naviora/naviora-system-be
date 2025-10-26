@@ -4,7 +4,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ConfigService } from '@nestjs/config'
-import { Repository, In } from 'typeorm'
+import { Repository, In, Not } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateClassDto } from './dto/create-class.dto'
 import { UpdateClassDto } from './dto/update-class.dto'
@@ -18,6 +18,11 @@ import { User } from '@api/user/entities/user.entity'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { plainToInstance } from 'class-transformer'
 import { ClassDTO } from './dto/class.dto'
+import { ArrangeStudentsDto, ClassArrangementResultDto, StudentAssignmentDto } from './dto/arrange-students.dto'
+import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
+import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
+import { AttemptStatus } from '@common/enums/attempt-status.enum'
+import { ClassEnrolment } from './entities/class-enrolment.entity'
 
 @Injectable()
 export class ClassService {
@@ -28,6 +33,12 @@ export class ClassService {
     private readonly teachingAssignmentRepository: Repository<TeachingAssignment>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(EntryTestSubmissionEntity)
+    private readonly entryTestSubmissionRepository: Repository<EntryTestSubmissionEntity>,
+    @InjectRepository(EntryTestEntity)
+    private readonly entryTestRepository: Repository<EntryTestEntity>,
+    @InjectRepository(ClassEnrolment)
+    private readonly classEnrolmentRepository: Repository<ClassEnrolment>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService
@@ -300,5 +311,253 @@ export class ClassService {
     } catch (error) {
       throw error
     }
+  }
+
+  async arrangeStudents(arrangeStudentsDto: ArrangeStudentsDto): Promise<ClassArrangementResultDto> {
+    try {
+      const { entryTestId, classDistribution } = arrangeStudentsDto
+
+      // 1. Validate entry test exists
+      const entryTest = await this.entryTestRepository.findOne({
+        where: { entryTestId },
+        select: ['entryTestId', 'title']
+      })
+
+      if (!entryTest) {
+        throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+          { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+        ])
+      }
+
+      // 2. Validate all classes exist and are active
+      const classIds = classDistribution.map((dist) => dist.classId)
+      const classes = await this.classRepository.find({
+        where: { classId: In(classIds) },
+        select: ['classId', 'className', 'isActive']
+      })
+
+      if (classes.length !== classIds.length) {
+        const foundIds = classes.map((c) => c.classId)
+        const missingIds = classIds.filter((id) => !foundIds.includes(id))
+        throw new ValidationException(ErrorCode.CLASS001, 'Some classes not found', [
+          {
+            property: 'classDistribution',
+            code: ErrorCode.CLASS001,
+            message: `Missing classes: ${missingIds.join(', ')}`
+          }
+        ])
+      }
+
+      // Check if all classes are active
+      const inactiveClasses = classes.filter((c) => !c.isActive)
+      if (inactiveClasses.length > 0) {
+        const inactiveIds = inactiveClasses.map((c) => c.classId)
+        throw new ValidationException(ErrorCode.CLASS001, 'Some classes are not active', [
+          {
+            property: 'classDistribution',
+            code: ErrorCode.CLASS001,
+            message: `Inactive classes: ${inactiveIds.join(', ')}`
+          }
+        ])
+      }
+
+      // 3. Validate score ranges don't overlap
+      this.validateScoreRanges(classDistribution)
+
+      // 4. Get all submitted entry test submissions with scores
+      const submissions = await this.entryTestSubmissionRepository.find({
+        where: {
+          entryTestId,
+          attemptStatus: AttemptStatus.SUBMITTED,
+          score: Not(null)
+        },
+        relations: ['student'],
+        select: ['studentId', 'score', 'student']
+      })
+
+      if (submissions.length === 0) {
+        throw new ValidationException(ErrorCode.ENTRY_TEST001, 'No submitted entries found for this entry test', [
+          { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+        ])
+      }
+
+      // 5. Check for existing enrollments to avoid duplicates
+      const studentIds = submissions.map((s) => s.studentId)
+      const existingEnrollments = await this.classEnrolmentRepository.find({
+        where: {
+          studentId: In(studentIds),
+          classId: In(classIds)
+        },
+        select: ['studentId', 'classId']
+      })
+
+      // Create a set of existing enrollments for quick lookup
+      const existingEnrollmentSet = new Set(existingEnrollments.map((e) => `${e.studentId}-${e.classId}`))
+
+      // 6. Process student assignments and create enrollments
+      const enrollmentsToCreate: Partial<ClassEnrolment>[] = []
+      const classDistributionSummary: Record<string, { count: number; classId: string; className: string }> = {}
+      const enrolmentDate = new Date()
+
+      // Initialize summary counters
+      classDistribution.forEach((dist) => {
+        const classInfo = classes.find((c) => c.classId === dist.classId)
+        classDistributionSummary[dist.range] = {
+          count: 0,
+          classId: dist.classId,
+          className: classInfo?.className || ''
+        }
+      })
+
+      let enrolledCount = 0
+      let unenrolledCount = 0
+
+      for (const submission of submissions) {
+        const student = submission.student
+        const score = submission.score
+
+        if (score === null) {
+          unenrolledCount++
+          continue
+        }
+
+        const assignment = this.findClassForScore(score, classDistribution, classes)
+
+        if (assignment) {
+          // Check if enrollment already exists
+          const enrollmentKey = `${student.id}-${assignment.classId}`
+          if (!existingEnrollmentSet.has(enrollmentKey)) {
+            enrollmentsToCreate.push({
+              studentId: student.id,
+              classId: assignment.classId,
+              enrolmentDate: enrolmentDate
+            })
+            classDistributionSummary[assignment.range].count++
+            enrolledCount++
+          } else {
+            // Student already enrolled in this class
+            enrolledCount++
+          }
+        } else {
+          unenrolledCount++
+        }
+      }
+
+      // 7. Save enrollments to database in batch
+      if (enrollmentsToCreate.length > 0) {
+        await this.classEnrolmentRepository.save(enrollmentsToCreate)
+      }
+
+      // 8. Return result
+      return {
+        entryTestId: entryTest.entryTestId,
+        entryTestTitle: entryTest.title,
+        totalStudents: submissions.length,
+        enrolledStudents: enrolledCount,
+        unenrolledCount: unenrolledCount,
+        classDistributionSummary,
+        summary: {
+          success: true,
+          message: `Successfully enrolled ${enrolledCount} students into classes`,
+          enrolmentDate: enrolmentDate.toISOString()
+        }
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  private validateScoreRanges(classDistribution: { range: string; classId: string }[]): void {
+    const ranges = classDistribution.map((dist) => dist.range)
+
+    // Check for duplicate ranges
+    const uniqueRanges = new Set(ranges)
+    if (uniqueRanges.size !== ranges.length) {
+      throw new ValidationException(ErrorCode.V004, 'Duplicate score ranges found', [
+        { property: 'classDistribution', code: ErrorCode.V004 }
+      ])
+    }
+
+    // Parse and validate ranges
+    const parsedRanges: { min: number; max: number; range: string }[] = []
+
+    for (const range of ranges) {
+      const parsed = this.parseScoreRange(range)
+      if (!parsed) {
+        throw new ValidationException(ErrorCode.V004, `Invalid score range format: ${range}`, [
+          { property: 'classDistribution', code: ErrorCode.V004 }
+        ])
+      }
+      parsedRanges.push({ ...parsed, range })
+    }
+
+    // Check for overlapping ranges
+    for (let i = 0; i < parsedRanges.length; i++) {
+      for (let j = i + 1; j < parsedRanges.length; j++) {
+        const range1 = parsedRanges[i]
+        const range2 = parsedRanges[j]
+
+        if (this.rangesOverlap(range1, range2)) {
+          throw new ValidationException(
+            ErrorCode.V004,
+            `Overlapping score ranges: ${range1.range} and ${range2.range}`,
+            [{ property: 'classDistribution', code: ErrorCode.V004 }]
+          )
+        }
+      }
+    }
+  }
+
+  private parseScoreRange(range: string): { min: number; max: number } | null {
+    // Handle different range formats: "0-5", ">8", "<5", "5-10"
+    if (range.includes('-')) {
+      const [minStr, maxStr] = range.split('-')
+      const min = parseFloat(minStr.trim())
+      const max = parseFloat(maxStr.trim())
+
+      if (isNaN(min) || isNaN(max) || min >= max) {
+        return null
+      }
+
+      return { min, max }
+    } else if (range.startsWith('>')) {
+      const min = parseFloat(range.substring(1).trim())
+      if (isNaN(min)) return null
+      return { min, max: 10 } // Assuming 10 is max score
+    } else if (range.startsWith('<')) {
+      const max = parseFloat(range.substring(1).trim())
+      if (isNaN(max)) return null
+      return { min: 0, max } // Assuming 0 is min score
+    }
+
+    return null
+  }
+
+  private rangesOverlap(range1: { min: number; max: number }, range2: { min: number; max: number }): boolean {
+    return range1.min < range2.max && range2.min < range1.max
+  }
+
+  private findClassForScore(
+    score: number,
+    classDistribution: { range: string; classId: string }[],
+    classes: { classId: string; className: string }[]
+  ): { classId: string; className: string; range: string } | null {
+    for (const dist of classDistribution) {
+      const parsed = this.parseScoreRange(dist.range)
+      if (!parsed) continue
+
+      if (score >= parsed.min && score <= parsed.max) {
+        const classInfo = classes.find((c) => c.classId === dist.classId)
+        if (classInfo) {
+          return {
+            classId: classInfo.classId,
+            className: classInfo.className,
+            range: dist.range
+          }
+        }
+      }
+    }
+
+    return null
   }
 }
