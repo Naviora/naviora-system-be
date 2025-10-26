@@ -84,9 +84,7 @@ export class LessonService {
         where: { lesson: { lessonId: id } },
         relations: ['material']
       })
-      if (teachingMaterials.length === 0) {
-        throw new ValidationException(ErrorCode.T001, 'Teaching material not found')
-      }
+      // Just skip if no teaching materials
 
       // Get materials
       const materialByLessonId = teachingMaterials.map((teachingMaterial) => teachingMaterial.material.materialId)
