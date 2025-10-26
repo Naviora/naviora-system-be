@@ -6,6 +6,7 @@ import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
 import { SubmitEntryTestDto } from './dto/submit-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
+import { EntryTestScoreSpectrumDto } from './dto/entry-test-score-spectrum.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
 import { Roles } from '@decorators/roles.decorator'
@@ -201,6 +202,16 @@ export class EntryTestController {
   @ResponseMessage('Latest active entry test retrieved successfully')
   async getLatestActiveEntryTest(): Promise<EntryTestResponseDto | null> {
     return await this.entryTestService.getLatestActiveEntryTestForStudent()
+  }
+
+  @Get(':entryTestId/score-spectrum')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({ summary: 'Get score spectrum analysis for an entry test' })
+  @ResponseMessage('Score spectrum retrieved successfully')
+  async getEntryTestScoreSpectrum(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
+  ): Promise<EntryTestScoreSpectrumDto> {
+    return await this.entryTestService.getEntryTestScoreSpectrum(entryTestId)
   }
 
   @Delete(':entryTestId')
