@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { EntryTestService } from './entry-test.service'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
 import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
+import { SubmitEntryTestDto } from './dto/submit-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
@@ -79,6 +80,72 @@ export class EntryTestController {
     return await this.entryTestService.startEntryTest(entryTestId, currentUser)
   }
 
+  @Post('submit/:entryTestId&:questionSetId')
+  @Roles(RoleInAccount.Student)
+  @ApiOperation({ summary: 'Submit entry test answers' })
+  @ApiBody({
+    description: 'Payload to submit entry test answers',
+    type: SubmitEntryTestDto,
+    examples: {
+      example1: {
+        summary: 'Submit entry test answers',
+        value: {
+          answered: [
+            {
+              questionId: 'question1id',
+              answerId: 'answer1id'
+            },
+            {
+              questionId: 'question2id',
+              answerId: 'answer2id'
+            },
+            {
+              questionId: 'question3id',
+              answerId: 'answer3id'
+            },
+            {
+              questionId: 'question4id',
+              answerId: 'answer4id'
+            },
+            {
+              questionId: 'question5id',
+              answerId: 'answer5id'
+            },
+            {
+              questionId: 'question6id',
+              answerId: 'answer6id'
+            },
+            {
+              questionId: 'question7id',
+              answerId: 'answer7id'
+            },
+            {
+              questionId: 'question8id',
+              answerId: 'answer8id'
+            },
+            {
+              questionId: 'question9id',
+              answerId: 'answer9id'
+            },
+            {
+              questionId: 'question10id',
+              answerId: 'answer10id'
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ResponseMessage('Entry test submitted successfully')
+  async submitEntryTest(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
+    @Body() submitDto: SubmitEntryTestDto,
+    @CurrentUser() currentUser: User
+  ): Promise<EntryTestSubmissionResponseDto> {
+    return await this.entryTestService.submitEntryTest(entryTestId, questionSetId, submitDto, currentUser)
+  }
+
   @Patch(':entryTestId')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({ summary: 'Update an entry test' })
@@ -111,7 +178,7 @@ export class EntryTestController {
   }
 
   @Get()
-  @Roles('Lecturer', 'Principal', 'Admin', 'Student')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of entry tests' })
   @ResponseMessage('Entry tests retrieved successfully')
   async getEntryTests(@Query() query: GetEntryTestsQueryDto) {
@@ -119,7 +186,7 @@ export class EntryTestController {
   }
 
   @Get(':entryTestId')
-  @Roles('Lecturer', 'Principal', 'Admin', 'Student')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get a single entry test by ID' })
   @ResponseMessage('Entry test retrieved successfully')
   async getEntryTestById(

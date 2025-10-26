@@ -89,5 +89,35 @@ export const questionSetSeedData = [
         enable_copy_paste_restriction: true
       }
     }
+  },
+  {
+    title: 'Bộ đề cho việc testing dev',
+    description: 'Phục vụ cho việc testing in development',
+    questions: [], // Will be populated with actual question IDs
+    config: {
+      general: {
+        duration_minutes: 10,
+        total_questions: 10,
+        allow_review: false,
+        shuffle_questions: true,
+        shuffle_answers: true
+      },
+      scoring: {
+        per_question: true,
+        passing_score: 8
+      },
+      behavior: {
+        show_correct_after_submit: false,
+        max_attempts: 1
+      },
+      composition: {
+        question_sources: ['question'],
+        topics: ['di truyền phân tử', 'tiến hóa', 'sinh thái học', 'đột biến gen']
+      },
+      proctoring: {
+        enable_tab_tracking: true,
+        enable_copy_paste_restriction: true
+      }
+    }
   }
 ]
