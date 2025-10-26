@@ -156,15 +156,17 @@ export class QuestionService {
         throw new ValidationException(ErrorCode.Q001, 'Question not found')
       }
 
-      // 2. Check if the lesson exists
-      const lesson = await this.lessonRepository.findOne({ where: { lessonId: updateQuestionDto.lesson_id } })
-      if (!lesson) {
-        throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+      // 2. TODO: Skip for new version if the lesson is not provided
+      if (updateQuestionDto.lesson_id) {
+        const lesson = await this.lessonRepository.findOne({ where: { lessonId: updateQuestionDto.lesson_id } })
+        if (!lesson) {
+          throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+        }
       }
 
       // 3. Update question fields
       Object.assign(question, {
-        lessonId: updateQuestionDto.lesson_id || question.lessonId,
+        lessonId: updateQuestionDto.lesson_id ? updateQuestionDto.lesson_id : null,
         content: updateQuestionDto.content || question.content,
         type: updateQuestionDto.type || question.type,
         difficulty: updateQuestionDto.difficulty || question.difficulty,
@@ -180,6 +182,7 @@ export class QuestionService {
         for (const ans of question.answers) {
           finalContentsById.set(ans.answerId, ans.content)
         }
+
         // Apply incoming changes in-memory to compute final contents
         for (const incoming of updateQuestionDto.answers) {
           const current = finalContentsById.get(incoming.answer_id)
@@ -203,8 +206,11 @@ export class QuestionService {
         for (const answer of updateQuestionDto.answers) {
           const existingAnswer = question.answers.find((a) => a.answerId === answer.answer_id)
           if (existingAnswer) {
-            existingAnswer.content = answer.content
-            existingAnswer.isCorrect = answer.is_correct
+            Object.assign(existingAnswer, {
+              content: answer.content,
+              isCorrect: answer.is_correct
+            })
+            await this.answerRepository.save(existingAnswer)
           }
         }
       }

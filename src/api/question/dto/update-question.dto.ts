@@ -1,5 +1,12 @@
 import { QuestionDifficulty, QuestionType } from '@common/enums/question.enum'
-import { BooleanField, EnumField, StringField, URLFieldOptional, UUIDField } from '@decorators/field.decorators'
+import {
+  BooleanField,
+  EnumField,
+  StringField,
+  URLFieldOptional,
+  UUIDField,
+  UUIDFieldOptional
+} from '@decorators/field.decorators'
 import { ApiProperty } from '@nestjs/swagger'
 import { Type } from 'class-transformer'
 import { IsArray, IsOptional, ValidateNested } from 'class-validator'
@@ -57,7 +64,7 @@ export class UpdateQuestionDto {
     description: 'Lesson ID this question belongs to',
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
-  @UUIDField()
+  @UUIDFieldOptional()
   lesson_id: string
 
   @ApiProperty({
