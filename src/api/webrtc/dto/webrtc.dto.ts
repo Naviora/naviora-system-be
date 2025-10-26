@@ -68,3 +68,66 @@ export class ScreenShareDto {
   @IsNotEmpty()
   userId: string
 }
+
+export class StopScreenShareDto {
+  @IsString()
+  @IsNotEmpty()
+  roomId: string
+
+  @IsString()
+  @IsNotEmpty()
+  userId: string
+}
+
+export class RequestScreenShareDto {
+  @IsString()
+  @IsNotEmpty()
+  roomId: string
+
+  @IsString()
+  @IsNotEmpty()
+  fromUserId: string
+
+  @IsString()
+  @IsNotEmpty()
+  toUserId: string
+}
+
+export class ScreenShareOfferDto {
+  @IsString()
+  @IsNotEmpty()
+  roomId: string
+
+  @IsString()
+  @IsNotEmpty()
+  targetUserId: string
+
+  @IsNotEmpty()
+  offer: RTCSessionDescriptionInit
+}
+
+export class ScreenShareAnswerDto {
+  @IsString()
+  @IsNotEmpty()
+  roomId: string
+
+  @IsString()
+  @IsNotEmpty()
+  targetUserId: string
+
+  @IsNotEmpty()
+  answer: RTCSessionDescriptionInit
+}
+
+export class ScreenShareIceCandidateDto {
+  @IsString()
+  @IsNotEmpty()
+  roomId: string
+
+  @IsString()
+  @IsNotEmpty()
+  targetUserId: string
+
+  @IsNotEmpty()
+  candidate: RTCIceCandidateInit
+}

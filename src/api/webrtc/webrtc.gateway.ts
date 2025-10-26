@@ -134,9 +134,87 @@ export class WebRTCGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('start-screen-share')
   handleStartScreenShare(@MessageBody() data: { roomId: string; userId: string }, @ConnectedSocket() client: Socket) {
     this.logger.log(`User ${data.userId} starting screen share in room ${data.roomId}`)
+    this.webrtcService.setScreenSharingUser(data.roomId, data.userId)
     client.to(data.roomId).emit('screen-share-started', {
-      userId: data.userId
+      userId: data.userId,
+      timestamp: Date.now()
     })
+  }
+
+  @SubscribeMessage('stop-screen-share')
+  handleStopScreenShare(@MessageBody() data: { roomId: string; userId: string }, @ConnectedSocket() client: Socket) {
+    this.logger.log(`User ${data.userId} stopping screen share in room ${data.roomId}`)
+    this.webrtcService.clearScreenSharingUser(data.roomId)
+    client.to(data.roomId).emit('screen-share-stopped', {
+      userId: data.userId,
+      timestamp: Date.now()
+    })
+  }
+
+  @SubscribeMessage('request-screen-share')
+  handleRequestScreenShare(
+    @MessageBody() data: { roomId: string; fromUserId: string; toUserId: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    this.logger.log(`User ${data.fromUserId} requesting screen share from ${data.toUserId} in room ${data.roomId}`)
+    const targetSocketId = this.webrtcService.getUserSocketId(data.roomId, data.toUserId)
+    if (targetSocketId) {
+      client.to(targetSocketId).emit('screen-share-request', {
+        fromUserId: data.fromUserId,
+        timestamp: Date.now()
+      })
+    }
+  }
+
+  @SubscribeMessage('screen-share-offer')
+  handleScreenShareOffer(
+    @MessageBody() data: { roomId: string; offer: RTCSessionDescriptionInit; targetUserId: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    const fromUserId = this.webrtcService.getUserIdBySocketId(client.id)
+    this.logger.log(`Screen share offer from ${fromUserId} to ${data.targetUserId}`)
+
+    const targetSocketId = this.webrtcService.getUserSocketId(data.roomId, data.targetUserId)
+    if (targetSocketId) {
+      client.to(targetSocketId).emit('screen-share-offer', {
+        offer: data.offer,
+        fromUserId: fromUserId
+      })
+    }
+  }
+
+  @SubscribeMessage('screen-share-answer')
+  handleScreenShareAnswer(
+    @MessageBody() data: { roomId: string; answer: RTCSessionDescriptionInit; targetUserId: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    const fromUserId = this.webrtcService.getUserIdBySocketId(client.id)
+    this.logger.log(`Screen share answer from ${fromUserId} to ${data.targetUserId}`)
+
+    const targetSocketId = this.webrtcService.getUserSocketId(data.roomId, data.targetUserId)
+    if (targetSocketId) {
+      client.to(targetSocketId).emit('screen-share-answer', {
+        answer: data.answer,
+        fromUserId: fromUserId
+      })
+    }
+  }
+
+  @SubscribeMessage('screen-share-ice-candidate')
+  handleScreenShareIceCandidate(
+    @MessageBody() data: { roomId: string; candidate: RTCIceCandidateInit; targetUserId: string },
+    @ConnectedSocket() client: Socket
+  ) {
+    const fromUserId = this.webrtcService.getUserIdBySocketId(client.id)
+    this.logger.log(`Screen share ICE candidate from ${fromUserId} to ${data.targetUserId}`)
+
+    const targetSocketId = this.webrtcService.getUserSocketId(data.roomId, data.targetUserId)
+    if (targetSocketId) {
+      client.to(targetSocketId).emit('screen-share-ice-candidate', {
+        candidate: data.candidate,
+        fromUserId: fromUserId
+      })
+    }
   }
 
   @SubscribeMessage('send-message')

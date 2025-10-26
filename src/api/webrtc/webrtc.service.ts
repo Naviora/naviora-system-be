@@ -10,6 +10,7 @@ export class WebRTCService {
   private readonly logger = new Logger(WebRTCService.name)
   private rooms: Map<string, RoomUser[]> = new Map()
   private socketToUser: Map<string, string> = new Map()
+  private screenSharingUsers: Map<string, string> = new Map() // roomId -> userId
 
   addUserToRoom(roomId: string, userId: string, socketId: string): void {
     if (!this.rooms.has(roomId)) {
@@ -119,9 +120,31 @@ export class WebRTCService {
     for (const [roomId, users] of this.rooms.entries()) {
       rooms[roomId] = {
         users: users,
-        totalUsers: users.length
+        totalUsers: users.length,
+        screenSharingUser: this.screenSharingUsers.get(roomId) || null
       }
     }
     return rooms
+  }
+
+  setScreenSharingUser(roomId: string, userId: string): void {
+    this.screenSharingUsers.set(roomId, userId)
+    this.logger.log(`User ${userId} is now screen sharing in room ${roomId}`)
+  }
+
+  clearScreenSharingUser(roomId: string): void {
+    const userId = this.screenSharingUsers.get(roomId)
+    if (userId) {
+      this.screenSharingUsers.delete(roomId)
+      this.logger.log(`Screen sharing stopped in room ${roomId} by user ${userId}`)
+    }
+  }
+
+  getScreenSharingUser(roomId: string): string | null {
+    return this.screenSharingUsers.get(roomId) || null
+  }
+
+  isUserScreenSharing(roomId: string, userId: string): boolean {
+    return this.screenSharingUsers.get(roomId) === userId
   }
 }
