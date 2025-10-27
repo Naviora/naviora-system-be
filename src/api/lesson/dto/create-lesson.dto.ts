@@ -1,19 +1,20 @@
+import { StringField, StringFieldOptional, UUIDField } from '@decorators/field.decorators'
 import { ApiProperty } from '@nestjs/swagger'
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator'
 
 export class CreateLessonDto {
   @ApiProperty()
-  @IsNotEmpty()
-  @IsUUID()
+  @UUIDField()
   module_id: string
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
+  @StringField()
   lesson_name: string
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
+  @StringField()
   lesson_description: string
+
+  @ApiProperty()
+  @StringFieldOptional()
+  lesson_content?: string
 }

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, In } from 'typeorm'
 import { QuestionSetEntity } from './entities/question-set.entity'
 import { CreateQuestionSetDto } from './dto/create-question-set.dto'
+import { UpdateQuestionSetDto } from './dto/update-question-set.dto'
 import { GetQuestionSetsQueryDto } from './dto/get-question-sets-query.dto'
 import { ConfigDetailDto, QuestionSetDetailResponseDto } from './dto/question-set-detail-response.dto'
 import { QuestionResponseDto } from '@api/question/dto/question-response.dto'
@@ -179,5 +180,148 @@ export class QuestionSetService {
       createdAt: questionSet.createdAt,
       updatedAt: questionSet.updatedAt
     }
+  }
+
+  async update(questionSetId: string, updateDto: UpdateQuestionSetDto, currentUser: User) {
+    // Find the question set
+    const questionSet = await this.questionSetRepository.findOne({
+      where: { questionSetId },
+      relations: ['lecturer']
+    })
+
+    if (!questionSet) {
+      throw new ValidationException(ErrorCode.QUESTION_SET_004, 'Question set not found', [
+        { property: 'questionSetId', code: ErrorCode.QUESTION_SET_004 }
+      ])
+    }
+
+    // Check if question set is in use - if so, only allow updating title and description
+    if (questionSet.isInUse) {
+      // Only allow updating title and description when in use
+      if (updateDto.questions || updateDto.config) {
+        throw new ValidationException(
+          ErrorCode.QUESTION_SET_005,
+          'Cannot update questions or config when question set is in use',
+          [
+            { property: 'questions', code: ErrorCode.QUESTION_SET_005 },
+            { property: 'config', code: ErrorCode.QUESTION_SET_005 }
+          ]
+        )
+      }
+    }
+
+    // Validate questions if provided
+    if (updateDto.questions) {
+      if (!Array.isArray(updateDto.questions) || updateDto.questions.length === 0) {
+        throw new ValidationException(ErrorCode.V004, 'Questions is required', [
+          { property: 'questions', code: ErrorCode.V004 }
+        ])
+      }
+
+      // Validate question IDs exist
+      const uniqueIds = Array.from(new Set(updateDto.questions))
+      const found = await this.questionRepository.find({
+        where: { questionId: In(uniqueIds) },
+        select: ['questionId']
+      })
+      const foundIds = new Set(found.map((q) => q.questionId))
+      const missing = uniqueIds.filter((id) => !foundIds.has(id))
+      if (missing.length > 0) {
+        throw new ValidationException(ErrorCode.Q001, 'Invalid question IDs', [
+          { property: 'questions', code: ErrorCode.Q001, message: `Invalid question IDs: ${missing.join(', ')}` }
+        ])
+      }
+
+      // Validate that the number of questions matches the config total_questions
+      const actualQuestionCount = foundIds.size
+      const expectedQuestionCount =
+        updateDto.config?.general?.total_questions || questionSet.config.general.total_questions
+
+      if (actualQuestionCount !== expectedQuestionCount) {
+        throw new ValidationException(ErrorCode.Q005, 'Question count mismatch', [
+          {
+            property: 'questions',
+            code: ErrorCode.Q005,
+            message: `Expected ${expectedQuestionCount} questions but got ${actualQuestionCount}`
+          }
+        ])
+      }
+    }
+
+    // Validate config if provided - ensure total_questions matches actual questions
+    if (updateDto.config) {
+      const questionsToValidate = updateDto.questions || questionSet.questions
+      const actualQuestionCount = questionsToValidate.length
+      const expectedQuestionCount = updateDto.config.general?.total_questions
+
+      if (expectedQuestionCount !== undefined && actualQuestionCount !== expectedQuestionCount) {
+        throw new ValidationException(ErrorCode.Q005, 'Config total_questions does not match the number of questions', [
+          {
+            property: 'config.general.total_questions',
+            code: ErrorCode.Q005,
+            message: `Config expects ${expectedQuestionCount} questions but found ${actualQuestionCount} questions`
+          }
+        ])
+      }
+    }
+
+    // Update fields
+    const updateData: Partial<QuestionSetEntity> = {
+      updatedBy: currentUser
+    }
+
+    if (updateDto.title !== undefined) {
+      updateData.title = updateDto.title
+    }
+    if (updateDto.description !== undefined) {
+      updateData.description = updateDto.description
+    }
+    if (updateDto.questions !== undefined) {
+      updateData.questions = updateDto.questions
+    }
+    if (updateDto.config !== undefined) {
+      updateData.config = updateDto.config
+    }
+
+    // Update the question set
+    await this.questionSetRepository.update(questionSetId, updateData)
+
+    // Return the updated question set
+    const updatedQuestionSet = await this.questionSetRepository.findOne({
+      where: { questionSetId },
+      relations: ['lecturer', 'updatedBy']
+    })
+
+    return updatedQuestionSet
+  }
+
+  async softDelete(questionSetId: string, currentUser: User) {
+    // Find the question set
+    const questionSet = await this.questionSetRepository.findOne({
+      where: { questionSetId }
+    })
+
+    if (!questionSet) {
+      throw new ValidationException(ErrorCode.Q001, 'Question set not found', [
+        { property: 'questionSetId', code: ErrorCode.Q001 }
+      ])
+    }
+
+    // Check if question set is in use
+    if (questionSet.isInUse) {
+      throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Cannot delete question set that is in use', [
+        { property: 'questionSetId', code: ErrorCode.QUESTION_SET_005 }
+      ])
+    }
+
+    // Update the updatedBy field before soft delete
+    await this.questionSetRepository.update(questionSetId, {
+      updatedBy: currentUser
+    })
+
+    // Perform soft delete
+    await this.questionSetRepository.softDelete(questionSetId)
+
+    return { message: 'Question set deleted successfully' }
   }
 }

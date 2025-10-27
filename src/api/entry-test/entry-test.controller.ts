@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { EntryTestService } from './entry-test.service'
 import { CreateEntryTestDto } from './dto/create-entry-test.dto'
 import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
+import { SubmitEntryTestDto } from './dto/submit-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
+import { EntryTestScoreSpectrumDto } from './dto/entry-test-score-spectrum.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
 import { Roles } from '@decorators/roles.decorator'
@@ -79,6 +81,72 @@ export class EntryTestController {
     return await this.entryTestService.startEntryTest(entryTestId, currentUser)
   }
 
+  @Post('submit/:entryTestId&:questionSetId')
+  @Roles(RoleInAccount.Student)
+  @ApiOperation({ summary: 'Submit entry test answers' })
+  @ApiBody({
+    description: 'Payload to submit entry test answers',
+    type: SubmitEntryTestDto,
+    examples: {
+      example1: {
+        summary: 'Submit entry test answers',
+        value: {
+          answered: [
+            {
+              questionId: 'question1id',
+              answerId: 'answer1id'
+            },
+            {
+              questionId: 'question2id',
+              answerId: 'answer2id'
+            },
+            {
+              questionId: 'question3id',
+              answerId: 'answer3id'
+            },
+            {
+              questionId: 'question4id',
+              answerId: 'answer4id'
+            },
+            {
+              questionId: 'question5id',
+              answerId: 'answer5id'
+            },
+            {
+              questionId: 'question6id',
+              answerId: 'answer6id'
+            },
+            {
+              questionId: 'question7id',
+              answerId: 'answer7id'
+            },
+            {
+              questionId: 'question8id',
+              answerId: 'answer8id'
+            },
+            {
+              questionId: 'question9id',
+              answerId: 'answer9id'
+            },
+            {
+              questionId: 'question10id',
+              answerId: 'answer10id'
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ResponseMessage('Entry test submitted successfully')
+  async submitEntryTest(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
+    @Body() submitDto: SubmitEntryTestDto,
+    @CurrentUser() currentUser: User
+  ): Promise<EntryTestSubmissionResponseDto> {
+    return await this.entryTestService.submitEntryTest(entryTestId, questionSetId, submitDto, currentUser)
+  }
+
   @Patch(':entryTestId')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({ summary: 'Update an entry test' })
@@ -86,6 +154,15 @@ export class EntryTestController {
     description: 'Payload to update entry test',
     type: UpdateEntryTestDto,
     examples: {
+      example: {
+        summary: 'Update entry test',
+        value: {
+          title: 'Updated Entry Test Title',
+          status: 'ACTIVE',
+          endTime: '2024-12-31T23:59:59.000Z',
+          questionSets: ['uuid1', 'uuid2', 'uuid3']
+        }
+      },
       example1: {
         summary: 'Update entry test title and status',
         value: {
@@ -97,6 +174,12 @@ export class EntryTestController {
         summary: 'Update entry test question sets',
         value: {
           questionSets: ['uuid1', 'uuid2', 'uuid3']
+        }
+      },
+      example3: {
+        summary: 'Update entry test end time',
+        value: {
+          endTime: '2024-12-31T23:59:59.000Z'
         }
       }
     }
@@ -111,7 +194,7 @@ export class EntryTestController {
   }
 
   @Get()
-  @Roles('Lecturer', 'Principal', 'Admin', 'Student')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of entry tests' })
   @ResponseMessage('Entry tests retrieved successfully')
   async getEntryTests(@Query() query: GetEntryTestsQueryDto) {
@@ -119,7 +202,7 @@ export class EntryTestController {
   }
 
   @Get(':entryTestId')
-  @Roles('Lecturer', 'Principal', 'Admin', 'Student')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get a single entry test by ID' })
   @ResponseMessage('Entry test retrieved successfully')
   async getEntryTestById(
@@ -134,5 +217,26 @@ export class EntryTestController {
   @ResponseMessage('Latest active entry test retrieved successfully')
   async getLatestActiveEntryTest(): Promise<EntryTestResponseDto | null> {
     return await this.entryTestService.getLatestActiveEntryTestForStudent()
+  }
+
+  @Get(':entryTestId/score-spectrum')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({ summary: 'Get score spectrum analysis for an entry test' })
+  @ResponseMessage('Score spectrum retrieved successfully')
+  async getEntryTestScoreSpectrum(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
+  ): Promise<EntryTestScoreSpectrumDto> {
+    return await this.entryTestService.getEntryTestScoreSpectrum(entryTestId)
+  }
+
+  @Delete(':entryTestId')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({ summary: 'Soft delete an entry test' })
+  @ResponseMessage('Entry test deleted successfully')
+  async deleteEntryTest(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @CurrentUser() currentUser: User
+  ) {
+    return await this.entryTestService.softDeleteEntryTest(entryTestId, currentUser)
   }
 }
