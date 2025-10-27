@@ -4,7 +4,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ConfigService } from '@nestjs/config'
-import { Repository, In, Not } from 'typeorm'
+import { Repository, In } from 'typeorm'
 import { CloudinaryService } from '@cloudinary/cloudinary.service'
 import { CreateClassDto } from './dto/create-class.dto'
 import { UpdateClassDto } from './dto/update-class.dto'
@@ -157,6 +157,23 @@ export class ClassService {
           phone: assignment.lecturer.phone
         })) || []
 
+    // Fetch enrolled students
+    const enrollments = await this.classEnrolmentRepository.find({
+      where: { classId },
+      relations: ['student'],
+      select: ['student', 'enrolmentDate']
+    })
+
+    // Map students from enrollments
+    const students = enrollments.map((enrollment) => ({
+      id: enrollment.student.id,
+      name: enrollment.student.name,
+      email: enrollment.student.email,
+      avatar: enrollment.student.avatar,
+      phone: enrollment.student.phone,
+      enrolment_date: enrollment.enrolmentDate
+    }))
+
     return {
       class_id: classEntity.classId,
       class_code: classEntity.classCode,
@@ -166,6 +183,7 @@ export class ClassService {
       end_date: classEntity.endDate,
       is_active: classEntity.isActive,
       lecturers,
+      students,
       created_at: classEntity.createdAt,
       updated_at: classEntity.updatedAt
     }
