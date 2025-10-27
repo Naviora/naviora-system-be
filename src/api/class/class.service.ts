@@ -18,7 +18,7 @@ import { User } from '@api/user/entities/user.entity'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { plainToInstance } from 'class-transformer'
 import { ClassDTO } from './dto/class.dto'
-import { ArrangeStudentsDto, ClassArrangementResultDto, StudentAssignmentDto } from './dto/arrange-students.dto'
+import { ArrangeStudentsDto, ClassArrangementResultDto } from './dto/arrange-students.dto'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
@@ -368,8 +368,7 @@ export class ClassService {
       const submissions = await this.entryTestSubmissionRepository.find({
         where: {
           entryTestId,
-          attemptStatus: AttemptStatus.SUBMITTED,
-          score: Not(null)
+          attemptStatus: AttemptStatus.SUBMITTED
         },
         relations: ['student'],
         select: ['studentId', 'score', 'student']

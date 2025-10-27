@@ -51,6 +51,7 @@ import { QuestionSetModule } from './api/question-set/question-set.module'
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { EntryTestModule } from './api/entry-test/entry-test.module'
+import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { EntryTestModule } from './api/entry-test/entry-test.module'
             Class,
             ModuleEntity,
             TeachingAssignment,
+            ClassEnrolment,
             LessonEntity,
             TeachingModule,
             QuestionEntity,
