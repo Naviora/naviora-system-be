@@ -6,6 +6,7 @@ import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
 import { SubmitEntryTestDto } from './dto/submit-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
+import { EntryTestScoreSpectrumDto } from './dto/entry-test-score-spectrum.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
 import { Roles } from '@decorators/roles.decorator'
@@ -153,6 +154,15 @@ export class EntryTestController {
     description: 'Payload to update entry test',
     type: UpdateEntryTestDto,
     examples: {
+      example: {
+        summary: 'Update entry test',
+        value: {
+          title: 'Updated Entry Test Title',
+          status: 'ACTIVE',
+          endTime: '2024-12-31T23:59:59.000Z',
+          questionSets: ['uuid1', 'uuid2', 'uuid3']
+        }
+      },
       example1: {
         summary: 'Update entry test title and status',
         value: {
@@ -164,6 +174,12 @@ export class EntryTestController {
         summary: 'Update entry test question sets',
         value: {
           questionSets: ['uuid1', 'uuid2', 'uuid3']
+        }
+      },
+      example3: {
+        summary: 'Update entry test end time',
+        value: {
+          endTime: '2024-12-31T23:59:59.000Z'
         }
       }
     }
@@ -201,6 +217,16 @@ export class EntryTestController {
   @ResponseMessage('Latest active entry test retrieved successfully')
   async getLatestActiveEntryTest(): Promise<EntryTestResponseDto | null> {
     return await this.entryTestService.getLatestActiveEntryTestForStudent()
+  }
+
+  @Get(':entryTestId/score-spectrum')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({ summary: 'Get score spectrum analysis for an entry test' })
+  @ResponseMessage('Score spectrum retrieved successfully')
+  async getEntryTestScoreSpectrum(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
+  ): Promise<EntryTestScoreSpectrumDto> {
+    return await this.entryTestService.getEntryTestScoreSpectrum(entryTestId)
   }
 
   @Delete(':entryTestId')

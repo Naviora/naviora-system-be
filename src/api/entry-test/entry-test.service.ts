@@ -11,6 +11,7 @@ import { UpdateEntryTestDto } from './dto/update-entry-test.dto'
 import { SubmitEntryTestDto } from './dto/submit-entry-test.dto'
 import { EntryTestResponseDto } from './dto/entry-test-response.dto'
 import { EntryTestSubmissionResponseDto } from './dto/entry-test-submission-response.dto'
+import { EntryTestScoreSpectrumDto, ScoreRangeDto, ScoreStatisticsDto } from './dto/entry-test-score-spectrum.dto'
 import { ValidationException } from '@exceptions/validation.exception'
 import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
@@ -165,6 +166,16 @@ export class EntryTestService {
     }
     if (updateDto.status !== undefined) {
       entryTest.status = updateDto.status
+    }
+    if (updateDto.endTime !== undefined) {
+      // Validate that end time is after start time
+      const newEndTime = new Date(updateDto.endTime)
+      if (newEndTime <= entryTest.startTime) {
+        throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+          { property: 'endTime', code: ErrorCode.V004 }
+        ])
+      }
+      entryTest.endTime = newEndTime
     }
     if (updateDto.questionSets !== undefined) {
       // Business Logic: Compare input question sets with existing ones
@@ -540,7 +551,103 @@ export class EntryTestService {
     const correctAnswers = answers.filter((answer) => answer.isCorrect).length
 
     // Calculate percentage score
-    return Math.round((correctAnswers / totalQuestions) * 100)
+    return Math.round((correctAnswers / totalQuestions) * 10)
+  }
+
+  async getEntryTestScoreSpectrum(entryTestId: string): Promise<EntryTestScoreSpectrumDto> {
+    // Find the entry test
+    const entryTest = await this.entryTestRepository.findOne({
+      where: { entryTestId },
+      select: ['entryTestId', 'title']
+    })
+
+    if (!entryTest) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
+
+    // Get all submitted entries for this entry test
+    const submissions = await this.entryTestSubmissionRepository.find({
+      where: {
+        entryTestId,
+        attemptStatus: AttemptStatus.SUBMITTED
+      },
+      select: ['score']
+    })
+
+    if (submissions.length === 0) {
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'No submissions found for this entry test', [
+        { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+      ])
+    }
+
+    const scores = submissions.map((submission) => submission.score).filter((score) => score !== null) as number[]
+
+    // Calculate statistics
+    const statistics = this.calculateScoreStatistics(scores)
+
+    // Calculate score ranges (0-1, 1-2, 2-3, ..., 9-10)
+    const scoreRanges = this.calculateScoreRanges(scores)
+
+    return {
+      entryTestId: entryTest.entryTestId,
+      entryTestTitle: entryTest.title,
+      statistics,
+      scoreRanges
+    }
+  }
+
+  private calculateScoreStatistics(scores: number[]): ScoreStatisticsDto {
+    const sortedScores = [...scores].sort((a, b) => a - b)
+    const totalSubmissions = scores.length
+
+    // Calculate average
+    const averageScore = Math.round((scores.reduce((sum, score) => sum + score, 0) / totalSubmissions) * 100) / 100
+
+    // Calculate median
+    const medianScore =
+      totalSubmissions % 2 === 0
+        ? (sortedScores[totalSubmissions / 2 - 1] + sortedScores[totalSubmissions / 2]) / 2
+        : sortedScores[Math.floor(totalSubmissions / 2)]
+
+    // Calculate standard deviation
+    const variance = scores.reduce((sum, score) => sum + Math.pow(score - averageScore, 2), 0) / totalSubmissions
+    const standardDeviation = Math.round(Math.sqrt(variance) * 100) / 100
+
+    return {
+      totalSubmissions,
+      averageScore,
+      highestScore: Math.max(...scores),
+      lowestScore: Math.min(...scores),
+      medianScore: Math.round(medianScore * 100) / 100,
+      standardDeviation
+    }
+  }
+
+  private calculateScoreRanges(scores: number[]): ScoreRangeDto[] {
+    const ranges: ScoreRangeDto[] = []
+    const totalSubmissions = scores.length
+
+    // Create ranges with 0.25 increments: 0.0, 0.25, 0.5, 0.75, 1.0, ..., 10.0
+    for (let i = 0; i <= 40; i++) {
+      const score = i * 0.25
+      const rangeLabel = score.toString()
+
+      // Count scores that match this exact score (with small tolerance for floating point precision)
+      const count = scores.filter((s) => Math.abs(s - score) < 0.01).length
+
+      // Calculate percentage
+      const percentage = Math.round((count / totalSubmissions) * 100 * 100) / 100
+
+      ranges.push({
+        score: rangeLabel,
+        count,
+        percentage
+      })
+    }
+
+    return ranges
   }
 
   /**
