@@ -567,6 +567,9 @@ export class EntryTestService {
       ])
     }
 
+    /**
+     * TODO: Below logic should be considered to be moved to background logic for better performance & reliability
+     * */
     // Get all submitted entries for this entry test
     const submissions = await this.entryTestSubmissionRepository.find({
       where: {

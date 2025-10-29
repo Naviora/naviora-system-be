@@ -35,6 +35,46 @@ export class LecturerDTO {
   phone?: string
 }
 
+export class StudentDTO {
+  @ApiProperty({
+    description: 'Student ID',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  id: string
+
+  @ApiProperty({
+    description: 'Student name',
+    example: 'Jane Doe'
+  })
+  name: string
+
+  @ApiProperty({
+    description: 'Student email',
+    example: 'jane.doe@example.com'
+  })
+  email: string
+
+  @ApiProperty({
+    description: 'Student avatar',
+    example: 'https://example.com/avatar.jpg',
+    required: false
+  })
+  avatar?: string
+
+  @ApiProperty({
+    description: 'Student phone',
+    example: '+1234567890',
+    required: false
+  })
+  phone?: string
+
+  @ApiProperty({
+    description: 'Student enrollment date',
+    example: '2025-01-15T00:00:00.000Z'
+  })
+  enrolment_date: Date
+}
+
 export class ClassDetailDTO {
   @ApiProperty({
     description: 'Class ID',
@@ -84,6 +124,12 @@ export class ClassDetailDTO {
     type: [LecturerDTO]
   })
   lecturers: LecturerDTO[]
+
+  @ApiProperty({
+    description: 'List of enrolled students',
+    type: [StudentDTO]
+  })
+  students: StudentDTO[]
 
   @ApiProperty({
     description: 'Date when the class was created',

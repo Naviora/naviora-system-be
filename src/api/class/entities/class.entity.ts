@@ -3,6 +3,7 @@ import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm'
 import { ClassType } from '@common/enums/class-types.enum'
 import { TeachingAssignment } from './teaching-assignment.entity'
 import { ModuleEntity } from '@api/module/entities/module.entity'
+import { ClassEnrolment } from './class-enrolment.entity'
 
 @Entity('class')
 export class Class extends AbstractEntity {
@@ -32,6 +33,9 @@ export class Class extends AbstractEntity {
 
   @OneToMany(() => ModuleEntity, (module) => module.class)
   modules: ModuleEntity[]
+
+  @OneToMany(() => ClassEnrolment, (enrolment) => enrolment.class)
+  enrolments: ClassEnrolment[]
 
   /**
    * TODO: Add final_exam_id as the ManyToOne with the FinalExam entity

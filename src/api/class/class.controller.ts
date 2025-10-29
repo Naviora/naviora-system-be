@@ -11,6 +11,7 @@ import { Roles } from '@decorators/roles.decorator'
 import { GetClassesQueryDto } from './dto/get-classes-query.dto'
 import { AssignLecturersDto } from './dto/assign-lecturers-to-class.dto'
 import { ClassDetailDTO } from './dto/class-detail.dto'
+import { ArrangeStudentsDto, ClassArrangementResultDto } from './dto/arrange-students.dto'
 
 @ApiTags('Classes')
 @Controller({
@@ -132,5 +133,38 @@ export class ClassController {
     @Body() assignLecturersDto: AssignLecturersDto
   ) {
     return await this.classService.assignLecturers(classId, assignLecturersDto)
+  }
+
+  @Post('arrange-students')
+  @ApiOperation({ summary: 'Arrange students into classes based on entry test scores' })
+  @ApiBody({
+    description: 'Entry test ID and class distribution mapping',
+    type: ArrangeStudentsDto,
+    examples: {
+      example1: {
+        summary: 'Arrange students by score ranges',
+        value: {
+          entryTestId: '123e4567-e89b-12d3-a456-426614174000',
+          classDistribution: [
+            {
+              range: '0-5',
+              classId: '550e8400-e29b-41d4-a716-446655440000'
+            },
+            {
+              range: '5-7',
+              classId: '550e8400-e29b-41d4-a716-446655440001'
+            },
+            {
+              range: '7-10',
+              classId: '550e8400-e29b-41d4-a716-446655440002'
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ResponseMessage('Students arranged into classes successfully')
+  async arrangeStudents(@Body() arrangeStudentsDto: ArrangeStudentsDto): Promise<ClassArrangementResultDto> {
+    return await this.classService.arrangeStudents(arrangeStudentsDto)
   }
 }
