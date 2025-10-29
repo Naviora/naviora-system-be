@@ -22,12 +22,14 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { SessionEntity } from '@api/user/entities/session.entity'
 import { Repository } from 'typeorm'
 import { JwtRefreshPayloadType } from '@api/auth/types/jwt-refresh-payload.type'
+import { RoleInAccount } from '@common/enums/account-role.enum'
 type PayLoadAuth = { id?: string; role?: string }
 type Token = {
   access_token: string
   refresh_token: string
   expires_in: number
   role: string
+  hasParticipatedEntryTest?: boolean
 }
 @Injectable()
 export class AuthService {
@@ -102,17 +104,36 @@ export class AuthService {
         hash
       })
       await this.sessionRepository.save(session)
+      // TODO: Just find in user table for this version
+      const user = await this.userService.findById(account.id)
+      if (!user) {
+        throw new ValidationException(ErrorCode.E004, 'User not found', [
+          {
+            property: 'user',
+            code: ErrorCode.E004
+          }
+        ])
+      }
       const tokens = await this.generateTokens(account.id, account.role, hash, session.id)
       if (!tokens.access_token || !tokens.refresh_token) {
         throw new Error('Login failed')
       }
 
-      return {
+      let result: Token = {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         expires_in: tokens.expires_in,
         role: tokens.role
       }
+
+      if (account.role === RoleInAccount.Student) {
+        result = {
+          ...result,
+          hasParticipatedEntryTest: user.hasParticipatedEntryTest
+        }
+      }
+
+      return result
     } catch (error) {
       throw error
     }
