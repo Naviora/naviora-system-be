@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install all dependencies including devDependencies (glob and rimraf are transitive deps)
-RUN npm ci --omit=production --prefer-offline --no-audit
+RUN npm ci --prefer-offline --no-audit
 
 COPY . .
 
