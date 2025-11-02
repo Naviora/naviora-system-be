@@ -4,9 +4,8 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install glob rimraf
-
-RUN npm install --only=development
+# Install the application dependencies
+RUN npm install
 
 COPY . .
 
@@ -23,7 +22,8 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install --only=production
+# Install only production dependencies
+RUN npm ci --omit=development --prefer-offline --no-audit
 
 COPY . .
 

@@ -51,6 +51,9 @@ import { QuestionSetModule } from './api/question-set/question-set.module'
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { EntryTestModule } from './api/entry-test/entry-test.module'
+import { FinalExamEntity } from '@api/final-exam/entities/final-exam.entity'
+import { FinalExamSubmissionEntity } from '@api/final-exam/entities/final-exam-submission.entity'
+import { FinalExamModule } from './api/final-exam/final-exam.module'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 
 @Module({
@@ -85,7 +88,9 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
             TeachingMaterial,
             QuestionSetEntity,
             EntryTestEntity,
-            EntryTestSubmissionEntity
+            EntryTestSubmissionEntity,
+            FinalExamEntity,
+            FinalExamSubmissionEntity
           ]
         }
       },
@@ -160,7 +165,8 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
     MaterialModule,
     TeachingMaterialModule,
     QuestionSetModule,
-    EntryTestModule
+    EntryTestModule,
+    FinalExamModule
   ],
   controllers: [AppController],
   providers: [
