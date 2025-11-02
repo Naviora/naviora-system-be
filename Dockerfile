@@ -4,9 +4,8 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install glob rimraf
-
-RUN npm install --only=development
+# Install all dependencies including devDependencies (glob and rimraf are transitive deps)
+RUN npm ci --omit=production --prefer-offline --no-audit
 
 COPY . .
 
@@ -23,7 +22,8 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install --only=production
+# Install only production dependencies
+RUN npm ci --omit=dev --prefer-offline --no-audit
 
 COPY . .
 
