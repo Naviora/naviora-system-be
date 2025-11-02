@@ -54,6 +54,9 @@ import { EntryTestModule } from './api/entry-test/entry-test.module'
 import { FinalExamEntity } from '@api/final-exam/entities/final-exam.entity'
 import { FinalExamSubmissionEntity } from '@api/final-exam/entities/final-exam-submission.entity'
 import { FinalExamModule } from './api/final-exam/final-exam.module'
+import { ReviewedExerciseEntity } from '@api/reviewed-exercise/entities/reviewed-exercise.entity'
+import { ReviewedExerciseSubmissionEntity } from '@api/reviewed-exercise/entities/reviewed-exercise-submission.entity'
+import { ReviewedExerciseModule } from './api/reviewed-exercise/reviewed-exercise.module'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 
 @Module({
@@ -90,7 +93,9 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
             EntryTestEntity,
             EntryTestSubmissionEntity,
             FinalExamEntity,
-            FinalExamSubmissionEntity
+            FinalExamSubmissionEntity,
+            ReviewedExerciseEntity,
+            ReviewedExerciseSubmissionEntity
           ]
         }
       },
@@ -166,7 +171,8 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
     TeachingMaterialModule,
     QuestionSetModule,
     EntryTestModule,
-    FinalExamModule
+    FinalExamModule,
+    ReviewedExerciseModule
   ],
   controllers: [AppController],
   providers: [
