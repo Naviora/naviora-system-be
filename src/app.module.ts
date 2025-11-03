@@ -51,6 +51,12 @@ import { QuestionSetModule } from './api/question-set/question-set.module'
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { EntryTestModule } from './api/entry-test/entry-test.module'
+import { FinalExamEntity } from '@api/final-exam/entities/final-exam.entity'
+import { FinalExamSubmissionEntity } from '@api/final-exam/entities/final-exam-submission.entity'
+import { FinalExamModule } from './api/final-exam/final-exam.module'
+import { ReviewedExerciseEntity } from '@api/reviewed-exercise/entities/reviewed-exercise.entity'
+import { ReviewedExerciseSubmissionEntity } from '@api/reviewed-exercise/entities/reviewed-exercise-submission.entity'
+import { ReviewedExerciseModule } from './api/reviewed-exercise/reviewed-exercise.module'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 import { WebRTCModule } from './api/webrtc/webrtc.module'
 
@@ -86,7 +92,11 @@ import { WebRTCModule } from './api/webrtc/webrtc.module'
             TeachingMaterial,
             QuestionSetEntity,
             EntryTestEntity,
-            EntryTestSubmissionEntity
+            EntryTestSubmissionEntity,
+            FinalExamEntity,
+            FinalExamSubmissionEntity,
+            ReviewedExerciseEntity,
+            ReviewedExerciseSubmissionEntity
           ]
         }
       },
@@ -162,7 +172,9 @@ import { WebRTCModule } from './api/webrtc/webrtc.module'
     TeachingMaterialModule,
     QuestionSetModule,
     EntryTestModule,
-    WebRTCModule
+    WebRTCModule,
+    FinalExamModule,
+    ReviewedExerciseModule
   ],
   controllers: [AppController],
   providers: [

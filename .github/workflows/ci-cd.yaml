@@ -97,6 +97,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: production
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   # Non-Production Docker Build and Push Job (runs on all other branches)
   docker-build-dev:
@@ -139,6 +141,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: development
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   # Production Deployment Job
   deploy-prod:
@@ -193,9 +197,9 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]] && \
              [[ "${{ github.base_ref }}" == "develop" ]]; then
-            echo "TAG=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+            echo "TAG_BE=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
           else
-            echo "TAG=develop" >> $GITHUB_ENV
+            echo "TAG_BE=develop" >> $GITHUB_ENV
           fi
 
       - name: SSH and deploy to development
@@ -206,9 +210,9 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            docker pull ${{ env.NON_PROD_IMAGE_NAME }}:${{ env.TAG }}
+            docker pull ${{ env.NON_PROD_IMAGE_NAME }}:${{ env.TAG_BE }}
             cd be-non-prod
             if [[ "${{ steps.detect-entity-changes.outputs.entity_changed }}" == "true" ]]; then
                 docker rm -f postgres_container || true
             fi
-            TAG=${{ env.TAG }} docker compose up -d
+            TAG_BE=${{ env.TAG_BE }} docker compose up -d
