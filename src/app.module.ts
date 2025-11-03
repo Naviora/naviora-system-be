@@ -58,6 +58,7 @@ import { ReviewedExerciseEntity } from '@api/reviewed-exercise/entities/reviewed
 import { ReviewedExerciseSubmissionEntity } from '@api/reviewed-exercise/entities/reviewed-exercise-submission.entity'
 import { ReviewedExerciseModule } from './api/reviewed-exercise/reviewed-exercise.module'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
+import { WebRTCModule } from './api/webrtc/webrtc.module'
 
 @Module({
   imports: [
@@ -171,6 +172,7 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
     TeachingMaterialModule,
     QuestionSetModule,
     EntryTestModule,
+    WebRTCModule,
     FinalExamModule,
     ReviewedExerciseModule
   ],
