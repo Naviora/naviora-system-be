@@ -52,6 +52,7 @@ import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { EntryTestModule } from './api/entry-test/entry-test.module'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
+import { WebRTCModule } from './api/webrtc/webrtc.module'
 
 @Module({
   imports: [
@@ -160,7 +161,8 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
     MaterialModule,
     TeachingMaterialModule,
     QuestionSetModule,
-    EntryTestModule
+    EntryTestModule,
+    WebRTCModule
   ],
   controllers: [AppController],
   providers: [
