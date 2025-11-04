@@ -99,5 +99,10 @@ export enum ErrorCode {
   FINAL_EXAM001 = 'final_exam.error.final_exam_not_found',
   FINAL_EXAM002 = 'final_exam.error.student_already_has_a_submission_for_this_final_exam',
   FINAL_EXAM003 = 'final_exam.error.no_question_sets_available_for_this_final_exam',
-  FINAL_EXAM004 = 'final_exam.error.failed_to_update_final_exam'
+  FINAL_EXAM004 = 'final_exam.error.failed_to_update_final_exam',
+  // Error of Meeting Events
+  MEETING001 = 'meeting_events.error.invalid_time_range',
+  MEETING002 = 'meeting_events.error.not_allowed_to_create_for_class',
+  MEETING003 = 'meeting_events.error.invitees_not_in_class',
+  MEETING004 = 'meeting_events.error.create_meeting_failed'
 }
