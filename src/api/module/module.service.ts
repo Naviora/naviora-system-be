@@ -17,6 +17,9 @@ import { User } from '@api/user/entities/user.entity'
 import { TeachingModule } from './entities/teaching-module.entity'
 import { Class } from '@api/class/entities/class.entity'
 import { AssignLecturersToModuleDto } from './dto/assign-lecturers-to-module.dto'
+import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
+import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
+import { AttemptStatus } from '@common/enums/attempt-status.enum'
 
 @Injectable()
 export class ModulesService {
@@ -29,6 +32,10 @@ export class ModulesService {
     private readonly classRepository: Repository<Class>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(ClassEnrolment)
+    private readonly classEnrolmentRepository: Repository<ClassEnrolment>,
+    @InjectRepository(EntryTestSubmissionEntity)
+    private readonly entryTestSubmissionRepository: Repository<EntryTestSubmissionEntity>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService
@@ -212,6 +219,18 @@ export class ModulesService {
         ])
       }
 
+      // Students can only access modules that belong to their enrolled classes
+      if (currentUser.role?.name === RoleInAccount.Student && module.class?.classId) {
+        const isEnrolled = await this.classEnrolmentRepository.exists({
+          where: { classId: module.class.classId, studentId: currentUser.id }
+        })
+        if (!isEnrolled) {
+          throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+            { property: 'class_id', code: ErrorCode.V000 }
+          ])
+        }
+      }
+
       // Build response based on user role
       const response: {
         moduleId: string
@@ -335,6 +354,72 @@ export class ModulesService {
             updatedAt: lesson.updatedAt
           })) || []
       }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getModulesForStudentByClass(classId: string, currentUser: User) {
+    try {
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+          { property: 'class_id', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      // Ensure user is a student
+      if (currentUser.role?.name !== RoleInAccount.Student) {
+        throw new ValidationException(ErrorCode.V000, 'Only students can access class modules', [
+          { property: 'role', code: ErrorCode.V000 }
+        ])
+      }
+
+      // Check enrollment
+      const enrolment = await this.classEnrolmentRepository.findOne({
+        where: { classId: classId, studentId: currentUser.id }
+      })
+      if (!enrolment) {
+        throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+          { property: 'class_id', code: ErrorCode.V000 }
+        ])
+      }
+
+      // Check entry test completion (submitted or graded, or has non-null score)
+      const hasCompletedEntryTest = await this.entryTestSubmissionRepository.exists({
+        where: [{ studentId: currentUser.id, attemptStatus: AttemptStatus.SUBMITTED }]
+      })
+
+      if (!hasCompletedEntryTest) {
+        throw new ValidationException(ErrorCode.V000, 'Student has not completed the entry test', [
+          { property: 'entry_test', code: ErrorCode.V000 }
+        ])
+      }
+
+      // Fetch modules for the class
+      const modules = await this.moduleRepository.find({
+        where: { class: { classId } },
+        relations: ['class']
+      })
+
+      return modules.map((m) => ({
+        moduleId: m.moduleId,
+        moduleCode: m.moduleCode,
+        moduleName: m.moduleName,
+        moduleDescription: m.moduleDescription,
+        banner: m.banner,
+        class: m.class
+          ? {
+              classId: m.class.classId,
+              classCode: m.class.classCode,
+              className: m.class.className,
+              classType: m.class.classType
+            }
+          : null,
+        createdAt: m.createdAt,
+        updatedAt: m.updatedAt
+      }))
     } catch (error) {
       throw error
     }

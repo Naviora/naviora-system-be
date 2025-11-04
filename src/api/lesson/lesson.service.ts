@@ -13,6 +13,9 @@ import { ListLessonReqDto } from './dto/list-lesson.req.dto'
 import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
 import { MaterialEntity } from '@api/material/entities/material.entity'
 import { plainToInstance } from 'class-transformer'
+import { User } from '@api/user/entities/user.entity'
+import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
+import { RoleInAccount } from '@common/enums/account-role.enum'
 
 @Injectable()
 export class LessonService {
@@ -27,7 +30,10 @@ export class LessonService {
     private readonly teachingMaterialRepository: Repository<TeachingMaterial>,
 
     @InjectRepository(MaterialEntity)
-    private readonly materialRepository: Repository<MaterialEntity>
+    private readonly materialRepository: Repository<MaterialEntity>,
+
+    @InjectRepository(ClassEnrolment)
+    private readonly classEnrolmentRepository: Repository<ClassEnrolment>
   ) {}
 
   async create(createLessonDto: CreateLessonDto) {
@@ -71,12 +77,29 @@ export class LessonService {
     }
   }
 
-  async findOne(id: string): Promise<LessonResponseDto> {
+  async findOne(id: string, currentUser?: User): Promise<LessonResponseDto> {
     try {
-      // Check if lesson exists
-      const lesson = await this.lessonRepository.findOne({ where: { lessonId: id } })
+      // Check if lesson exists with module and class
+      const lesson = await this.lessonRepository
+        .createQueryBuilder('lesson')
+        .leftJoinAndSelect('lesson.module', 'module')
+        .leftJoinAndSelect('module.class', 'class')
+        .where('lesson.lessonId = :id', { id })
+        .getOne()
       if (!lesson) {
         throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+      }
+
+      // Students can only access lessons belonging to their enrolled classes
+      if (currentUser?.role?.name === RoleInAccount.Student && lesson.module?.class?.classId) {
+        const isEnrolled = await this.classEnrolmentRepository.exists({
+          where: { classId: lesson.module.class.classId, studentId: currentUser.id }
+        })
+        if (!isEnrolled) {
+          throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+            { property: 'class_id', code: ErrorCode.V000 }
+          ])
+        }
       }
 
       // Check if teaching materials exists
