@@ -8,6 +8,8 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { RolesGuard } from '@guards/roles.guard'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { Roles } from '@decorators/roles.decorator'
+import { CurrentUser } from '@decorators/current-user.decorator'
+import { User } from '@api/user/entities/user.entity'
 
 @Controller({
   path: 'lessons',
@@ -49,6 +51,7 @@ export class LessonController {
   }
 
   @Get(':id')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get a lesson by with materials and content' })
   @ApiParam({
     name: 'id',
@@ -56,8 +59,8 @@ export class LessonController {
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
   @ResponseMessage('Get lesson successfully')
-  async findOne(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
-    return await this.lessonService.findOne(id)
+  async findOne(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @CurrentUser() currentUser: User) {
+    return await this.lessonService.findOne(id, currentUser)
   }
 
   @Patch(':id')

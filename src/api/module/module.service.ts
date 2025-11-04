@@ -219,6 +219,18 @@ export class ModulesService {
         ])
       }
 
+      // Students can only access modules that belong to their enrolled classes
+      if (currentUser.role?.name === RoleInAccount.Student && module.class?.classId) {
+        const isEnrolled = await this.classEnrolmentRepository.exists({
+          where: { classId: module.class.classId, studentId: currentUser.id }
+        })
+        if (!isEnrolled) {
+          throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+            { property: 'class_id', code: ErrorCode.V000 }
+          ])
+        }
+      }
+
       // Build response based on user role
       const response: {
         moduleId: string
