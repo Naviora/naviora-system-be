@@ -165,6 +165,14 @@ export class FinalExamService {
       finalExam.description = updateDto.description
     }
     if (updateDto.status !== undefined) {
+      const existingActiveFinalExam = await this.finalExamRepository.findOne({
+        where: { status: ExamStatus.ACTIVE }
+      })
+      if (existingActiveFinalExam && updateDto.status === ExamStatus.ACTIVE) {
+        throw new ValidationException(ErrorCode.FINAL_EXAM005, 'There is already an active final exam', [
+          { property: 'status', code: ErrorCode.FINAL_EXAM005 }
+        ])
+      }
       finalExam.status = updateDto.status
     }
     if (updateDto.endTime !== undefined) {
