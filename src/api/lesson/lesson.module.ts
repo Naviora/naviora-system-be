@@ -9,9 +9,7 @@ import { MaterialEntity } from '@api/material/entities/material.entity'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([LessonEntity, ModuleEntity, TeachingMaterial, MaterialEntity, ClassEnrolment])
-  ],
+  imports: [TypeOrmModule.forFeature([LessonEntity, ModuleEntity, TeachingMaterial, MaterialEntity, ClassEnrolment])],
   controllers: [LessonController],
   providers: [LessonService]
 })
