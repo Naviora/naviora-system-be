@@ -102,6 +102,23 @@ export class ModulesController {
     return await this.modulesService.getModuleById(moduleId, currentUser)
   }
 
+  @Get('in-class/:classId')
+  @Roles(RoleInAccount.Student)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Get modules of a class for a student who completed entry test and in that class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class to get modules for',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Get Class Modules successfully')
+  async getModulesOfClassForStudent(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @CurrentUser() currentUser: User
+  ) {
+    return await this.modulesService.getModulesForStudentByClass(classId, currentUser)
+  }
+
   @Get(':moduleId/lessons')
   @ApiOperation({
     summary: 'Get module with lessons',
