@@ -94,10 +94,12 @@ export enum ErrorCode {
   ENTRY_TEST001 = 'entry_test.error.entry_test_not_found',
   ENTRY_TEST002 = 'entry_test.error.student_already_has_a_submission_for_this_entry_test',
   ENTRY_TEST003 = 'entry_test.error.no_question_sets_available_for_this_entry_test',
-  ENTRY_TEST004 = 'entry_test.error.failed_to_update_entry_test',
+  ENTRY_TEST004 = 'entr`y_test.error.failed_to_update_entry_test',
+  ENTRY_TEST005 = 'entry_test.error.there_is_already_an_active_entry_test',
   // Error of Final Exam
   FINAL_EXAM001 = 'final_exam.error.final_exam_not_found',
   FINAL_EXAM002 = 'final_exam.error.student_already_has_a_submission_for_this_final_exam',
   FINAL_EXAM003 = 'final_exam.error.no_question_sets_available_for_this_final_exam',
-  FINAL_EXAM004 = 'final_exam.error.failed_to_update_final_exam'
+  FINAL_EXAM004 = 'final_exam.error.failed_to_update_final_exam',
+  FINAL_EXAM005 = 'final_exam.error.there_is_already_an_active_final_exam'
 }
