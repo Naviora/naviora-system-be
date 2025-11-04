@@ -59,6 +59,8 @@ import { ReviewedExerciseSubmissionEntity } from '@api/reviewed-exercise/entitie
 import { ReviewedExerciseModule } from './api/reviewed-exercise/reviewed-exercise.module'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 import { WebRTCModule } from './api/webrtc/webrtc.module'
+import { MeetingEventsModule } from './api/meeting-events/meeting-events.module'
+import { MeetingEventEntity } from '@api/meeting-events/entities/meeting-event.entity'
 
 @Module({
   imports: [
@@ -96,7 +98,8 @@ import { WebRTCModule } from './api/webrtc/webrtc.module'
             FinalExamEntity,
             FinalExamSubmissionEntity,
             ReviewedExerciseEntity,
-            ReviewedExerciseSubmissionEntity
+            ReviewedExerciseSubmissionEntity,
+            MeetingEventEntity
           ]
         }
       },
@@ -174,7 +177,8 @@ import { WebRTCModule } from './api/webrtc/webrtc.module'
     EntryTestModule,
     WebRTCModule,
     FinalExamModule,
-    ReviewedExerciseModule
+    ReviewedExerciseModule,
+    MeetingEventsModule
   ],
   controllers: [AppController],
   providers: [
