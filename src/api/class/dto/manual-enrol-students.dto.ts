@@ -1,11 +1,9 @@
-import { ArrayField, EnumFieldOptional, StringField, UUIDArrayField } from '@decorators/field.decorators'
+import { StringField, UUIDField } from '@decorators/field.decorators'
 
 export class ManualEnrolStudentsDto {
   @StringField()
   readonly class_id: string
 
-  @UUIDArrayField()
+  @UUIDField({ each: true })
   readonly student_ids: string[]
 }
-
-
