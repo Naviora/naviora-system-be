@@ -133,6 +133,83 @@ export class ClassService {
     }
   }
 
+  async getClassesForLecturer(lecturerId: string, queryDto: GetClassesQueryDto) {
+    // Verify user is a lecturer
+    const lecturer = await this.userRepository.findOne({
+      where: { id: lecturerId },
+      relations: ['role']
+    })
+
+    if (!lecturer) {
+      throw new ValidationException(ErrorCode.USER001, 'Lecturer not found', [
+        { property: 'lecturer_id', code: ErrorCode.USER001 }
+      ])
+    }
+
+    if (lecturer.role?.name !== RoleInAccount.Lecturer) {
+      throw new ValidationException(ErrorCode.CLASS005, 'User is not a lecturer', [
+        { property: 'lecturer_id', code: ErrorCode.CLASS005 }
+      ])
+    }
+
+    // Query classes through teaching assignments
+    const query = this.classRepository
+      .createQueryBuilder('class')
+      .innerJoin('class.teachingAssignments', 'teachingAssignment')
+      .where('teachingAssignment.lecturer.id = :lecturerId', { lecturerId })
+      .andWhere('teachingAssignment.isActive = :isActive', { isActive: true })
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(class.className ILIKE :search OR class.classCode ILIKE :search)', { search: `%${queryDto.q}%` })
+    }
+
+    // Class type filter
+    if (queryDto.class_type) {
+      query.andWhere('class.classType = :classType', { classType: queryDto.class_type })
+    }
+
+    // Sorting
+    const validSortFields = ['className', 'classCode', 'createdAt', 'updatedAt', 'startDate', 'endDate']
+    const sortMapping: Record<string, string> = {
+      class_name: 'className',
+      class_code: 'classCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt',
+      start_date: 'startDate',
+      end_date: 'endDate'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    query.orderBy(`class.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [classes, metaDto] = await paginate<Class>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    const mappedClasses = classes.map((c) =>
+      plainToInstance(ClassDTO, {
+        class_id: c.classId,
+        class_code: c.classCode,
+        class_name: c.className,
+        class_type: c.classType,
+        start_date: c.startDate,
+        end_date: c.endDate,
+        is_active: c.isActive,
+        created_at: c.createdAt,
+        updated_at: c.updatedAt
+      })
+    )
+
+    return {
+      classes: mappedClasses,
+      pagination: metaDto
+    }
+  }
+
   async getClassById(classId: string) {
     const classEntity = await this.classRepository.findOne({
       where: { classId },

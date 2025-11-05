@@ -12,6 +12,8 @@ import { GetClassesQueryDto } from './dto/get-classes-query.dto'
 import { AssignLecturersDto } from './dto/assign-lecturers-to-class.dto'
 import { ClassDetailDTO } from './dto/class-detail.dto'
 import { ArrangeStudentsDto, ClassArrangementResultDto } from './dto/arrange-students.dto'
+import { CurrentUser } from '@decorators/current-user.decorator'
+import { User } from '@api/user/entities/user.entity'
 
 @ApiTags('Classes')
 @Controller({
@@ -64,6 +66,18 @@ export class ClassController {
   @ResponseMessage('Get Classes successfully')
   async getClasses(@Query() query: GetClassesQueryDto) {
     return await this.classService.getClasses(query)
+  }
+
+  @Get('my-classes')
+  @Roles(RoleInAccount.Lecturer)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @ApiOperation({
+    summary: 'Get my assigned classes',
+    description: 'Get list of classes assigned to the current lecturer with pagination, search and filters'
+  })
+  @ResponseMessage('Get my assigned classes successfully')
+  async getMyClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
+    return await this.classService.getClassesForLecturer(currentUser.id, query)
   }
 
   @Get(':classId')
