@@ -33,7 +33,10 @@ export class AuthController {
     description: 'Login Account',
     type: LoginDTO,
     examples: {
-      example1: { summary: 'Login Account', value: { email: 'admin@naviora.com', password: 'Admin@123' } }
+      example1: { summary: 'Admin Account', value: { email: 'admin@naviora.com', password: 'Admin@123' } },
+      example2: { summary: 'Lecturer Account', value: { email: 'lecturer@example.com', password: 'Lecturer@123' } },
+      example3: { summary: 'Student Account', value: { email: 'student1@example.com', password: 'Student@123' } },
+      example4: { summary: 'Principal Account', value: { email: 'principal@example.com', password: 'Principal@123' } }
     }
   })
   @ResponseMessage('Login successfully')
