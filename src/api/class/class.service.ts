@@ -622,6 +622,44 @@ export class ClassService {
     }
   }
 
+  async removeStudentsFromClass(classId: string, studentIds: string[]) {
+    try {
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+          { property: 'classId', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      const ids = studentIds || []
+      if (ids.length === 0) {
+        return { class_id: classId, removed_count: 0, removed_students: [], not_enrolled: [] }
+      }
+
+      // Find existing enrollments for provided students
+      const existing = await this.classEnrolmentRepository.find({
+        where: { classId, studentId: In(ids) },
+        select: ['studentId']
+      })
+      const existingIds = existing.map((e) => e.studentId)
+      const notEnrolled = ids.filter((id) => !existingIds.includes(id))
+
+      if (existingIds.length > 0) {
+        await this.classEnrolmentRepository.delete({ classId, studentId: In(existingIds) })
+      }
+
+      return {
+        class_id: classId,
+        removed_count: existingIds.length,
+        removed_students: existingIds,
+        not_enrolled: notEnrolled
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
   private validateScoreRanges(classDistribution: { range: string; classId: string }[]): void {
     const ranges = classDistribution.map((dist) => dist.range)
 
