@@ -68,7 +68,19 @@ export class ClassController {
     return await this.classService.getClasses(query)
   }
 
-  @Get('my-classes')
+  @Get('enrolled-classes')
+  @Roles(RoleInAccount.Student)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @ApiOperation({
+    summary: 'Get my enrolled classes',
+    description: 'Get list of classes in which the current student is enrolled with pagination, search and filters'
+  })
+  @ResponseMessage('Get my enrolled classes successfully')
+  async getMyEnrolledClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
+    return await this.classService.getClassesForStudent(currentUser.id, query)
+  }
+
+  @Get('assigned-classes')
   @Roles(RoleInAccount.Lecturer)
   @UseGuards(AccessTokenGuard, RolesGuard)
   @ApiOperation({
