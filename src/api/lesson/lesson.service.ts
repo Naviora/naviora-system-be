@@ -51,6 +51,7 @@ export class LessonService {
       const lesson = this.lessonRepository.create({
         lessonName: createLessonDto.lesson_name,
         lessonDescription: createLessonDto.lesson_description,
+        lessonContent: createLessonDto.lesson_content,
         moduleId: module.moduleId
       })
       return this.lessonRepository.save(lesson)
