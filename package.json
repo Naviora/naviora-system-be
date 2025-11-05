@@ -56,7 +56,7 @@
     "bcrypt": "^6.0.0",
     "boilerplate-nest-js": "file:",
     "bullmq": "^5.58.7",
-    "cache-manager": "^6.4.0",
+    "cache-manager": "^7.2.4",
     "cacheable": "^1.8.8",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
