@@ -167,4 +167,40 @@ export class ClassController {
   async arrangeStudents(@Body() arrangeStudentsDto: ArrangeStudentsDto): Promise<ClassArrangementResultDto> {
     return await this.classService.arrangeStudents(arrangeStudentsDto)
   }
+
+  @Post(':classId/enrol-students')
+  @ApiOperation({ summary: 'Manually enrol students into a class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'List of student IDs to enrol into the class',
+    schema: {
+      type: 'object',
+      properties: {
+        student_ids: {
+          type: 'array',
+          items: { type: 'string', format: 'uuid' }
+        }
+      },
+      required: ['student_ids']
+    },
+    examples: {
+      example1: {
+        summary: 'Enrol students',
+        value: {
+          student_ids: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']
+        }
+      }
+    }
+  })
+  @ResponseMessage('Students enrolled successfully')
+  async manualEnrolStudents(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() body: { student_ids: string[] }
+  ) {
+    return await this.classService.manualEnrolStudents(classId, { class_id: classId, student_ids: body.student_ids })
+  }
 }

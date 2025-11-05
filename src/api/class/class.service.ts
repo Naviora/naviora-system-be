@@ -23,6 +23,7 @@ import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-s
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
 import { ClassEnrolment } from './entities/class-enrolment.entity'
+import { ManualEnrolStudentsDto } from './dto/manual-enrol-students.dto'
 
 @Injectable()
 export class ClassService {
@@ -478,6 +479,67 @@ export class ClassService {
           message: `Successfully enrolled ${enrolledCount} students into classes`,
           enrolmentDate: enrolmentDate.toISOString()
         }
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async manualEnrolStudents(classId: string, dto: ManualEnrolStudentsDto) {
+    try {
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+          { property: 'classId', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      const studentIds = dto.student_ids || []
+      if (studentIds.length === 0) {
+        return {
+          class_id: classEntity.classId,
+          enrolled_count: 0,
+          enrolled_students: [],
+          duplicates: [],
+          not_found_students: []
+        }
+      }
+
+      // Load users
+      const users = await this.userRepository.find({ where: { id: In(studentIds) } })
+      const foundIds = new Set(users.map((u) => u.id))
+      const notFoundStudents = studentIds.filter((id) => !foundIds.has(id))
+
+      // Check existing enrollments to avoid duplicates
+      const existingEnrollments = await this.classEnrolmentRepository.find({
+        where: { studentId: In(studentIds), classId },
+        select: ['studentId']
+      })
+      const duplicateIds = new Set(existingEnrollments.map((e) => e.studentId))
+
+      const enrolmentsToCreate: Partial<ClassEnrolment>[] = []
+      const now = new Date()
+
+      for (const user of users) {
+        if (duplicateIds.has(user.id)) continue
+        enrolmentsToCreate.push({
+          classId: classEntity.classId,
+          studentId: user.id,
+          enrolmentDate: now
+        })
+      }
+
+      if (enrolmentsToCreate.length > 0) {
+        await this.classEnrolmentRepository.save(enrolmentsToCreate)
+      }
+
+      return {
+        class_id: classEntity.classId,
+        enrolled_count: enrolmentsToCreate.length,
+        enrolled_students: enrolmentsToCreate.map((e) => e.studentId),
+        duplicates: Array.from(duplicateIds),
+        not_found_students: notFoundStudents
       }
     } catch (error) {
       throw error
