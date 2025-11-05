@@ -68,7 +68,7 @@ export class ClassController {
     return await this.classService.getClasses(query)
   }
 
-  @Get('my-enrolled-classes')
+  @Get('enrolled-classes')
   @Roles(RoleInAccount.Student)
   @UseGuards(AccessTokenGuard, RolesGuard)
   @ApiOperation({
@@ -78,6 +78,18 @@ export class ClassController {
   @ResponseMessage('Get my enrolled classes successfully')
   async getMyEnrolledClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
     return await this.classService.getClassesForStudent(currentUser.id, query)
+  }
+
+  @Get('assigned-classes')
+  @Roles(RoleInAccount.Lecturer)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @ApiOperation({
+    summary: 'Get my assigned classes',
+    description: 'Get list of classes assigned to the current lecturer with pagination, search and filters'
+  })
+  @ResponseMessage('Get my assigned classes successfully')
+  async getMyClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
+    return await this.classService.getClassesForLecturer(currentUser.id, query)
   }
 
   @Get(':classId')
