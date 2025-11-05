@@ -190,6 +190,82 @@ export class ClassService {
     }
   }
 
+  async getClassesForStudent(studentId: string, queryDto: GetClassesQueryDto) {
+    // Get enrolled class IDs for student
+    const enrolments = await this.classEnrolmentRepository.find({
+      where: { studentId },
+      select: ['classId']
+    })
+
+    const classIds = enrolments.map((e) => e.classId)
+
+    if (classIds.length === 0) {
+      return {
+        classes: [],
+        pagination: {
+          page: queryDto.page,
+          limit: queryDto.limit,
+          total_count: 0,
+          total_pages: 0
+        }
+      }
+    }
+
+    const query = this.classRepository
+      .createQueryBuilder('class')
+      .where('class.classId IN (:...classIds)', { classIds })
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(class.className ILIKE :search OR class.classCode ILIKE :search)', { search: `%${queryDto.q}%` })
+    }
+
+    // Class type filter
+    if (queryDto.class_type) {
+      query.andWhere('class.classType = :classType', { classType: queryDto.class_type })
+    }
+
+    // Sorting
+    const validSortFields = ['className', 'classCode', 'createdAt', 'updatedAt', 'startDate', 'endDate']
+    const sortMapping: Record<string, string> = {
+      class_name: 'className',
+      class_code: 'classCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt',
+      start_date: 'startDate',
+      end_date: 'endDate'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    query.orderBy(`class.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [classes, metaDto] = await paginate<Class>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    const mappedClasses = classes.map((c) =>
+      plainToInstance(ClassDTO, {
+        class_id: c.classId,
+        class_code: c.classCode,
+        class_name: c.className,
+        class_type: c.classType,
+        start_date: c.startDate,
+        end_date: c.endDate,
+        is_active: c.isActive,
+        created_at: c.createdAt,
+        updated_at: c.updatedAt
+      })
+    )
+
+    return {
+      classes: mappedClasses,
+      pagination: metaDto
+    }
+  }
+
   async update(classId: string, updateClassDto: UpdateClassDto) {
     try {
       // Check if class exists
