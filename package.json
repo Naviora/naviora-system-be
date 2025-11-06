@@ -62,7 +62,7 @@
     "class-validator": "^0.14.1",
     "cloudinary": "^2.6.0",
     "dayjs": "^1.11.13",
-    "dotenv": "^16.4.7",
+    "dotenv": "^17.2.3",
     "env-cmd": "^11.0.0",
     "exceljs": "^4.4.0",
     "helmet": "^8.0.0",
