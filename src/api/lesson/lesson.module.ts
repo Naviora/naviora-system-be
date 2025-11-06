@@ -11,7 +11,14 @@ import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([LessonEntity, ModuleEntity, TeachingMaterial, MaterialEntity, ClassEnrolment, LessonProgress])
+    TypeOrmModule.forFeature([
+      LessonEntity,
+      ModuleEntity,
+      TeachingMaterial,
+      MaterialEntity,
+      ClassEnrolment,
+      LessonProgress
+    ])
   ],
   controllers: [LessonController],
   providers: [LessonService]

@@ -61,6 +61,7 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 import { WebRTCModule } from './api/webrtc/webrtc.module'
 import { MeetingEventsModule } from './api/meeting-events/meeting-events.module'
 import { MeetingEventEntity } from '@api/meeting-events/entities/meeting-event.entity'
+import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { MeetingEventEntity } from '@api/meeting-events/entities/meeting-event.e
             TeachingAssignment,
             ClassEnrolment,
             LessonEntity,
+            LessonProgress,
             TeachingModule,
             QuestionEntity,
             AnswerEntity,
