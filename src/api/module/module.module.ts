@@ -11,10 +11,21 @@ import { Class } from '@api/class/entities/class.entity'
 import { User } from '@api/user/entities/user.entity'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
+import { LessonEntity } from '@api/lesson/entities/lesson.entity'
+import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ModuleEntity, TeachingModule, Class, User, ClassEnrolment, EntryTestSubmissionEntity]),
+    TypeOrmModule.forFeature([
+      ModuleEntity,
+      TeachingModule,
+      Class,
+      User,
+      ClassEnrolment,
+      EntryTestSubmissionEntity,
+      LessonEntity,
+      LessonProgress
+    ]),
     CloudinaryModule,
     JwtModule,
     AuthModule

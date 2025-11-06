@@ -63,6 +63,25 @@ export class LessonController {
     return await this.lessonService.findOne(id, currentUser)
   }
 
+  @Post(':id/complete')
+  @Roles(RoleInAccount.Student)
+  @ApiOperation({ summary: 'Mark a lesson as completed' })
+  @ResponseMessage('Lesson marked as completed')
+  async markCompleted(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @CurrentUser() currentUser: User) {
+    return await this.lessonService.markCompleted(id, currentUser)
+  }
+
+  @Delete(':id/complete')
+  @Roles(RoleInAccount.Student)
+  @ApiOperation({ summary: 'Unmark a lesson as completed' })
+  @ResponseMessage('Lesson unmarked as completed')
+  async unmarkCompleted(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() currentUser: User
+  ) {
+    return await this.lessonService.unmarkCompleted(id, currentUser)
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update a lesson' })
   @ApiBody({

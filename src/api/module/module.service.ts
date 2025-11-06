@@ -20,6 +20,8 @@ import { AssignLecturersToModuleDto } from './dto/assign-lecturers-to-module.dto
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
+import { LessonEntity } from '@api/lesson/entities/lesson.entity'
+import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 
 @Injectable()
 export class ModulesService {
@@ -36,6 +38,10 @@ export class ModulesService {
     private readonly classEnrolmentRepository: Repository<ClassEnrolment>,
     @InjectRepository(EntryTestSubmissionEntity)
     private readonly entryTestSubmissionRepository: Repository<EntryTestSubmissionEntity>,
+    @InjectRepository(LessonEntity)
+    private readonly lessonRepository: Repository<LessonEntity>,
+    @InjectRepository(LessonProgress)
+    private readonly lessonProgressRepository: Repository<LessonProgress>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService
@@ -359,6 +365,53 @@ export class ModulesService {
     }
   }
 
+  async getModuleProgress(moduleId: string, currentUser: User) {
+    // Ensure module exists and student is enrolled in its class
+    const module = await this.moduleRepository
+      .createQueryBuilder('module')
+      .leftJoinAndSelect('module.class', 'class')
+      .where('module.moduleId = :moduleId', { moduleId })
+      .getOne()
+    if (!module) {
+      throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+        { property: 'module_id', code: ErrorCode.MODULE003 }
+      ])
+    }
+    if (currentUser.role?.name === RoleInAccount.Student && module.class?.classId) {
+      const isEnrolled = await this.classEnrolmentRepository.exists({
+        where: { classId: module.class.classId, studentId: currentUser.id }
+      })
+      if (!isEnrolled) {
+        throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+          { property: 'class_id', code: ErrorCode.V000 }
+        ])
+      }
+    }
+
+    // Total lessons in this module
+    const totalLessons = await this.lessonRepository.count({ where: { moduleId: moduleId } })
+
+    if (totalLessons === 0) {
+      return { module_id: moduleId, total_lessons: 0, completed_lessons: 0, progress_percent: 0 }
+    }
+
+    // Completed lessons by this student for this module
+    const completedLessons = await this.lessonProgressRepository
+      .createQueryBuilder('lp')
+      .innerJoin('lp.lesson', 'lesson')
+      .where('lp.studentId = :studentId', { studentId: currentUser.id })
+      .andWhere('lesson.moduleId = :moduleId', { moduleId })
+      .getCount()
+
+    const percent = Math.round((completedLessons / totalLessons) * 100)
+    return {
+      module_id: moduleId,
+      total_lessons: totalLessons,
+      completed_lessons: completedLessons,
+      progress_percent: percent
+    }
+  }
+
   async getModulesForStudentByClass(classId: string, currentUser: User) {
     try {
       // Validate class exists
@@ -369,8 +422,7 @@ export class ModulesService {
         ])
       }
 
-      // Ensure user is a student
-      if (currentUser.role?.name !== RoleInAccount.Student) {
+      if (this.extractUserRole(currentUser) !== RoleInAccount.Student) {
         throw new ValidationException(ErrorCode.V000, 'Only students can access class modules', [
           { property: 'role', code: ErrorCode.V000 }
         ])
@@ -403,11 +455,21 @@ export class ModulesService {
         relations: ['class']
       })
 
-      return modules.map((m) => ({
+      let modulesResponse: (ModuleEntity & { progress_percent?: number })[] = modules
+      const progressData = await Promise.all(
+        modules.map((module) => this.getModuleProgress(module.moduleId, currentUser))
+      )
+      modulesResponse = modules.map((module, index) => ({
+        ...module,
+        progress_percent: progressData[index].progress_percent
+      })) as (ModuleEntity & { progress_percent?: number })[]
+
+      return modulesResponse.map((m) => ({
         moduleId: m.moduleId,
         moduleCode: m.moduleCode,
         moduleName: m.moduleName,
         moduleDescription: m.moduleDescription,
+        progressPercent: m.progress_percent,
         banner: m.banner,
         class: m.class
           ? {
@@ -550,5 +612,10 @@ export class ModulesService {
     } catch (error) {
       throw error
     }
+  }
+
+  extractUserRole(currentUser: User) {
+    const userRole = typeof currentUser.role === 'string' ? currentUser.role : currentUser.role?.name
+    return userRole
   }
 }
