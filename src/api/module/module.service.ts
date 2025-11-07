@@ -412,7 +412,7 @@ export class ModulesService {
     }
   }
 
-  async getModulesForStudentByClass(classId: string, currentUser: User) {
+  async getModulesForStudentByClass(classId: string, currentUser: User, queryDto: GetModulesQueryDto) {
     try {
       // Validate class exists
       const classEntity = await this.classRepository.findOne({ where: { classId } })
@@ -449,12 +449,39 @@ export class ModulesService {
         ])
       }
 
-      // Fetch modules for the class
-      const modules = await this.moduleRepository.find({
-        where: { class: { classId } },
-        relations: ['class']
+      // Build query with filters, sorting, and pagination
+      const query = this.moduleRepository
+        .createQueryBuilder('module')
+        .leftJoinAndSelect('module.class', 'class')
+        .where('module.class.classId = :classId', { classId })
+
+      // Search filter
+      if (queryDto.q) {
+        query.andWhere('(module.moduleName ILIKE :search OR module.moduleCode ILIKE :search)', {
+          search: `%${queryDto.q}%`
+        })
+      }
+
+      // Sorting
+      const validSortFields = ['moduleName', 'moduleCode', 'createdAt', 'updatedAt']
+      const sortMapping: Record<string, string> = {
+        module_name: 'moduleName',
+        module_code: 'moduleCode',
+        created_at: 'createdAt',
+        updated_at: 'updatedAt'
+      }
+      const rawSort = queryDto.sort_by || 'created_at'
+      const mappedSort = sortMapping[rawSort]
+      const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+      query.orderBy(`module.${sortField}`, queryDto.order)
+
+      // Pagination
+      const [modules, metaDto] = await paginate<ModuleEntity>(query, queryDto, {
+        skipCount: false,
+        takeAll: false
       })
 
+      // Calculate progress for each module
       let modulesResponse: (ModuleEntity & { progress_percent?: number })[] = modules
       const progressData = await Promise.all(
         modules.map((module) => this.getModuleProgress(module.moduleId, currentUser))
@@ -464,24 +491,27 @@ export class ModulesService {
         progress_percent: progressData[index].progress_percent
       })) as (ModuleEntity & { progress_percent?: number })[]
 
-      return modulesResponse.map((m) => ({
-        moduleId: m.moduleId,
-        moduleCode: m.moduleCode,
-        moduleName: m.moduleName,
-        moduleDescription: m.moduleDescription,
-        progressPercent: m.progress_percent,
-        banner: m.banner,
-        class: m.class
-          ? {
-              classId: m.class.classId,
-              classCode: m.class.classCode,
-              className: m.class.className,
-              classType: m.class.classType
-            }
-          : null,
-        createdAt: m.createdAt,
-        updatedAt: m.updatedAt
-      }))
+      return {
+        modules: modulesResponse.map((m) => ({
+          moduleId: m.moduleId,
+          moduleCode: m.moduleCode,
+          moduleName: m.moduleName,
+          moduleDescription: m.moduleDescription,
+          progressPercent: m.progress_percent,
+          banner: m.banner,
+          class: m.class
+            ? {
+                classId: m.class.classId,
+                classCode: m.class.classCode,
+                className: m.class.className,
+                classType: m.class.classType
+              }
+            : null,
+          createdAt: m.createdAt,
+          updatedAt: m.updatedAt
+        })),
+        pagination: metaDto
+      }
     } catch (error) {
       throw error
     }
