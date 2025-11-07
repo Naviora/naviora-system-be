@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { CreateLessonDto } from './dto/create-lesson.dto'
 import { UpdateLessonDto } from './dto/update-lesson.dto'
-import { LessonResponseDto, MaterialResponseDto } from './dto/lesson-response.dto'
+import { LessonResponseDto, MaterialResponseDto, ReviewedExerciseResponseDto } from './dto/lesson-response.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { In, Repository } from 'typeorm'
@@ -89,6 +89,7 @@ export class LessonService {
         .createQueryBuilder('lesson')
         .leftJoinAndSelect('lesson.module', 'module')
         .leftJoinAndSelect('module.class', 'class')
+        .leftJoinAndSelect('lesson.reviewedExercises', 'reviewedExercises')
         .where('lesson.lessonId = :id', { id })
         .getOne()
       if (!lesson) {
@@ -122,11 +123,26 @@ export class LessonService {
         plainToInstance(MaterialResponseDto, material, { excludeExtraneousValues: true })
       )
 
+      const reviewedExercises = lesson.reviewedExercises?.map((reviewedExercise) =>
+        plainToInstance(
+          ReviewedExerciseResponseDto,
+          {
+            reviewedExerciseId: reviewedExercise.reviewedExerciseId,
+            status: reviewedExercise.status,
+            startTime: reviewedExercise.startTime,
+            endTime: reviewedExercise.endTime,
+            lecturerId: reviewedExercise.lecturerId
+          },
+          { excludeExtraneousValues: true }
+        )
+      )
+
       const result = plainToInstance(
         LessonResponseDto,
         {
           ...lesson,
-          materials: transformedMaterials
+          materials: transformedMaterials,
+          reviewedExercises: reviewedExercises || []
         },
         { excludeExtraneousValues: true }
       )

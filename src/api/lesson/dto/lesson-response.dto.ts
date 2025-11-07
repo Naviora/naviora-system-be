@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { MaterialType } from '@common/enums/material.enum'
 import { Exclude, Expose } from 'class-transformer'
+import { ExamStatus } from '@common/enums/exam-status.enum'
 
 @Expose()
 export class MaterialResponseDto {
@@ -66,4 +67,31 @@ export class LessonResponseDto {
   @ApiProperty({ type: [MaterialResponseDto] })
   @Expose()
   materials: MaterialResponseDto[]
+
+  @ApiProperty({ type: () => [ReviewedExerciseResponseDto], required: false })
+  @Expose()
+  reviewedExercises?: ReviewedExerciseResponseDto[]
+}
+
+@Expose()
+export class ReviewedExerciseResponseDto {
+  @ApiProperty()
+  @Expose()
+  reviewedExerciseId: string
+
+  @ApiProperty({ enum: ExamStatus })
+  @Expose()
+  status: ExamStatus
+
+  @ApiProperty()
+  @Expose()
+  startTime: Date
+
+  @ApiProperty()
+  @Expose()
+  endTime: Date
+
+  @ApiProperty()
+  @Expose()
+  lecturerId: string
 }
