@@ -17,6 +17,7 @@ import { User } from '@api/user/entities/user.entity'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
+import { extractUserRole } from '@utils/common.util'
 
 @Injectable()
 export class LessonService {
@@ -136,18 +137,27 @@ export class LessonService {
     }
   }
 
-  async markCompleted(lessonId: string, currentUser: User) {
-    // Validate lesson and class access as in findOne
+  async toggleLessonCompletion(lessonId: string, currentUser: User) {
     const lesson = await this.lessonRepository
       .createQueryBuilder('lesson')
       .leftJoinAndSelect('lesson.module', 'module')
       .leftJoinAndSelect('module.class', 'class')
       .where('lesson.lessonId = :id', { id: lessonId })
       .getOne()
+
     if (!lesson) {
       throw new ValidationException(ErrorCode.L001, 'Lesson not found')
     }
-    if (currentUser?.role?.name === RoleInAccount.Student && lesson.module?.class?.classId) {
+
+    const userRole = extractUserRole(currentUser)
+
+    if (userRole !== RoleInAccount.Student) {
+      throw new ValidationException(ErrorCode.V000, 'Only students can update lesson progress', [
+        { property: 'role', code: ErrorCode.V000 }
+      ])
+    }
+
+    if (lesson.module?.class?.classId) {
       const isEnrolled = await this.classEnrolmentRepository.exists({
         where: { classId: lesson.module.class.classId, studentId: currentUser.id }
       })
@@ -157,12 +167,14 @@ export class LessonService {
         ])
       }
     }
+
     const existing = await this.lessonProgressRepository.findOne({ where: { lessonId, studentId: currentUser.id } })
+
     if (existing) {
-      existing.completedAt = existing.completedAt || new Date()
-      await this.lessonProgressRepository.save(existing)
-      return { lesson_id: lessonId, completed: true, completed_at: existing.completedAt }
+      await this.lessonProgressRepository.delete({ lessonId, studentId: currentUser.id })
+      return { lesson_id: lessonId, completed: false }
     }
+
     const created = this.lessonProgressRepository.create({
       lessonId,
       studentId: currentUser.id,
@@ -170,15 +182,6 @@ export class LessonService {
     })
     const saved = await this.lessonProgressRepository.save(created)
     return { lesson_id: lessonId, completed: true, completed_at: saved.completedAt }
-  }
-
-  async unmarkCompleted(lessonId: string, currentUser: User) {
-    const existing = await this.lessonProgressRepository.findOne({ where: { lessonId, studentId: currentUser.id } })
-    if (!existing) {
-      return { lesson_id: lessonId, completed: false }
-    }
-    await this.lessonProgressRepository.delete({ lessonId, studentId: currentUser.id })
-    return { lesson_id: lessonId, completed: false }
   }
 
   async update(id: string, updateLessonDto: UpdateLessonDto) {
