@@ -15,4 +15,3 @@ export class GetUsersQueryDto extends PageOptionsDto {
   @StringFieldOptional()
   readonly sortBy?: string
 }
-
