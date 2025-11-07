@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable, UploadedFile } from '@nestjs/c
 import { CreateAccountDto } from './dto/create-account.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
+import { GetUsersQueryDto } from './dto/get-users-query.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { plainToInstance } from 'class-transformer'
@@ -101,11 +102,47 @@ export class UserService {
     }
   }
 
-  async getAll() {
-    const response = await this.userRepository.find({ relations: ['role'] })
-    // response = plainToInstance(User, response)
-    // const response = 'Get all accounts successfully'
-    return response
+  async getAll(queryDto: GetUsersQueryDto) {
+    const query = this.userRepository.createQueryBuilder('user').leftJoinAndSelect('user.role', 'role')
+
+    // Apply search query if provided (search in name, email, username, phone)
+    if (queryDto.q) {
+      query.andWhere(
+        '(user.name ILIKE :search OR user.email ILIKE :search OR user.username ILIKE :search OR user.phone ILIKE :search)',
+        { search: `%${queryDto.q}%` }
+      )
+    }
+
+    // Apply role filter
+    if (queryDto.role) {
+      query.andWhere('role.name = :roleName', { roleName: queryDto.role })
+    }
+
+    // Apply gender filter
+    if (queryDto.gender) {
+      query.andWhere('user.gender = :gender', { gender: queryDto.gender })
+    }
+
+    // Apply status filter
+    if (queryDto.status) {
+      query.andWhere('user.status = :status', { status: queryDto.status })
+    }
+
+    // Apply sorting
+    const sortBy = queryDto.sortBy || 'createdAt'
+    const validSortFields = ['name', 'email', 'createdAt', 'updatedAt', 'dateOfBirth']
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    query.orderBy(`user.${sortField}`, queryDto.order)
+
+    const [users, metaDto] = await paginate(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      users,
+      pagination: metaDto
+    }
   }
 
   async getLecturers(queryDto: GetLecturersQueryDto) {
