@@ -114,9 +114,10 @@ export class ModulesController {
   @ResponseMessage('Get Class Modules successfully')
   async getModulesOfClassForStudent(
     @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Query() query: GetModulesQueryDto,
     @CurrentUser() currentUser: User
   ) {
-    return await this.modulesService.getModulesForStudentByClass(classId, currentUser)
+    return await this.modulesService.getModulesForStudentByClass(classId, currentUser, query)
   }
 
   @Get(':moduleId/lessons')

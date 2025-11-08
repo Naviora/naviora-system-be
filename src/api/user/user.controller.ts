@@ -16,6 +16,7 @@ import { UserService } from './user.service'
 import { CreateAccountDto } from './dto/create-account.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
+import { GetUsersQueryDto } from './dto/get-users-query.dto'
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
 import { ApiResponse as ApiResponseSuccess } from '@common/dto/api-response.dto'
@@ -63,10 +64,10 @@ export class UserController {
   }
 
   @Get()
-  @ResponseMessage('Get all accounts successfully')
-  async getAll() {
-    const data = await this.userService.getAll()
-    return data
+  @ApiOperation({ summary: 'Get Users', description: 'Get list of users with pagination, search and filters' })
+  @ResponseMessage('Get all users successfully')
+  async getAll(@Query() query: GetUsersQueryDto) {
+    return await this.userService.getAll(query)
   }
 
   @ApiOperation({ summary: 'Get Lecturers', description: 'Get list of lecturers with pagination, search and filters' })
