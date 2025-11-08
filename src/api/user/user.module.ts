@@ -7,9 +7,17 @@ import { User } from '@api/user/entities/user.entity'
 import { CloudinaryModule } from '@cloudinary/cloudinary.module'
 import { SessionEntity } from '@api/user/entities/session.entity'
 import { AuthModule } from '@api/auth/auth.module'
+import { Role } from '@api/role/entities/role.entity'
+import { MailModule } from '@mail/mail.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, SessionEntity]), JwtModule, CloudinaryModule, forwardRef(() => AuthModule)],
+  imports: [
+    TypeOrmModule.forFeature([User, SessionEntity, Role]),
+    JwtModule,
+    CloudinaryModule,
+    forwardRef(() => AuthModule),
+    MailModule
+  ],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService]

@@ -24,6 +24,7 @@ import appConfig from '@config/app.config'
 import { CloudinaryModule } from '@cloudinary/cloudinary.module'
 import cloudinaryConfig from '@cloudinary/config/cloudinary.config'
 import openaiConfig from '@api/openai/config/openai.config'
+import mailConfig from '@mail/config/mail-config'
 import { User } from '@api/user/entities/user.entity'
 import { Role } from '@api/role/entities/role.entity'
 import { HealthzModule } from '@api/heathz/healthz.module'
@@ -68,7 +69,7 @@ import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: process.env.NODE_ENV?.trim() === 'development' ? '.env.dev' : '.env',
-      load: [databaseConfig, redisConfig, appConfig, openaiConfig, cloudinaryConfig],
+      load: [databaseConfig, redisConfig, appConfig, openaiConfig, cloudinaryConfig, mailConfig],
       cache: true,
       expandVariables: true
     }),

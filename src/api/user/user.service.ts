@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, UploadedFile } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger, UploadedFile } from '@nestjs/common'
 import { CreateAccountDto } from './dto/create-account.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
@@ -20,15 +20,22 @@ import { ProfileDTO } from './dto/profile-dto'
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service'
 import { getDefaultPublicIdAvatar, getPublicIdAvatar } from '@utils/common.util'
 import { paginate } from '@utils/offset-pagination'
+import { MailService } from '@mail/mail.service'
+import { Role } from '@api/role/entities/role.entity'
+import { CreateAccountByAdminDto } from './dto/create-account-by-admin.dto'
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name)
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private readonly cloudinaryService: CloudinaryService
+    private readonly cloudinaryService: CloudinaryService,
+    private readonly mailService: MailService
   ) {}
 
   isExist = async (email: string): Promise<boolean> => {
@@ -338,6 +345,91 @@ export class UserService {
         }
       }
     } catch (error) {
+      throw error
+    }
+  }
+
+  private generatePassword(length: number = 12): string {
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
+    let password = ''
+    const len = charset.length
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * len))
+    }
+    return password
+  }
+
+  async createAccountByAdmin(createAccountDto: CreateAccountByAdminDto) {
+    const { email, name, role_id } = createAccountDto
+    try {
+      this.logger.log(`Creating account for email: ${email} with name: ${name} and role_id: ${role_id}`)
+
+      // Check if email already exists
+      if (await this.isExist(email)) {
+        throw new ValidationException(ErrorCode.E003, 'Email already exists')
+      }
+
+      // Validate role if provided
+      let role: Role | null = null
+      if (role_id) {
+        role = await this.roleRepository.findOne({ where: { id: parseInt(role_id) } })
+        if (!role) {
+          throw new ValidationException(ErrorCode.E002, 'Role not found', [
+            {
+              property: 'role_id',
+              code: ErrorCode.E002
+            }
+          ])
+        }
+
+        // Ensure role is below Admin level (Admin cannot be assigned)
+        if (role.name === RoleInAccount.Admin) {
+          throw new ValidationException(ErrorCode.A001, 'Cannot create account with Admin role', [
+            {
+              property: 'role_id',
+              code: ErrorCode.A001,
+              message: 'Admin role cannot be assigned through this endpoint'
+            }
+          ])
+        }
+      }
+
+      // Generate password (not hashed yet, will be sent to user)
+      const plainPassword = this.generatePassword(12)
+
+      // Hash password for storage
+      const hashPass = await hashString(plainPassword)
+
+      // Create user
+      const user = this.userRepository.create({
+        name,
+        email,
+        password: hashPass,
+        role: role || null
+      })
+
+      const newAccount = await this.userRepository.save(user)
+      if (!newAccount) {
+        throw new ValidationException(ErrorCode.A001)
+      }
+
+      // Send email with account info (email and plain password)
+      // If email sending fails, log error but don't fail the request since account is already created
+      try {
+        await this.mailService.sendAccountInfo(email, {
+          name,
+          email,
+          password: plainPassword
+        })
+        this.logger.log(`Account info email sent successfully to ${email}`)
+      } catch (mailError) {
+        this.logger.error(`Failed to send account info email to ${email}:`, mailError)
+        // Don't throw - account is already created, email failure is non-critical
+      }
+
+      return newAccount
+    } catch (error) {
+      this.logger.error(`Error creating account for ${email}:`, error)
       throw error
     }
   }
