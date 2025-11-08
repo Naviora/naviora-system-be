@@ -22,6 +22,7 @@ import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-s
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
+import { extractUserRole } from '@utils/common.util'
 
 @Injectable()
 export class ModulesService {
@@ -324,7 +325,7 @@ export class ModulesService {
     }
   }
 
-  async getModuleWithLessons(moduleId: string) {
+  async getModuleWithLessons(moduleId: string, currentUser?: User) {
     try {
       // Find module with lessons
       const module = await this.moduleRepository
@@ -343,12 +344,33 @@ export class ModulesService {
         ])
       }
 
+      // Get completed lesson IDs for the current user if provided
+      let completedLessonIds: string[] = []
+      if (
+        currentUser &&
+        extractUserRole(currentUser) === RoleInAccount.Student &&
+        module.lessons &&
+        module.lessons.length > 0
+      ) {
+        const lessonIds = module.lessons.map((l) => l.lessonId)
+        const completedLessons = await this.lessonProgressRepository.find({
+          where: {
+            studentId: currentUser.id,
+            lessonId: In(lessonIds)
+          },
+          select: ['lessonId']
+        })
+        completedLessonIds = completedLessons.map((lp) => lp.lessonId)
+      }
+      const progressData = await this.getModuleProgress(moduleId, currentUser)
+
       return {
         moduleId: module.moduleId,
         moduleCode: module.moduleCode,
         moduleName: module.moduleName,
         moduleDescription: module.moduleDescription,
         banner: module.banner,
+        progressPercent: extractUserRole(currentUser) === RoleInAccount.Student ? progressData.progress_percent : null,
         createdAt: module.createdAt,
         updatedAt: module.updatedAt,
         lessons:
@@ -356,6 +378,10 @@ export class ModulesService {
             lessonId: lesson.lessonId,
             lessonName: lesson.lessonName,
             lessonDescription: lesson.lessonDescription,
+            isCompleted:
+              extractUserRole(currentUser) === RoleInAccount.Student
+                ? completedLessonIds.includes(lesson.lessonId)
+                : null,
             createdAt: lesson.createdAt,
             updatedAt: lesson.updatedAt
           })) || []
@@ -377,7 +403,7 @@ export class ModulesService {
         { property: 'module_id', code: ErrorCode.MODULE003 }
       ])
     }
-    if (currentUser.role?.name === RoleInAccount.Student && module.class?.classId) {
+    if (extractUserRole(currentUser) === RoleInAccount.Student && module.class?.classId) {
       const isEnrolled = await this.classEnrolmentRepository.exists({
         where: { classId: module.class.classId, studentId: currentUser.id }
       })
@@ -422,7 +448,7 @@ export class ModulesService {
         ])
       }
 
-      if (this.extractUserRole(currentUser) !== RoleInAccount.Student) {
+      if (extractUserRole(currentUser) !== RoleInAccount.Student) {
         throw new ValidationException(ErrorCode.V000, 'Only students can access class modules', [
           { property: 'role', code: ErrorCode.V000 }
         ])
@@ -642,10 +668,5 @@ export class ModulesService {
     } catch (error) {
       throw error
     }
-  }
-
-  extractUserRole(currentUser: User) {
-    const userRole = typeof currentUser.role === 'string' ? currentUser.role : currentUser.role?.name
-    return userRole
   }
 }

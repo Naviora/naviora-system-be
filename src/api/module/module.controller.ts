@@ -123,7 +123,8 @@ export class ModulesController {
   @Get(':moduleId/lessons')
   @ApiOperation({
     summary: 'Get module with lessons',
-    description: 'Get module details with all corresponding lessons'
+    description:
+      'Get module details with all corresponding lessons. Includes completion status if user is authenticated.'
   })
   @ApiParam({
     name: 'moduleId',
@@ -131,8 +132,11 @@ export class ModulesController {
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
   @ResponseMessage('Get Module with Lessons successfully')
-  async getModuleWithLessons(@Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string) {
-    return await this.modulesService.getModuleWithLessons(moduleId)
+  async getModuleWithLessons(
+    @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string,
+    @CurrentUser() currentUser?: User
+  ) {
+    return await this.modulesService.getModuleWithLessons(moduleId, currentUser)
   }
 
   @Patch(':moduleId')
