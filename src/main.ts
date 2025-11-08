@@ -18,6 +18,22 @@ import { TransformInterceptor } from 'src/interceptors/transform.interceptor'
 import { DatabaseSeederService } from '@database/seeds/database-seeder.service'
 import { IoAdapter } from '@nestjs/platform-socket.io'
 
+async function setupEmailTransport() {
+  try {
+    const mailHost = process.env.SMTP_HOST
+    const mailPort = process.env.SMTP_PORT
+    const mailUser = process.env.SMTP_USER
+
+    if (mailHost && mailPort) {
+      console.log(`[Email Transport] Configured: ${mailHost}:${mailPort} (user: ${mailUser ? 'set' : 'not set'})`)
+    } else {
+      console.warn('[Email Transport] Configuration incomplete - email sending may fail')
+    }
+  } catch (error) {
+    console.warn('[Email Transport] Setup check failed:', error)
+  }
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
 
@@ -49,6 +65,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService)
   const reflector = app.get(Reflector)
   const corsOrigin = configService.getOrThrow<string>('app.corsOrigin', { infer: true })
+
+  // Setup and verify email transport
+  await setupEmailTransport()
 
   app.useGlobalFilters(new GlobalExceptionFilter(configService))
   app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector), new TransformInterceptor(reflector))

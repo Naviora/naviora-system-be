@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common'
 import { UserService } from './user.service'
 import { CreateAccountDto } from './dto/create-account.dto'
+import { CreateAccountByAdminDto } from './dto/create-account-by-admin.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
 import { GetUsersQueryDto } from './dto/get-users-query.dto'
@@ -165,6 +166,27 @@ export class UserController {
     const id = req.user.id
     await this.userService.uploadAvatar(id, file)
     return new ApiResponseSuccess().setCode(200).setMessage('Upload avatar successfully')
+  }
+
+  @Post('admin/create')
+  @ApiOperation({ summary: 'Admin: Create account and send credentials via email' })
+  @ApiBody({
+    description: 'Create account with role, password will be auto-generated and sent via email',
+    type: CreateAccountByAdminDto,
+    examples: {
+      example1: {
+        summary: 'Create account with role',
+        value: {
+          name: 'John Doe',
+          email: 'john.doe@example.com',
+          role_id: '2'
+        }
+      }
+    }
+  })
+  @ResponseMessage('Account created successfully, credentials sent via email')
+  async createAccountByAdmin(@Body() createAccountDto: CreateAccountByAdminDto) {
+    return await this.userService.createAccountByAdmin(createAccountDto)
   }
 
   @Delete(':id')
