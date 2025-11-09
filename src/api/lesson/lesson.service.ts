@@ -18,6 +18,7 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 import { extractUserRole } from '@utils/common.util'
+import { StreakService } from '@api/streak/streak.service'
 
 @Injectable()
 export class LessonService {
@@ -37,7 +38,8 @@ export class LessonService {
     @InjectRepository(ClassEnrolment)
     private readonly classEnrolmentRepository: Repository<ClassEnrolment>,
     @InjectRepository(LessonProgress)
-    private readonly lessonProgressRepository: Repository<LessonProgress>
+    private readonly lessonProgressRepository: Repository<LessonProgress>,
+    private readonly streakService: StreakService
   ) {}
 
   async create(createLessonDto: CreateLessonDto) {
@@ -197,6 +199,15 @@ export class LessonService {
       completedAt: new Date()
     })
     const saved = await this.lessonProgressRepository.save(created)
+
+    // Update streak for student
+    try {
+      await this.streakService.updateStreak(currentUser.id, saved.completedAt)
+    } catch (error) {
+      // Log error but don't fail the lesson completion
+      console.error('Failed to update streak:', error)
+    }
+
     return { lesson_id: lessonId, completed: true, completed_at: saved.completedAt }
   }
 

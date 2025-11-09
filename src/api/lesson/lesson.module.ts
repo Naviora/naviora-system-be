@@ -8,6 +8,7 @@ import { TeachingMaterial } from '@api/teaching-material/entities/teaching-mater
 import { MaterialEntity } from '@api/material/entities/material.entity'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
+import { StreakModule } from '@api/streak/streak.module'
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
       MaterialEntity,
       ClassEnrolment,
       LessonProgress
-    ])
+    ]),
+    StreakModule
   ],
   controllers: [LessonController],
   providers: [LessonService]

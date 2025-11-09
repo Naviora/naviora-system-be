@@ -25,6 +25,7 @@ import {
   FinalExamStudentGradeListResponseDto,
   FinalExamStudentGradeItemDto
 } from './dto/final-exam-student-grade-list-response.dto'
+import { StreakService } from '@api/streak/streak.service'
 
 @Injectable()
 export class FinalExamService {
@@ -40,7 +41,8 @@ export class FinalExamService {
     @InjectRepository(QuestionEntity)
     private readonly questionRepository: Repository<QuestionEntity>,
     @InjectRepository(AnswerEntity)
-    private readonly answerRepository: Repository<AnswerEntity>
+    private readonly answerRepository: Repository<AnswerEntity>,
+    private readonly streakService: StreakService
   ) {}
 
   async create(createDto: CreateFinalExamDto, currentUser: User): Promise<FinalExamResponseDto> {
@@ -537,6 +539,14 @@ export class FinalExamService {
     submission.submittedAt = new Date()
 
     const savedSubmission = await this.finalExamSubmissionRepository.save(submission)
+
+    // Update streak for student
+    try {
+      await this.streakService.updateStreak(currentUser.id, savedSubmission.submittedAt)
+    } catch (error) {
+      // Log error but don't fail the submission
+      console.error('Failed to update streak:', error)
+    }
 
     return plainToInstance(FinalExamSubmissionResponseDto, savedSubmission)
   }
