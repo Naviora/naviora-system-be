@@ -11,6 +11,7 @@ import { User } from '@api/user/entities/user.entity'
 import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { ClassEnrolment } from './entities/class-enrolment.entity'
+import { ModuleEntity } from '@api/module/entities/module.entity'
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { ClassEnrolment } from './entities/class-enrolment.entity'
       User,
       EntryTestSubmissionEntity,
       EntryTestEntity,
-      ClassEnrolment
+      ClassEnrolment,
+      ModuleEntity
     ]),
     CloudinaryModule,
     JwtModule,

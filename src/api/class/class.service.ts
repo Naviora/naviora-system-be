@@ -26,6 +26,9 @@ import { ClassEnrolment } from './entities/class-enrolment.entity'
 import { ManualEnrolStudentsDto } from './dto/manual-enrol-students.dto'
 import { GetStudentsByClassQueryDto } from './dto/get-students-by-class-query.dto'
 import { StudentListResponseDto, StudentListItemDto } from './dto/student-list-response.dto'
+import { ModuleEntity } from '@api/module/entities/module.entity'
+import { ModuleDTO } from '@api/module/dto/module.dto'
+import { GetModulesByClassQueryDto } from './dto/get-modules-by-class-query.dto'
 
 @Injectable()
 export class ClassService {
@@ -42,6 +45,8 @@ export class ClassService {
     private readonly entryTestRepository: Repository<EntryTestEntity>,
     @InjectRepository(ClassEnrolment)
     private readonly classEnrolmentRepository: Repository<ClassEnrolment>,
+    @InjectRepository(ModuleEntity)
+    private readonly moduleRepository: Repository<ModuleEntity>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService
@@ -907,6 +912,84 @@ export class ClassService {
         students: studentDTOs,
         pagination: metaDto
       })
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getModulesByClassId(classId: string, queryDto: GetModulesByClassQueryDto | undefined) {
+    try {
+      // Ensure queryDto has default values if not provided
+      const paginationDto: GetModulesByClassQueryDto = queryDto
+        ? Object.assign(new GetModulesByClassQueryDto(), {
+            limit: queryDto.limit || 10,
+            page: queryDto.page || 1,
+            order: queryDto.order || 'ASC',
+            q: queryDto.q
+          })
+        : new GetModulesByClassQueryDto()
+
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({
+        where: { classId }
+      })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+          { property: 'classId', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      // Build query with search and filters
+      const query = this.moduleRepository
+        .createQueryBuilder('module')
+        .leftJoin('module.class', 'class')
+        .where('class.classId = :classId', { classId })
+
+      // Search filter
+      if (paginationDto.q) {
+        query.andWhere(
+          '(module.moduleName ILIKE :search OR module.moduleCode ILIKE :search OR module.moduleDescription ILIKE :search)',
+          { search: `%${paginationDto.q}%` }
+        )
+      }
+
+      // Sorting
+      const validSortFields = ['moduleName', 'moduleCode', 'createdAt', 'updatedAt']
+      const sortMapping: Record<string, string> = {
+        module_name: 'moduleName',
+        module_code: 'moduleCode',
+        created_at: 'createdAt',
+        updated_at: 'updatedAt'
+      }
+      const rawSort = paginationDto.sort_by || 'created_at'
+      const mappedSort = sortMapping[rawSort]
+      const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+      query.orderBy(`module.${sortField}`, paginationDto.order || 'ASC')
+
+      // Pagination
+      const [modules, metaDto] = await paginate<ModuleEntity>(query, paginationDto, {
+        skipCount: false,
+        takeAll: false
+      })
+
+      // Transform to DTO
+      const moduleDTOs: ModuleDTO[] = modules.map((module) =>
+        plainToInstance(ModuleDTO, {
+          module_id: module.moduleId,
+          module_code: module.moduleCode,
+          module_name: module.moduleName,
+          module_description: module.moduleDescription || '',
+          banner: module.banner || '',
+          created_at: module.createdAt,
+          updated_at: module.updatedAt
+        })
+      )
+
+      return {
+        modules: moduleDTOs,
+        pagination: metaDto
+      }
     } catch (error) {
       throw error
     }
