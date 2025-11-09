@@ -15,6 +15,8 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { ExamStatus } from '@common/enums/exam-status.enum'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { GetFinalExamsQueryDto } from './dto/get-final-exams-query.dto'
+import { GetFinalExamStudentGradesQueryDto } from './dto/get-student-grades-query.dto'
+import { FinalExamStudentGradeListResponseDto } from './dto/final-exam-student-grade-list-response.dto'
 
 @ApiTags('Final Exam')
 @Controller({ path: 'final-exam', version: '1' })
@@ -201,16 +203,6 @@ export class FinalExamController {
     return await this.finalExamService.getFinalExams(query)
   }
 
-  @Get(':finalExamId')
-  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
-  @ApiOperation({ summary: 'Get a single final exam by ID' })
-  @ResponseMessage('Final exam retrieved successfully')
-  async getFinalExamById(
-    @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string
-  ): Promise<FinalExamResponseDto> {
-    return await this.finalExamService.getFinalExamById(finalExamId)
-  }
-
   @Get('latest/active')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Get the latest active final exam for student' })
@@ -227,6 +219,48 @@ export class FinalExamController {
     @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string
   ): Promise<FinalExamScoreSpectrumDto> {
     return await this.finalExamService.getFinalExamScoreSpectrum(finalExamId)
+  }
+
+  @Get(':finalExamId/student-grades')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({
+    summary: 'Get paginated list of students and their grades for a final exam',
+    description: `
+      Get a paginated list of all students who have submitted (or started) a final exam along with their grades.
+      
+      **Authorization:**
+      - **Admin/Principal/Lecturer**: Can view all students who have taken the final exam
+      
+      **Query Parameters:**
+      - \`page\`: Page number (default: 1)
+      - \`limit\`: Number of items per page (default: 10)
+      - \`q\`: Search by student name or email (optional)
+      - \`order\`: Sort order - ASC or DESC (default: ASC)
+      
+      **Response includes:**
+      - Student information (ID, name, email, avatar)
+      - Submission details (score, status, submission date)
+      - Notes and penalty information
+      - Pagination metadata
+    `
+  })
+  @ResponseMessage('Student grades retrieved successfully')
+  async getStudentGradeList(
+    @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string,
+    @Query() query: GetFinalExamStudentGradesQueryDto,
+    @CurrentUser() currentUser: User
+  ): Promise<FinalExamStudentGradeListResponseDto> {
+    return await this.finalExamService.getStudentGradeList(finalExamId, query, currentUser)
+  }
+
+  @Get(':finalExamId')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
+  @ApiOperation({ summary: 'Get a single final exam by ID' })
+  @ResponseMessage('Final exam retrieved successfully')
+  async getFinalExamById(
+    @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string
+  ): Promise<FinalExamResponseDto> {
+    return await this.finalExamService.getFinalExamById(finalExamId)
   }
 
   @Delete(':finalExamId')

@@ -20,6 +20,11 @@ import { ExamStatus } from '@common/enums/exam-status.enum'
 import { paginate } from '@utils/offset-pagination'
 import { GetFinalExamsQueryDto } from './dto/get-final-exams-query.dto'
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
+import { GetFinalExamStudentGradesQueryDto } from './dto/get-student-grades-query.dto'
+import {
+  FinalExamStudentGradeListResponseDto,
+  FinalExamStudentGradeItemDto
+} from './dto/final-exam-student-grade-list-response.dto'
 
 @Injectable()
 export class FinalExamService {
@@ -666,5 +671,80 @@ export class FinalExamService {
     const sorted1 = [...arr1].sort()
     const sorted2 = [...arr2].sort()
     return sorted1.every((id, index) => id === sorted2[index])
+  }
+
+  async getStudentGradeList(
+    finalExamId: string,
+    queryDto: GetFinalExamStudentGradesQueryDto | undefined,
+    currentUser: User
+  ): Promise<FinalExamStudentGradeListResponseDto> {
+    // Ensure queryDto has default values if not provided
+    // Create a new DTO with proper defaults to avoid readonly property issues
+    const paginationDto: GetFinalExamStudentGradesQueryDto = queryDto
+      ? Object.assign(new GetFinalExamStudentGradesQueryDto(), {
+          limit: queryDto.limit || 10,
+          page: queryDto.page || 1,
+          order: queryDto.order || 'ASC',
+          q: queryDto.q
+        })
+      : new GetFinalExamStudentGradesQueryDto()
+
+    // Get final exam to validate it exists
+    const finalExam = await this.finalExamRepository.findOne({
+      where: { finalExamId }
+    })
+
+    if (!finalExam) {
+      throw new ValidationException(ErrorCode.V004, 'Final exam not found', [
+        { property: 'finalExamId', code: ErrorCode.V004 }
+      ])
+    }
+
+    // Get all submissions for this final exam with student info
+    const submissionsQuery = this.finalExamSubmissionRepository
+      .createQueryBuilder('submission')
+      .leftJoinAndSelect('submission.student', 'student')
+      .leftJoinAndSelect('student.role', 'studentRole')
+      .where('submission.finalExamId = :finalExamId', { finalExamId })
+
+    // Note: Final exams are not tied to modules/classes, so all admins/principals/lecturers can see all students
+    // No additional filtering needed based on role
+
+    // Apply search filter if provided
+    if (paginationDto.q) {
+      submissionsQuery.andWhere('(student.name ILIKE :search OR student.email ILIKE :search)', {
+        search: `%${paginationDto.q}%`
+      })
+    }
+
+    // Apply sorting
+    submissionsQuery.orderBy('student.name', paginationDto.order || 'ASC')
+    submissionsQuery.addOrderBy('submission.submittedAt', 'DESC')
+
+    // Apply pagination
+    const [submissions, metaDto] = await paginate<FinalExamSubmissionEntity>(submissionsQuery, paginationDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    // Transform to response DTO
+    const studentGrades: FinalExamStudentGradeItemDto[] = submissions.map((submission) => ({
+      studentId: submission.student.id,
+      studentName: submission.student.name,
+      studentEmail: submission.student.email,
+      studentAvatar: submission.student.avatar,
+      submissionId: submission.finalExamSubmissionId,
+      score: submission.score,
+      attemptStatus: submission.attemptStatus,
+      submittedAt: submission.submittedAt,
+      note: submission.note,
+      penalty: submission.penalty
+    }))
+
+    return plainToInstance(FinalExamStudentGradeListResponseDto, {
+      finalExamId,
+      students: studentGrades,
+      pagination: metaDto
+    })
   }
 }

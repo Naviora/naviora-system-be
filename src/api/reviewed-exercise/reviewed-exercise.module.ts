@@ -9,6 +9,8 @@ import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { User } from '@api/user/entities/user.entity'
+import { TeachingModule } from '@api/module/entities/teaching-module.entity'
+import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
 
 @Module({
   imports: [
@@ -19,7 +21,9 @@ import { User } from '@api/user/entities/user.entity'
       ReviewedExerciseSubmissionEntity,
       QuestionSetEntity,
       QuestionEntity,
-      AnswerEntity
+      AnswerEntity,
+      TeachingModule,
+      ClassEnrolment
     ])
   ],
   controllers: [ReviewedExerciseController],

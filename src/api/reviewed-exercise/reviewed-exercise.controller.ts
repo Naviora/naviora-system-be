@@ -7,6 +7,7 @@ import { SubmitReviewedExerciseDto } from './dto/submit-reviewed-exercise.dto'
 import { ReviewedExerciseResponseDto } from './dto/reviewed-exercise-response.dto'
 import { ReviewedExerciseSubmissionResponseDto } from './dto/reviewed-exercise-submission-response.dto'
 import { ReviewedExerciseScoreSpectrumDto } from './dto/reviewed-exercise-score-spectrum.dto'
+import { StudentGradeListResponseDto } from './dto/student-grade-list-response.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
 import { Roles } from '@decorators/roles.decorator'
@@ -15,6 +16,7 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { ExamStatus } from '@common/enums/exam-status.enum'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { GetReviewedExercisesQueryDto } from './dto/get-reviewed-exercises-query.dto'
+import { GetStudentGradesQueryDto } from './dto/get-student-grades-query.dto'
 
 @ApiTags('Reviewed Exercise')
 @Controller({ path: 'reviewed-exercise', version: '1' })
@@ -174,16 +176,6 @@ export class ReviewedExerciseController {
     return await this.reviewedExerciseService.getReviewedExercises(query)
   }
 
-  @Get(':reviewedExerciseId')
-  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
-  @ApiOperation({ summary: 'Get a single reviewed exercise by ID' })
-  @ResponseMessage('Reviewed exercise retrieved successfully')
-  async getReviewedExerciseById(
-    @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string
-  ): Promise<ReviewedExerciseResponseDto> {
-    return await this.reviewedExerciseService.getReviewedExerciseById(reviewedExerciseId)
-  }
-
   @Get('latest/active/:lessonId')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Get the latest active reviewed exercise for a lesson' })
@@ -202,6 +194,49 @@ export class ReviewedExerciseController {
     @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string
   ): Promise<ReviewedExerciseScoreSpectrumDto> {
     return await this.reviewedExerciseService.getReviewedExerciseScoreSpectrum(reviewedExerciseId)
+  }
+
+  @Get(':reviewedExerciseId/student-grades')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({
+    summary: 'Get paginated list of students and their grades for a reviewed exercise',
+    description: `
+      Get a paginated list of all students who have submitted (or started) a reviewed exercise along with their grades.
+      
+      **Authorization:**
+      - **Lecturer**: Can only view students enrolled in classes where they are assigned to teach the module
+      - **Principal/Admin**: Can view all students regardless of class/module assignment
+      
+      **Query Parameters:**
+      - \`page\`: Page number (default: 1)
+      - \`limit\`: Number of items per page (default: 10)
+      - \`q\`: Search by student name or email (optional)
+      - \`order\`: Sort order - ASC or DESC (default: ASC)
+      
+      **Response includes:**
+      - Student information (ID, name, email, avatar)
+      - Submission details (score, status, submission date)
+      - Notes and penalty information
+      - Pagination metadata
+    `
+  })
+  @ResponseMessage('Student grades retrieved successfully')
+  async getStudentGradeList(
+    @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string,
+    @Query() query: GetStudentGradesQueryDto,
+    @CurrentUser() currentUser: User
+  ): Promise<StudentGradeListResponseDto> {
+    return await this.reviewedExerciseService.getStudentGradeList(reviewedExerciseId, query, currentUser)
+  }
+
+  @Get(':reviewedExerciseId')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
+  @ApiOperation({ summary: 'Get a single reviewed exercise by ID' })
+  @ResponseMessage('Reviewed exercise retrieved successfully')
+  async getReviewedExerciseById(
+    @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string
+  ): Promise<ReviewedExerciseResponseDto> {
+    return await this.reviewedExerciseService.getReviewedExerciseById(reviewedExerciseId)
   }
 
   @Delete(':reviewedExerciseId')
