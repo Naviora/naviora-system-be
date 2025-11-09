@@ -5,6 +5,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
 import { Global, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { join } from 'path'
+import { existsSync } from 'fs'
 
 @Global()
 @Module({
@@ -43,13 +44,23 @@ import { join } from 'path'
           )
         }
 
+        // Resolve template directory - works in both dev and production
+        // Try compiled location first (production), then source location (development)
+        let templateDir = join(__dirname, 'templates')
+        if (!existsSync(templateDir)) {
+          // Fallback to source location for development
+          templateDir = join(process.cwd(), 'src', 'mail', 'templates')
+        }
+
+        console.log(`[MailModule] Template directory: ${templateDir}`)
+
         return {
           transport: transportConfig,
           defaults: {
             from: `"${config.get('mail.defaultName', { infer: true })}" <${config.get('mail.defaultEmail', { infer: true })}>`
           },
           template: {
-            dir: join(__dirname, 'templates'),
+            dir: templateDir,
             adapter: new HandlebarsAdapter(),
             options: {
               strict: true
