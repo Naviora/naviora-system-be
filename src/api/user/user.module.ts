@@ -12,6 +12,7 @@ import { MailModule } from '@mail/mail.module'
 import { EmailQueueModule } from '@background/queues/email-queue/email-queue.module'
 import { BullModule } from '@nestjs/bullmq'
 import { QueueName, QueuePrefix } from '@constants/job.constant'
+import { StreakModule } from '@api/streak/streak.module'
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { QueueName, QueuePrefix } from '@constants/job.constant'
     forwardRef(() => AuthModule),
     MailModule,
     EmailQueueModule,
+    StreakModule,
     BullModule.registerQueue({
       name: QueueName.EMAIL,
       prefix: QueuePrefix.AUTH,

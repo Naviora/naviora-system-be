@@ -31,6 +31,7 @@ import { QueueName, JobName } from '@constants/job.constant'
 import { IAccountInfoJob } from '@common/interfaces/job.interface'
 import * as ExcelJS from 'exceljs'
 import { BulkCreateAccountsResponseDto, BulkCreateAccountResultDto } from './dto/bulk-create-accounts-response.dto'
+import { StreakService } from '@api/streak/streak.service'
 
 @Injectable()
 export class UserService {
@@ -45,7 +46,8 @@ export class UserService {
     private readonly cloudinaryService: CloudinaryService,
     private readonly mailService: MailService,
     @InjectQueue(QueueName.EMAIL)
-    private readonly emailQueue: Queue
+    private readonly emailQueue: Queue,
+    private readonly streakService: StreakService
   ) {}
 
   isExist = async (email: string): Promise<boolean> => {
@@ -73,7 +75,24 @@ export class UserService {
       if (!newAccount) {
         throw new ValidationException(ErrorCode.A001)
       }
-      return newAccount
+
+      // Load role relation to check if user is a student
+      const accountWithRole = await this.userRepository.findOne({
+        where: { id: newAccount.id },
+        relations: ['role']
+      })
+
+      // Create streak for student accounts
+      if (accountWithRole?.role?.name === RoleInAccount.Student) {
+        try {
+          await this.streakService.updateStreak(newAccount.id)
+        } catch (error) {
+          // Log error but don't fail user creation
+          this.logger.error(`Failed to create streak for student ${newAccount.id}:`, error)
+        }
+      }
+
+      return accountWithRole || newAccount
     } catch (error) {
       throw error
     }
@@ -414,6 +433,16 @@ export class UserService {
         relations: ['role']
       })
 
+      // Create streak for student accounts
+      if (accountWithRole?.role?.name === RoleInAccount.Student) {
+        try {
+          await this.streakService.updateStreak(newAccount.id)
+        } catch (error) {
+          // Log error but don't fail user creation
+          this.logger.error(`Failed to create streak for student ${newAccount.id}:`, error)
+        }
+      }
+
       // Send email with account info (email and plain password)
       // === Can be move to background job ===
       try {
@@ -509,6 +538,16 @@ export class UserService {
           where: { id: newAccount.id },
           relations: ['role']
         })
+
+        // Create streak for student accounts
+        if (accountWithRole?.role?.name === RoleInAccount.Student) {
+          try {
+            await this.streakService.updateStreak(newAccount.id)
+          } catch (error) {
+            // Log error but don't fail user creation
+            this.logger.error(`Failed to create streak for student ${newAccount.id}:`, error)
+          }
+        }
 
         // Add email job to background queue
         try {
