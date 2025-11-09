@@ -63,6 +63,8 @@ import { WebRTCModule } from './api/webrtc/webrtc.module'
 import { MeetingEventsModule } from './api/meeting-events/meeting-events.module'
 import { MeetingEventEntity } from '@api/meeting-events/entities/meeting-event.entity'
 import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
+import { StreakModule } from './api/streak/streak.module'
+import { Streak } from '@api/streak/entities/streak.entity'
 
 @Module({
   imports: [
@@ -102,7 +104,8 @@ import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
             FinalExamSubmissionEntity,
             ReviewedExerciseEntity,
             ReviewedExerciseSubmissionEntity,
-            MeetingEventEntity
+            MeetingEventEntity,
+            Streak
           ]
         }
       },
@@ -181,7 +184,8 @@ import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
     WebRTCModule,
     FinalExamModule,
     ReviewedExerciseModule,
-    MeetingEventsModule
+    MeetingEventsModule,
+    StreakModule
   ],
   controllers: [AppController],
   providers: [
