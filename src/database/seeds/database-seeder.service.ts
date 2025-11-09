@@ -15,7 +15,17 @@ import { moduleSeedData } from './module.seed'
 import { lessonSeedData } from './lesson.seed'
 import { questionSeedData } from './question.seed'
 import { questionSetSeedData } from './question-set.seed'
+import { teachingModuleSeedData } from './teaching-module.seed'
+import { classEnrolmentSeedData } from './class-enrolment.seed'
+import { reviewedExerciseSeedData } from './reviewed-exercise.seed'
+import { reviewedExerciseSubmissionSeedData } from './reviewed-exercise-submission.seed'
 import { hashString } from '@utils/auth.util'
+import { TeachingModule } from '@api/module/entities/teaching-module.entity'
+import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
+import { ReviewedExerciseEntity } from '@api/reviewed-exercise/entities/reviewed-exercise.entity'
+import { ReviewedExerciseSubmissionEntity } from '@api/reviewed-exercise/entities/reviewed-exercise-submission.entity'
+import { ExamStatus } from '@common/enums/exam-status.enum'
+import { AttemptStatus } from '@common/enums/attempt-status.enum'
 
 export class DatabaseSeederService {
   private readonly logger = new Logger(DatabaseSeederService.name)
@@ -46,6 +56,18 @@ export class DatabaseSeederService {
 
       // Seed question sets
       await this.seedQuestionSets()
+
+      // Seed teaching modules (assign lecturers to modules)
+      await this.seedTeachingModules()
+
+      // Seed class enrolments (enroll students in classes)
+      await this.seedClassEnrolments()
+
+      // Seed reviewed exercises
+      await this.seedReviewedExercises()
+
+      // Seed reviewed exercise submissions
+      await this.seedReviewedExerciseSubmissions()
 
       this.logger.log('Database seeding completed successfully!')
     } catch (error) {
@@ -365,6 +387,335 @@ export class DatabaseSeederService {
         this.logger.log(`Created question set: ${questionSetData.title} with ${selectedQuestions.length} questions`)
       } else {
         this.logger.log(`Question set already exists: ${questionSetData.title}`)
+      }
+    }
+  }
+
+  private async seedTeachingModules(): Promise<void> {
+    this.logger.log('Seeding teaching modules...')
+
+    // Get all lecturers
+    const lecturers = await this.dataSource.getRepository(User).find({
+      where: { role: { name: 'Lecturer' } },
+      relations: ['role']
+    })
+
+    if (lecturers.length === 0) {
+      this.logger.warn('No lecturers found for teaching module creation')
+      return
+    }
+
+    // Get all modules
+    const modules = await this.dataSource.getRepository(ModuleEntity).find()
+
+    if (modules.length === 0) {
+      this.logger.warn('No modules found for teaching module creation')
+      return
+    }
+
+    for (const teachingModuleData of teachingModuleSeedData) {
+      // Find lecturer by email
+      const lecturer = lecturers.find((l) => l.email === teachingModuleData.lecturerEmail)
+
+      if (!lecturer) {
+        this.logger.warn(`Lecturer not found: ${teachingModuleData.lecturerEmail}`)
+        continue
+      }
+
+      // Find module by code
+      const module = modules.find((m) => m.moduleCode === teachingModuleData.moduleCode)
+
+      if (!module) {
+        this.logger.warn(`Module not found: ${teachingModuleData.moduleCode}`)
+        continue
+      }
+
+      // Check if teaching module already exists
+      const existingTeachingModule = await this.dataSource.getRepository(TeachingModule).findOne({
+        where: {
+          module: { moduleId: module.moduleId },
+          lecturer: { id: lecturer.id }
+        }
+      })
+
+      if (!existingTeachingModule) {
+        const teachingModule = this.dataSource.getRepository(TeachingModule).create({
+          module,
+          lecturer,
+          isActive: teachingModuleData.isActive
+        })
+
+        await this.dataSource.getRepository(TeachingModule).save(teachingModule)
+        this.logger.log(
+          `Created teaching module assignment: ${lecturer.name} -> ${module.moduleName}`
+        )
+      } else {
+        this.logger.log(
+          `Teaching module assignment already exists: ${lecturer.name} -> ${module.moduleName}`
+        )
+      }
+    }
+  }
+
+  private async seedClassEnrolments(): Promise<void> {
+    this.logger.log('Seeding class enrolments...')
+
+    // Get all students
+    const students = await this.dataSource.getRepository(User).find({
+      where: { role: { name: 'Student' } },
+      relations: ['role']
+    })
+
+    if (students.length === 0) {
+      this.logger.warn('No students found for class enrolment creation')
+      return
+    }
+
+    // Get all classes
+    const classes = await this.dataSource.getRepository(Class).find()
+
+    if (classes.length === 0) {
+      this.logger.warn('No classes found for class enrolment creation')
+      return
+    }
+
+    for (const enrolmentData of classEnrolmentSeedData) {
+      // Find student by email
+      const student = students.find((s) => s.email === enrolmentData.studentEmail)
+
+      if (!student) {
+        this.logger.warn(`Student not found: ${enrolmentData.studentEmail}`)
+        continue
+      }
+
+      // Find class by code
+      const classEntity = classes.find((c) => c.classCode === enrolmentData.classCode)
+
+      if (!classEntity) {
+        this.logger.warn(`Class not found: ${enrolmentData.classCode}`)
+        continue
+      }
+
+      // Check if enrolment already exists
+      const existingEnrolment = await this.dataSource.getRepository(ClassEnrolment).findOne({
+        where: {
+          student: { id: student.id },
+          class: { classId: classEntity.classId }
+        }
+      })
+
+      if (!existingEnrolment) {
+        const enrolment = this.dataSource.getRepository(ClassEnrolment).create({
+          student,
+          class: classEntity,
+          enrolmentDate: new Date(enrolmentData.enrolmentDate)
+        })
+
+        await this.dataSource.getRepository(ClassEnrolment).save(enrolment)
+        this.logger.log(`Created class enrolment: ${student.name} -> ${classEntity.className}`)
+      } else {
+        this.logger.log(
+          `Class enrolment already exists: ${student.name} -> ${classEntity.className}`
+        )
+      }
+    }
+  }
+
+  private async seedReviewedExercises(): Promise<void> {
+    this.logger.log('Seeding reviewed exercises...')
+
+    // Get all lecturers
+    const lecturers = await this.dataSource.getRepository(User).find({
+      where: { role: { name: 'Lecturer' } },
+      relations: ['role']
+    })
+
+    if (lecturers.length === 0) {
+      this.logger.warn('No lecturers found for reviewed exercise creation')
+      return
+    }
+
+    // Get all lessons
+    const lessons = await this.dataSource.getRepository(LessonEntity).find()
+
+    if (lessons.length === 0) {
+      this.logger.warn('No lessons found for reviewed exercise creation')
+      return
+    }
+
+    // Get all question sets
+    const questionSets = await this.dataSource.getRepository(QuestionSetEntity).find()
+
+    if (questionSets.length === 0) {
+      this.logger.warn('No question sets found for reviewed exercise creation')
+      return
+    }
+
+    for (const exerciseData of reviewedExerciseSeedData) {
+      // Find lecturer by email
+      const lecturer = lecturers.find((l) => l.email === exerciseData.lecturerEmail)
+
+      if (!lecturer) {
+        this.logger.warn(`Lecturer not found: ${exerciseData.lecturerEmail}`)
+        continue
+      }
+
+      // Find lesson by name
+      const lesson = lessons.find((l) => l.lessonName === exerciseData.lessonName)
+
+      if (!lesson) {
+        this.logger.warn(`Lesson not found: ${exerciseData.lessonName}`)
+        continue
+      }
+
+      // Find question sets by titles
+      const exerciseQuestionSets = questionSets.filter((qs) =>
+        exerciseData.questionSetTitles.includes(qs.title)
+      )
+
+      if (exerciseQuestionSets.length === 0) {
+        this.logger.warn(
+          `No question sets found for reviewed exercise: ${exerciseData.questionSetTitles.join(', ')}`
+        )
+        continue
+      }
+
+      // Check if reviewed exercise already exists (by lesson and status)
+      const existingExercise = await this.dataSource.getRepository(ReviewedExerciseEntity).findOne({
+        where: {
+          lessonId: lesson.lessonId,
+          lecturerId: lecturer.id,
+          status: exerciseData.status
+        }
+      })
+
+      if (!existingExercise) {
+        const reviewedExercise = this.dataSource.getRepository(ReviewedExerciseEntity).create({
+          lessonId: lesson.lessonId,
+          lecturerId: lecturer.id,
+          status: exerciseData.status,
+          startTime: new Date(exerciseData.startTime),
+          endTime: new Date(exerciseData.endTime),
+          lecturer,
+          createdBy: lecturer,
+          questionSets: exerciseQuestionSets
+        })
+
+        await this.dataSource.getRepository(ReviewedExerciseEntity).save(reviewedExercise)
+        this.logger.log(
+          `Created reviewed exercise: ${exerciseData.lessonName} (${exerciseData.status})`
+        )
+      } else {
+        this.logger.log(
+          `Reviewed exercise already exists: ${exerciseData.lessonName} (${exerciseData.status})`
+        )
+      }
+    }
+  }
+
+  private async seedReviewedExerciseSubmissions(): Promise<void> {
+    this.logger.log('Seeding reviewed exercise submissions...')
+
+    // Get all students
+    const students = await this.dataSource.getRepository(User).find({
+      where: { role: { name: 'Student' } },
+      relations: ['role']
+    })
+
+    if (students.length === 0) {
+      this.logger.warn('No students found for reviewed exercise submission creation')
+      return
+    }
+
+    // Get all reviewed exercises with their question sets and lesson
+    const reviewedExercises = await this.dataSource
+      .getRepository(ReviewedExerciseEntity)
+      .createQueryBuilder('reviewedExercise')
+      .leftJoinAndSelect('reviewedExercise.questionSets', 'questionSets')
+      .leftJoinAndSelect('reviewedExercise.lesson', 'lesson')
+      .getMany()
+
+    if (reviewedExercises.length === 0) {
+      this.logger.warn('No reviewed exercises found for submission creation')
+      return
+    }
+
+    for (const submissionData of reviewedExerciseSubmissionSeedData) {
+      // Find student by email
+      const student = students.find((s) => s.email === submissionData.studentEmail)
+
+      if (!student) {
+        this.logger.warn(`Student not found: ${submissionData.studentEmail}`)
+        continue
+      }
+
+      // Find reviewed exercise by matching title pattern
+      // Match by lesson name and status
+      const exerciseTitleParts = submissionData.reviewedExerciseTitle.split(' - ')
+      const lessonName = exerciseTitleParts[0]
+      const statusText = exerciseTitleParts[1] || ''
+
+      let targetExercise: ReviewedExerciseEntity | undefined
+
+      if (statusText.includes('Completed')) {
+        targetExercise = reviewedExercises.find(
+          (re) => re.lesson.lessonName === lessonName && re.status === ExamStatus.COMPLETED
+        )
+      } else if (statusText.includes('Active')) {
+        targetExercise = reviewedExercises.find(
+          (re) => re.lesson.lessonName === lessonName && re.status === ExamStatus.ACTIVE
+        )
+      }
+
+      if (!targetExercise) {
+        this.logger.warn(
+          `Reviewed exercise not found: ${submissionData.reviewedExerciseTitle}`
+        )
+        continue
+      }
+
+      // Get a question set from the reviewed exercise
+      if (!targetExercise.questionSets || targetExercise.questionSets.length === 0) {
+        this.logger.warn(`No question sets found for reviewed exercise: ${targetExercise.reviewedExerciseId}`)
+        continue
+      }
+
+      const questionSet = targetExercise.questionSets[0]
+
+      // Check if submission already exists
+      const existingSubmission = await this.dataSource
+        .getRepository(ReviewedExerciseSubmissionEntity)
+        .findOne({
+          where: {
+            studentId: student.id,
+            reviewedExerciseId: targetExercise.reviewedExerciseId,
+            questionSetId: questionSet.questionSetId
+          }
+        })
+
+      if (!existingSubmission) {
+        const submission = this.dataSource
+          .getRepository(ReviewedExerciseSubmissionEntity)
+          .create({
+            studentId: student.id,
+            reviewedExerciseId: targetExercise.reviewedExerciseId,
+            questionSetId: questionSet.questionSetId,
+            attemptStatus: submissionData.attemptStatus,
+            score: submissionData.score,
+            submittedAt: submissionData.submittedAt ? new Date(submissionData.submittedAt) : null,
+            note: submissionData.note,
+            penalty: submissionData.penalty,
+            answered: submissionData.score !== null ? { sample: 'data' } : null // Placeholder
+          })
+
+        await this.dataSource.getRepository(ReviewedExerciseSubmissionEntity).save(submission)
+        this.logger.log(
+          `Created reviewed exercise submission: ${student.name} -> ${lessonName} (Score: ${submissionData.score ?? 'N/A'})`
+        )
+      } else {
+        this.logger.log(
+          `Reviewed exercise submission already exists: ${student.name} -> ${lessonName}`
+        )
       }
     }
   }
