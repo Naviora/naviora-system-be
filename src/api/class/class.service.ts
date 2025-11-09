@@ -24,6 +24,8 @@ import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
 import { ClassEnrolment } from './entities/class-enrolment.entity'
 import { ManualEnrolStudentsDto } from './dto/manual-enrol-students.dto'
+import { GetStudentsByClassQueryDto } from './dto/get-students-by-class-query.dto'
+import { StudentListResponseDto, StudentListItemDto } from './dto/student-list-response.dto'
 
 @Injectable()
 export class ClassService {
@@ -829,5 +831,84 @@ export class ClassService {
     }
 
     return null
+  }
+
+  async getStudentsByClassId(classId: string, queryDto: GetStudentsByClassQueryDto | undefined) {
+    try {
+      // Ensure queryDto has default values if not provided
+      const paginationDto: GetStudentsByClassQueryDto = queryDto
+        ? Object.assign(new GetStudentsByClassQueryDto(), {
+            limit: queryDto.limit || 10,
+            page: queryDto.page || 1,
+            order: queryDto.order || 'ASC',
+            q: queryDto.q,
+            sort_by: queryDto.sort_by
+          })
+        : new GetStudentsByClassQueryDto()
+
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({
+        where: { classId }
+      })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+          { property: 'classId', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      // Build query with search and filters
+      const query = this.classEnrolmentRepository
+        .createQueryBuilder('enrolment')
+        .leftJoinAndSelect('enrolment.student', 'student')
+        .leftJoinAndSelect('student.role', 'role')
+        .where('enrolment.classId = :classId', { classId })
+        .andWhere('role.name = :roleName', { roleName: RoleInAccount.Student })
+
+      // Search filter
+      if (paginationDto.q) {
+        query.andWhere('(student.name ILIKE :search OR student.email ILIKE :search)', {
+          search: `%${paginationDto.q}%`
+        })
+      }
+
+      // Sorting
+      const validSortFields = ['name', 'email', 'enrolmentDate']
+      const sortMapping: Record<string, string> = {
+        name: 'student.name',
+        email: 'student.email',
+        enrolment_date: 'enrolment.enrolmentDate'
+      }
+      const rawSort = paginationDto.sort_by || 'name'
+      const mappedSort = sortMapping[rawSort]
+      const sortField = validSortFields.includes(rawSort) ? mappedSort : 'student.name'
+      query.orderBy(sortField, paginationDto.order || 'ASC')
+
+      // Pagination
+      const [enrollments, metaDto] = await paginate<ClassEnrolment>(query, paginationDto, {
+        skipCount: false,
+        takeAll: false
+      })
+
+      // Transform to DTO
+      const studentDTOs: StudentListItemDto[] = enrollments.map((enrollment) =>
+        plainToInstance(StudentListItemDto, {
+          id: enrollment.student.id,
+          name: enrollment.student.name,
+          email: enrollment.student.email,
+          avatar: enrollment.student.avatar,
+          phone: enrollment.student.phone,
+          enrolment_date: enrollment.enrolmentDate
+        })
+      )
+
+      return plainToInstance(StudentListResponseDto, {
+        class_id: classId,
+        students: studentDTOs,
+        pagination: metaDto
+      })
+    } catch (error) {
+      throw error
+    }
   }
 }
