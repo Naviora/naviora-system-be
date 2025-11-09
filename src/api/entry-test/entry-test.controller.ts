@@ -15,6 +15,8 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { ExamStatus } from '@common/enums/exam-status.enum'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { GetEntryTestsQueryDto } from './dto/get-entry-tests-query.dto'
+import { GetEntryTestStudentGradesQueryDto } from './dto/get-student-grades-query.dto'
+import { EntryTestStudentGradeListResponseDto } from './dto/entry-test-student-grade-list-response.dto'
 
 @ApiTags('Entry Test')
 @Controller({ path: 'entry-test', version: '1' })
@@ -201,16 +203,6 @@ export class EntryTestController {
     return await this.entryTestService.getEntryTests(query)
   }
 
-  @Get(':entryTestId')
-  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
-  @ApiOperation({ summary: 'Get a single entry test by ID' })
-  @ResponseMessage('Entry test retrieved successfully')
-  async getEntryTestById(
-    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
-  ): Promise<EntryTestResponseDto> {
-    return await this.entryTestService.getEntryTestById(entryTestId)
-  }
-
   @Get('latest/active')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Get the latest active entry test for student' })
@@ -227,6 +219,48 @@ export class EntryTestController {
     @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
   ): Promise<EntryTestScoreSpectrumDto> {
     return await this.entryTestService.getEntryTestScoreSpectrum(entryTestId)
+  }
+
+  @Get(':entryTestId/student-grades')
+  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  @ApiOperation({
+    summary: 'Get paginated list of students and their grades for an entry test',
+    description: `
+      Get a paginated list of all students who have submitted (or started) an entry test along with their grades.
+      
+      **Authorization:**
+      - **Admin/Principal/Lecturer**: Can view all students who have taken the entry test
+      
+      **Query Parameters:**
+      - \`page\`: Page number (default: 1)
+      - \`limit\`: Number of items per page (default: 10)
+      - \`q\`: Search by student name or email (optional)
+      - \`order\`: Sort order - ASC or DESC (default: ASC)
+      
+      **Response includes:**
+      - Student information (ID, name, email, avatar)
+      - Submission details (score, status, submission date)
+      - Notes and penalty information
+      - Pagination metadata
+    `
+  })
+  @ResponseMessage('Student grades retrieved successfully')
+  async getStudentGradeList(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @Query() query: GetEntryTestStudentGradesQueryDto,
+    @CurrentUser() currentUser: User
+  ): Promise<EntryTestStudentGradeListResponseDto> {
+    return await this.entryTestService.getStudentGradeList(entryTestId, query, currentUser)
+  }
+
+  @Get(':entryTestId')
+  @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
+  @ApiOperation({ summary: 'Get a single entry test by ID' })
+  @ResponseMessage('Entry test retrieved successfully')
+  async getEntryTestById(
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
+  ): Promise<EntryTestResponseDto> {
+    return await this.entryTestService.getEntryTestById(entryTestId)
   }
 
   @Delete(':entryTestId')

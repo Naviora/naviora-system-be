@@ -25,6 +25,12 @@ import { ExamStatus } from '@common/enums/exam-status.enum'
 import { paginate } from '@utils/offset-pagination'
 import { GetReviewedExercisesQueryDto } from './dto/get-reviewed-exercises-query.dto'
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
+import { TeachingModule } from '@api/module/entities/teaching-module.entity'
+import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
+import { StudentGradeListResponseDto, StudentGradeItemDto } from './dto/student-grade-list-response.dto'
+import { GetStudentGradesQueryDto } from './dto/get-student-grades-query.dto'
+import { extractUserRole } from '@utils/common.util'
+import { RoleInAccount } from '@common/enums/account-role.enum'
 
 @Injectable()
 export class ReviewedExerciseService {
@@ -42,7 +48,11 @@ export class ReviewedExerciseService {
     @InjectRepository(AnswerEntity)
     private readonly answerRepository: Repository<AnswerEntity>,
     @InjectRepository(LessonEntity)
-    private readonly lessonRepository: Repository<LessonEntity>
+    private readonly lessonRepository: Repository<LessonEntity>,
+    @InjectRepository(TeachingModule)
+    private readonly teachingModuleRepository: Repository<TeachingModule>,
+    @InjectRepository(ClassEnrolment)
+    private readonly classEnrolmentRepository: Repository<ClassEnrolment>
   ) {}
 
   async create(createDto: CreateReviewedExerciseDto, currentUser: User): Promise<ReviewedExerciseResponseDto> {
@@ -723,5 +733,130 @@ export class ReviewedExerciseService {
     const sorted1 = [...arr1].sort()
     const sorted2 = [...arr2].sort()
     return sorted1.every((id, index) => id === sorted2[index])
+  }
+
+  async getStudentGradeList(
+    reviewedExerciseId: string,
+    queryDto: GetStudentGradesQueryDto | undefined,
+    currentUser: User
+  ): Promise<StudentGradeListResponseDto> {
+    // Ensure queryDto has default values if not provided
+    // Create a new DTO with proper defaults to avoid readonly property issues
+    const paginationDto: GetStudentGradesQueryDto = queryDto
+      ? Object.assign(new GetStudentGradesQueryDto(), {
+          limit: queryDto.limit || 10,
+          page: queryDto.page || 1,
+          order: queryDto.order || 'ASC',
+          q: queryDto.q
+        })
+      : new GetStudentGradesQueryDto()
+    // Get reviewed exercise with lesson, module, and class
+    const reviewedExercise = await this.reviewedExerciseRepository
+      .createQueryBuilder('reviewedExercise')
+      .leftJoinAndSelect('reviewedExercise.lesson', 'lesson')
+      .leftJoinAndSelect('lesson.module', 'module')
+      .leftJoinAndSelect('module.class', 'class')
+      .where('reviewedExercise.reviewedExerciseId = :reviewedExerciseId', { reviewedExerciseId })
+      .getOne()
+
+    if (!reviewedExercise) {
+      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise not found', [
+        { property: 'reviewedExerciseId', code: ErrorCode.V004 }
+      ])
+    }
+
+    const userRole = extractUserRole(currentUser)
+
+    // Get all submissions for this reviewed exercise with student info
+    let submissionsQuery = this.reviewedExerciseSubmissionRepository
+      .createQueryBuilder('submission')
+      .leftJoinAndSelect('submission.student', 'student')
+      .leftJoinAndSelect('student.role', 'studentRole')
+      .where('submission.reviewedExerciseId = :reviewedExerciseId', { reviewedExerciseId })
+
+    // If lecturer, filter to only show students in their assigned modules
+    if (userRole === RoleInAccount.Lecturer) {
+      const moduleId = reviewedExercise.lesson.module?.moduleId
+
+      if (!moduleId) {
+        throw new ValidationException(ErrorCode.V004, 'Module not found for this reviewed exercise', [
+          { property: 'reviewedExerciseId', code: ErrorCode.V004 }
+        ])
+      }
+
+      // Check if lecturer is assigned to this module
+      const teachingModule = await this.teachingModuleRepository.findOne({
+        where: {
+          module: { moduleId },
+          lecturer: { id: currentUser.id },
+          isActive: true
+        }
+      })
+
+      if (!teachingModule) {
+        throw new ValidationException(
+          ErrorCode.V000,
+          'You are not assigned to teach this module. You can only view grades for students in your assigned modules.',
+          [{ property: 'reviewedExerciseId', code: ErrorCode.V000 }]
+        )
+      }
+
+      // Get the class ID from the module
+      const classId = reviewedExercise.lesson.module?.class?.classId
+
+      if (!classId) {
+        throw new ValidationException(ErrorCode.V004, 'Class not found for this module', [
+          { property: 'reviewedExerciseId', code: ErrorCode.V004 }
+        ])
+      }
+
+      // Filter submissions to only include students enrolled in this class
+      submissionsQuery = submissionsQuery.innerJoin(
+        ClassEnrolment,
+        'enrolment',
+        'enrolment.studentId = student.id AND enrolment.classId = :classId',
+        { classId }
+      )
+    }
+
+    // Admin and Principal can see all students
+    // No additional filtering needed
+
+    // Apply search filter if provided
+    if (paginationDto.q) {
+      submissionsQuery.andWhere('(student.name ILIKE :search OR student.email ILIKE :search)', {
+        search: `%${paginationDto.q}%`
+      })
+    }
+
+    // Apply sorting
+    submissionsQuery.orderBy('student.name', paginationDto.order || 'ASC')
+    submissionsQuery.addOrderBy('submission.submittedAt', 'DESC')
+
+    // Apply pagination
+    const [submissions, metaDto] = await paginate<ReviewedExerciseSubmissionEntity>(submissionsQuery, paginationDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    // Transform to response DTO
+    const studentGrades: StudentGradeItemDto[] = submissions.map((submission) => ({
+      studentId: submission.student.id,
+      studentName: submission.student.name,
+      studentEmail: submission.student.email,
+      studentAvatar: submission.student.avatar,
+      submissionId: submission.reviewedExerciseSubmissionId,
+      score: submission.score,
+      attemptStatus: submission.attemptStatus,
+      submittedAt: submission.submittedAt,
+      note: submission.note,
+      penalty: submission.penalty
+    }))
+
+    return plainToInstance(StudentGradeListResponseDto, {
+      reviewedExerciseId,
+      students: studentGrades,
+      pagination: metaDto
+    })
   }
 }

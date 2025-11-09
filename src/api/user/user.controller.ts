@@ -10,7 +10,8 @@ import {
   Req,
   UseInterceptors,
   UploadedFile,
-  Query
+  Query,
+  BadRequestException
 } from '@nestjs/common'
 import { UserService } from './user.service'
 import { CreateAccountDto } from './dto/create-account.dto'
@@ -33,6 +34,7 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { Public } from '@decorators/auth.decorator'
 import { plainToInstance } from 'class-transformer'
 import { ProfileDTO } from './dto/profile-dto'
+import { BulkCreateAccountsResponseDto } from './dto/bulk-create-accounts-response.dto'
 
 @ApiTags('Users')
 @Controller({
@@ -232,6 +234,86 @@ export class UserController {
   async bulkCreateAccountByAdmin(@Body() bulkCreateDto: BulkCreateAccountByAdminDto) {
     return await this.userService.bulkCreateAccountByAdmin(bulkCreateDto)
   }
+
+  // @Post('admin/import-excel')
+  // @UseInterceptors(FileInterceptor('file'))
+  // @ApiConsumes('multipart/form-data')
+  // @ApiOperation({
+  //   summary: 'Admin: Bulk create user accounts from Excel file',
+  //   description: `
+  //     Upload an Excel file (.xlsx) to create multiple user accounts at once.
+
+  //     **Excel File Format:**
+  //     - The file must have a header row in the first row
+  //     - Columns should be in this order: Name, Email, Role
+  //     - Column A: Name (required) - User's full name
+  //     - Column B: Email (required) - User's email address (must be unique and valid format)
+  //     - Column C: Role (required) - Role name (e.g., "Student", "Lecturer", "Principal", "User")
+
+  //     **Example Excel Structure:**
+  //     | Name          | Email                  | Role     |
+  //     |---------------|------------------------|----------|
+  //     | John Doe      | john.doe@example.com   | Student  |
+  //     | Jane Smith    | jane.smith@example.com | Lecturer |
+
+  //     **Notes:**
+  //     - Passwords will be auto-generated and sent to each user via email
+  //     - Admin role cannot be assigned through this endpoint
+  //     - Duplicate emails will be skipped with an error message
+  //     - Invalid roles will be skipped with an error message
+  //     - The response includes detailed results for each row processed
+  //   `
+  // })
+  // @ApiBody({
+  //   description: 'Excel file containing user accounts to create',
+  //   schema: {
+  //     type: 'object',
+  //     properties: {
+  //       file: {
+  //         type: 'string',
+  //         format: 'binary',
+  //         description: 'Excel file (.xlsx) with columns: Name, Email, Role'
+  //       }
+  //     },
+  //     required: ['file']
+  //   }
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Bulk account creation completed. Returns summary and detailed results for each account.',
+  //   type: BulkCreateAccountsResponseDto
+  // })
+  // @ApiResponse({
+  //   status: 400,
+  //   description: 'Bad request - Invalid file format or missing file'
+  // })
+  // @ApiResponse({
+  //   status: 422,
+  //   description: 'Validation error - Excel file structure is invalid'
+  // })
+  // @ResponseMessage('Bulk account creation completed')
+  // async bulkCreateAccountsFromExcel(
+  //   @UploadedFile() file: Express.Multer.File
+  // ): Promise<ApiResponseSuccess<BulkCreateAccountsResponseDto>> {
+  //   if (!file) {
+  //     throw new BadRequestException('Excel file is required')
+  //   }
+
+  //   // Validate file type
+  //   const allowedMimeTypes = [
+  //     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  //     'application/vnd.ms-excel'
+  //   ]
+  //   if (!allowedMimeTypes.includes(file.mimetype)) {
+  //     throw new BadRequestException('Invalid file type. Please upload an Excel file (.xlsx)')
+  //   }
+
+  //   const result = await this.userService.bulkCreateAccountsFromExcel(file)
+  //   return new ApiResponseSuccess<BulkCreateAccountsResponseDto>()
+  //     .setCode(200)
+  //     .setData(result)
+  //     .setMessage(`Bulk creation completed: ${result.successCount} succeeded, ${result.failureCount} failed`)
+  // }
 
   @Delete(':id')
   remove(@Param('id') id: string) {

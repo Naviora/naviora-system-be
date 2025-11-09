@@ -28,12 +28,16 @@ export class OffsetPaginationDto {
   readonly total_pages: number
 
   constructor(totalRecords: number, pageOptions: PageOptionsDto) {
-    this.limit = pageOptions.limit
-    this.current_page = pageOptions.page
+    // Ensure we have valid default values if pageOptions properties are undefined
+    const limit = pageOptions?.limit ?? 10
+    const page = pageOptions?.page ?? 1
+
+    this.limit = limit
+    this.current_page = page
+    this.total_records = totalRecords
+    this.total_pages = limit > 0 ? Math.ceil(totalRecords / limit) : 0
     this.next_page = this.current_page < this.total_pages ? this.current_page + 1 : undefined
     this.previous_page =
       this.current_page > 1 && this.current_page - 1 < this.total_pages ? this.current_page - 1 : undefined
-    this.total_records = totalRecords
-    this.total_pages = this.limit > 0 ? Math.ceil(totalRecords / pageOptions.limit) : 0
   }
 }

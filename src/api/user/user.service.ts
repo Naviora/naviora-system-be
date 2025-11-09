@@ -29,6 +29,8 @@ import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { QueueName, JobName } from '@constants/job.constant'
 import { IAccountInfoJob } from '@common/interfaces/job.interface'
+import * as ExcelJS from 'exceljs'
+import { BulkCreateAccountsResponseDto, BulkCreateAccountResultDto } from './dto/bulk-create-accounts-response.dto'
 
 @Injectable()
 export class UserService {
@@ -544,4 +546,158 @@ export class UserService {
 
     return results
   }
+
+  // async bulkCreateAccountsFromExcel(file: Express.Multer.File): Promise<BulkCreateAccountsResponseDto> {
+  //   try {
+  //     const workbook = new ExcelJS.Workbook()
+  //     // Convert Multer buffer to Node.js Buffer for ExcelJS compatibility
+  //     const buffer = Buffer.from(new Uint8Array(file.buffer))
+  //     // TypeScript type incompatibility between Buffer types - safe to ignore at runtime
+  //     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  //     // @ts-ignore
+  //     await workbook.xlsx.load(buffer)
+
+  //     const worksheet = workbook.worksheets[0]
+  //     if (!worksheet) {
+  //       throw new ValidationException(ErrorCode.A001, 'Excel file is empty or invalid')
+  //     }
+
+  //     const results: BulkCreateAccountResultDto[] = []
+  //     let successCount = 0
+  //     let failureCount = 0
+
+  //     // Skip header row (row 1) and process from row 2
+  //     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+  //       const row = worksheet.getRow(rowNumber)
+
+  //       // Get values from columns (assuming: A=name, B=email, C=role)
+  //       const name = row.getCell(1).value?.toString()?.trim()
+  //       const email = row.getCell(2).value?.toString()?.trim()
+  //       const roleName = row.getCell(3).value?.toString()?.trim()
+
+  //       // Skip empty rows
+  //       if (!name && !email && !roleName) {
+  //         continue
+  //       }
+
+  //       // Validate required fields
+  //       if (!name || !email || !roleName) {
+  //         results.push({
+  //           email: email || '',
+  //           name: name || '',
+  //           role: roleName || '',
+  //           success: false,
+  //           error: 'Missing required fields: name, email, or role'
+  //         })
+  //         failureCount++
+  //         continue
+  //       }
+
+  //       // Validate email format
+  //       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  //       if (!emailRegex.test(email)) {
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: false,
+  //           error: 'Invalid email format'
+  //         })
+  //         failureCount++
+  //         continue
+  //       }
+
+  //       try {
+  //         // Find role by name
+  //         const role = await this.roleRepository.findOne({
+  //           where: { name: roleName }
+  //         })
+
+  //         if (!role) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: `Role "${roleName}" not found`
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Check if Admin role is being assigned
+  //         if (role.name === RoleInAccount.Admin) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: 'Cannot create account with Admin role'
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Check if email already exists
+  //         if (await this.isExist(email)) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: 'Email already exists'
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Create account
+  //         const createAccountDto: CreateAccountByAdminDto = {
+  //           name,
+  //           email,
+  //           role_id: role.id,
+  //         }
+
+  //         await this.createAccountByAdmin(createAccountDto)
+
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: true
+  //         })
+  //         successCount++
+  //       } catch (error) {
+  //         this.logger.error(`Error creating account for ${email} at row ${rowNumber}:`, error)
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: false,
+  //           error: error instanceof ValidationException ? error.message : 'Failed to create account'
+  //         })
+  //         failureCount++
+  //       }
+  //     }
+
+  //     return {
+  //       total: results.length,
+  //       successCount,
+  //       failureCount,
+  //       results
+  //     }
+  //   } catch (error) {
+  //     this.logger.error('Error processing Excel file:', error)
+  //     if (error instanceof ValidationException) {
+  //       throw error
+  //     }
+  //     throw new ValidationException(ErrorCode.A001, 'Failed to process Excel file', [
+  //       {
+  //         property: 'file',
+  //         code: ErrorCode.A001,
+  //         message: error instanceof Error ? error.message : 'Unknown error occurred'
+  //       }
+  //     ])
+  // }
+  // }
 }

@@ -25,7 +25,8 @@
     "migration:down": "npm run typeorm migration:revert",
     "migration:show": "npm run typeorm migration:show",
     "migration:create": "npm run typeorm migration:create",
-    "migration:generate": "npm run typeorm migration:generate --pretty"
+    "migration:generate": "npm run typeorm migration:generate --pretty",
+    "generate:test-excel": "ts-node -r tsconfig-paths/register scripts/generate-test-excel.ts"
   },
   "dependencies": {
     "@css-inline/css-inline": "^0.14.3",
