@@ -66,7 +66,7 @@ export class LessonService {
 
   async findAll(reqDto: ListLessonReqDto) {
     try {
-      const query = this.lessonRepository.createQueryBuilder('lessons').orderBy('lessons.createdAt', 'DESC')
+      const query = this.lessonRepository.createQueryBuilder('lessons').orderBy('lessons.updatedAt', 'DESC')
 
       const [lessons, metaDto] = await paginate<LessonEntity>(query, reqDto, {
         skipCount: false,
