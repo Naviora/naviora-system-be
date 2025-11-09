@@ -53,4 +53,3 @@ export const classEnrolmentSeedData = [
     enrolmentDate: '2024-09-01'
   }
 ]
-

@@ -446,13 +446,9 @@ export class DatabaseSeederService {
         })
 
         await this.dataSource.getRepository(TeachingModule).save(teachingModule)
-        this.logger.log(
-          `Created teaching module assignment: ${lecturer.name} -> ${module.moduleName}`
-        )
+        this.logger.log(`Created teaching module assignment: ${lecturer.name} -> ${module.moduleName}`)
       } else {
-        this.logger.log(
-          `Teaching module assignment already exists: ${lecturer.name} -> ${module.moduleName}`
-        )
+        this.logger.log(`Teaching module assignment already exists: ${lecturer.name} -> ${module.moduleName}`)
       }
     }
   }
@@ -514,9 +510,7 @@ export class DatabaseSeederService {
         await this.dataSource.getRepository(ClassEnrolment).save(enrolment)
         this.logger.log(`Created class enrolment: ${student.name} -> ${classEntity.className}`)
       } else {
-        this.logger.log(
-          `Class enrolment already exists: ${student.name} -> ${classEntity.className}`
-        )
+        this.logger.log(`Class enrolment already exists: ${student.name} -> ${classEntity.className}`)
       }
     }
   }
@@ -569,14 +563,10 @@ export class DatabaseSeederService {
       }
 
       // Find question sets by titles
-      const exerciseQuestionSets = questionSets.filter((qs) =>
-        exerciseData.questionSetTitles.includes(qs.title)
-      )
+      const exerciseQuestionSets = questionSets.filter((qs) => exerciseData.questionSetTitles.includes(qs.title))
 
       if (exerciseQuestionSets.length === 0) {
-        this.logger.warn(
-          `No question sets found for reviewed exercise: ${exerciseData.questionSetTitles.join(', ')}`
-        )
+        this.logger.warn(`No question sets found for reviewed exercise: ${exerciseData.questionSetTitles.join(', ')}`)
         continue
       }
 
@@ -602,13 +592,9 @@ export class DatabaseSeederService {
         })
 
         await this.dataSource.getRepository(ReviewedExerciseEntity).save(reviewedExercise)
-        this.logger.log(
-          `Created reviewed exercise: ${exerciseData.lessonName} (${exerciseData.status})`
-        )
+        this.logger.log(`Created reviewed exercise: ${exerciseData.lessonName} (${exerciseData.status})`)
       } else {
-        this.logger.log(
-          `Reviewed exercise already exists: ${exerciseData.lessonName} (${exerciseData.status})`
-        )
+        this.logger.log(`Reviewed exercise already exists: ${exerciseData.lessonName} (${exerciseData.status})`)
       }
     }
   }
@@ -668,9 +654,7 @@ export class DatabaseSeederService {
       }
 
       if (!targetExercise) {
-        this.logger.warn(
-          `Reviewed exercise not found: ${submissionData.reviewedExerciseTitle}`
-        )
+        this.logger.warn(`Reviewed exercise not found: ${submissionData.reviewedExerciseTitle}`)
         continue
       }
 
@@ -683,39 +667,33 @@ export class DatabaseSeederService {
       const questionSet = targetExercise.questionSets[0]
 
       // Check if submission already exists
-      const existingSubmission = await this.dataSource
-        .getRepository(ReviewedExerciseSubmissionEntity)
-        .findOne({
-          where: {
-            studentId: student.id,
-            reviewedExerciseId: targetExercise.reviewedExerciseId,
-            questionSetId: questionSet.questionSetId
-          }
-        })
+      const existingSubmission = await this.dataSource.getRepository(ReviewedExerciseSubmissionEntity).findOne({
+        where: {
+          studentId: student.id,
+          reviewedExerciseId: targetExercise.reviewedExerciseId,
+          questionSetId: questionSet.questionSetId
+        }
+      })
 
       if (!existingSubmission) {
-        const submission = this.dataSource
-          .getRepository(ReviewedExerciseSubmissionEntity)
-          .create({
-            studentId: student.id,
-            reviewedExerciseId: targetExercise.reviewedExerciseId,
-            questionSetId: questionSet.questionSetId,
-            attemptStatus: submissionData.attemptStatus,
-            score: submissionData.score,
-            submittedAt: submissionData.submittedAt ? new Date(submissionData.submittedAt) : null,
-            note: submissionData.note,
-            penalty: submissionData.penalty,
-            answered: submissionData.score !== null ? { sample: 'data' } : null // Placeholder
-          })
+        const submission = this.dataSource.getRepository(ReviewedExerciseSubmissionEntity).create({
+          studentId: student.id,
+          reviewedExerciseId: targetExercise.reviewedExerciseId,
+          questionSetId: questionSet.questionSetId,
+          attemptStatus: submissionData.attemptStatus,
+          score: submissionData.score,
+          submittedAt: submissionData.submittedAt ? new Date(submissionData.submittedAt) : null,
+          note: submissionData.note,
+          penalty: submissionData.penalty,
+          answered: submissionData.score !== null ? { sample: 'data' } : null // Placeholder
+        })
 
         await this.dataSource.getRepository(ReviewedExerciseSubmissionEntity).save(submission)
         this.logger.log(
           `Created reviewed exercise submission: ${student.name} -> ${lessonName} (Score: ${submissionData.score ?? 'N/A'})`
         )
       } else {
-        this.logger.log(
-          `Reviewed exercise submission already exists: ${student.name} -> ${lessonName}`
-        )
+        this.logger.log(`Reviewed exercise submission already exists: ${student.name} -> ${lessonName}`)
       }
     }
   }
