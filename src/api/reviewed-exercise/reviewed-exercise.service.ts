@@ -31,6 +31,7 @@ import { StudentGradeListResponseDto, StudentGradeItemDto } from './dto/student-
 import { GetStudentGradesQueryDto } from './dto/get-student-grades-query.dto'
 import { extractUserRole } from '@utils/common.util'
 import { RoleInAccount } from '@common/enums/account-role.enum'
+import { StreakService } from '@api/streak/streak.service'
 
 @Injectable()
 export class ReviewedExerciseService {
@@ -52,7 +53,8 @@ export class ReviewedExerciseService {
     @InjectRepository(TeachingModule)
     private readonly teachingModuleRepository: Repository<TeachingModule>,
     @InjectRepository(ClassEnrolment)
-    private readonly classEnrolmentRepository: Repository<ClassEnrolment>
+    private readonly classEnrolmentRepository: Repository<ClassEnrolment>,
+    private readonly streakService: StreakService
   ) {}
 
   async create(createDto: CreateReviewedExerciseDto, currentUser: User): Promise<ReviewedExerciseResponseDto> {
@@ -599,6 +601,14 @@ export class ReviewedExerciseService {
     submission.submittedAt = new Date()
 
     const savedSubmission = await this.reviewedExerciseSubmissionRepository.save(submission)
+
+    // Update streak for student
+    try {
+      await this.streakService.updateStreak(currentUser.id, savedSubmission.submittedAt)
+    } catch (error) {
+      // Log error but don't fail the submission
+      console.error('Failed to update streak:', error)
+    }
 
     return plainToInstance(ReviewedExerciseSubmissionResponseDto, savedSubmission)
   }

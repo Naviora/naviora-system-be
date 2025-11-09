@@ -11,6 +11,7 @@ import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { User } from '@api/user/entities/user.entity'
 import { TeachingModule } from '@api/module/entities/teaching-module.entity'
 import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
+import { StreakModule } from '@api/streak/streak.module'
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
       AnswerEntity,
       TeachingModule,
       ClassEnrolment
-    ])
+    ]),
+    StreakModule
   ],
   controllers: [ReviewedExerciseController],
   providers: [ReviewedExerciseService],

@@ -8,6 +8,7 @@ import { QuestionSetEntity } from '@api/question-set/entities/question-set.entit
 import { QuestionEntity } from '@api/question/entities/question.entity'
 import { AnswerEntity } from '@api/answer/entities/answer.entity'
 import { User } from '@api/user/entities/user.entity'
+import { StreakModule } from '@api/streak/streak.module'
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { User } from '@api/user/entities/user.entity'
       QuestionSetEntity,
       QuestionEntity,
       AnswerEntity
-    ])
+    ]),
+    StreakModule
   ],
   controllers: [EntryTestController],
   providers: [EntryTestService],
