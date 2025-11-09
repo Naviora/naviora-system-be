@@ -9,6 +9,9 @@ import { SessionEntity } from '@api/user/entities/session.entity'
 import { AuthModule } from '@api/auth/auth.module'
 import { Role } from '@api/role/entities/role.entity'
 import { MailModule } from '@mail/mail.module'
+import { EmailQueueModule } from '@background/queues/email-queue/email-queue.module'
+import { BullModule } from '@nestjs/bullmq'
+import { QueueName, QueuePrefix } from '@constants/job.constant'
 
 @Module({
   imports: [
@@ -16,7 +19,17 @@ import { MailModule } from '@mail/mail.module'
     JwtModule,
     CloudinaryModule,
     forwardRef(() => AuthModule),
-    MailModule
+    MailModule,
+    EmailQueueModule,
+    BullModule.registerQueue({
+      name: QueueName.EMAIL,
+      prefix: QueuePrefix.AUTH,
+      streams: {
+        events: {
+          maxLen: 1000
+        }
+      }
+    })
   ],
   controllers: [UserController],
   providers: [UserService],

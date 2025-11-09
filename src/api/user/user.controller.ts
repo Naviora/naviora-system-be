@@ -16,6 +16,9 @@ import {
 import { UserService } from './user.service'
 import { CreateAccountDto } from './dto/create-account.dto'
 import { CreateAccountByAdminDto } from './dto/create-account-by-admin.dto'
+import { CreateAccountByAdminResponseDto } from './dto/create-account-by-admin.res.dto'
+import { BulkCreateAccountByAdminDto } from './dto/bulk-create-account-by-admin.dto'
+import { BulkCreateAccountByAdminResponseDto } from './dto/bulk-create-account-by-admin.res.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
 import { GetUsersQueryDto } from './dto/get-users-query.dto'
@@ -181,95 +184,136 @@ export class UserController {
         value: {
           name: 'John Doe',
           email: 'john.doe@example.com',
-          role_id: '2'
+          role_id: 2
         }
       }
     }
   })
+  @ApiResponse({ status: 201, description: 'Account created successfully', type: CreateAccountByAdminResponseDto })
   @ResponseMessage('Account created successfully, credentials sent via email')
   async createAccountByAdmin(@Body() createAccountDto: CreateAccountByAdminDto) {
     return await this.userService.createAccountByAdmin(createAccountDto)
   }
 
   @Post('admin/bulk-create')
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Admin: Bulk create user accounts from Excel file',
-    description: `
-      Upload an Excel file (.xlsx) to create multiple user accounts at once.
-      
-      **Excel File Format:**
-      - The file must have a header row in the first row
-      - Columns should be in this order: Name, Email, Role
-      - Column A: Name (required) - User's full name
-      - Column B: Email (required) - User's email address (must be unique and valid format)
-      - Column C: Role (required) - Role name (e.g., "Student", "Lecturer", "Principal", "User")
-      
-      **Example Excel Structure:**
-      | Name          | Email                  | Role     |
-      |---------------|------------------------|----------|
-      | John Doe      | john.doe@example.com   | Student  |
-      | Jane Smith    | jane.smith@example.com | Lecturer |
-      
-      **Notes:**
-      - Passwords will be auto-generated and sent to each user via email
-      - Admin role cannot be assigned through this endpoint
-      - Duplicate emails will be skipped with an error message
-      - Invalid roles will be skipped with an error message
-      - The response includes detailed results for each row processed
-    `
+    summary: 'Admin: Bulk create accounts and send credentials via email (background job)'
   })
   @ApiBody({
-    description: 'Excel file containing user accounts to create',
-    schema: {
-      type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-          description: 'Excel file (.xlsx) with columns: Name, Email, Role'
+    description:
+      'Create multiple accounts with roles, passwords will be auto-generated and sent via email in background',
+    type: BulkCreateAccountByAdminDto,
+    examples: {
+      example1: {
+        summary: 'Bulk create accounts',
+        value: {
+          accounts: [
+            {
+              name: 'John Doe',
+              email: 'john.doe@example.com',
+              role_id: 2,
+              password: 'Password@123'
+            },
+            {
+              name: 'Jane Smith',
+              email: 'jane.smith@example.com',
+              role_id: 3,
+              password: 'Password@456'
+            }
+          ]
         }
-      },
-      required: ['file']
+      }
     }
   })
   @ApiResponse({
-    status: 200,
-    description: 'Bulk account creation completed. Returns summary and detailed results for each account.',
-    type: BulkCreateAccountsResponseDto
+    status: 201,
+    description: 'Bulk account creation completed',
+    type: BulkCreateAccountByAdminResponseDto
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid file format or missing file'
-  })
-  @ApiResponse({
-    status: 422,
-    description: 'Validation error - Excel file structure is invalid'
-  })
-  @ResponseMessage('Bulk account creation completed')
-  async bulkCreateAccountsFromExcel(
-    @UploadedFile() file: Express.Multer.File
-  ): Promise<ApiResponseSuccess<BulkCreateAccountsResponseDto>> {
-    if (!file) {
-      throw new BadRequestException('Excel file is required')
-    }
-
-    // Validate file type
-    const allowedMimeTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel'
-    ]
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Invalid file type. Please upload an Excel file (.xlsx)')
-    }
-
-    const result = await this.userService.bulkCreateAccountsFromExcel(file)
-    return new ApiResponseSuccess<BulkCreateAccountsResponseDto>()
-      .setCode(200)
-      .setData(result)
-      .setMessage(`Bulk creation completed: ${result.successCount} succeeded, ${result.failureCount} failed`)
+  @ResponseMessage('Bulk account creation completed, emails will be sent in background')
+  async bulkCreateAccountByAdmin(@Body() bulkCreateDto: BulkCreateAccountByAdminDto) {
+    return await this.userService.bulkCreateAccountByAdmin(bulkCreateDto)
   }
+
+  // @Post('admin/import-excel')
+  // @UseInterceptors(FileInterceptor('file'))
+  // @ApiConsumes('multipart/form-data')
+  // @ApiOperation({
+  //   summary: 'Admin: Bulk create user accounts from Excel file',
+  //   description: `
+  //     Upload an Excel file (.xlsx) to create multiple user accounts at once.
+
+  //     **Excel File Format:**
+  //     - The file must have a header row in the first row
+  //     - Columns should be in this order: Name, Email, Role
+  //     - Column A: Name (required) - User's full name
+  //     - Column B: Email (required) - User's email address (must be unique and valid format)
+  //     - Column C: Role (required) - Role name (e.g., "Student", "Lecturer", "Principal", "User")
+
+  //     **Example Excel Structure:**
+  //     | Name          | Email                  | Role     |
+  //     |---------------|------------------------|----------|
+  //     | John Doe      | john.doe@example.com   | Student  |
+  //     | Jane Smith    | jane.smith@example.com | Lecturer |
+
+  //     **Notes:**
+  //     - Passwords will be auto-generated and sent to each user via email
+  //     - Admin role cannot be assigned through this endpoint
+  //     - Duplicate emails will be skipped with an error message
+  //     - Invalid roles will be skipped with an error message
+  //     - The response includes detailed results for each row processed
+  //   `
+  // })
+  // @ApiBody({
+  //   description: 'Excel file containing user accounts to create',
+  //   schema: {
+  //     type: 'object',
+  //     properties: {
+  //       file: {
+  //         type: 'string',
+  //         format: 'binary',
+  //         description: 'Excel file (.xlsx) with columns: Name, Email, Role'
+  //       }
+  //     },
+  //     required: ['file']
+  //   }
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Bulk account creation completed. Returns summary and detailed results for each account.',
+  //   type: BulkCreateAccountsResponseDto
+  // })
+  // @ApiResponse({
+  //   status: 400,
+  //   description: 'Bad request - Invalid file format or missing file'
+  // })
+  // @ApiResponse({
+  //   status: 422,
+  //   description: 'Validation error - Excel file structure is invalid'
+  // })
+  // @ResponseMessage('Bulk account creation completed')
+  // async bulkCreateAccountsFromExcel(
+  //   @UploadedFile() file: Express.Multer.File
+  // ): Promise<ApiResponseSuccess<BulkCreateAccountsResponseDto>> {
+  //   if (!file) {
+  //     throw new BadRequestException('Excel file is required')
+  //   }
+
+  //   // Validate file type
+  //   const allowedMimeTypes = [
+  //     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  //     'application/vnd.ms-excel'
+  //   ]
+  //   if (!allowedMimeTypes.includes(file.mimetype)) {
+  //     throw new BadRequestException('Invalid file type. Please upload an Excel file (.xlsx)')
+  //   }
+
+  //   const result = await this.userService.bulkCreateAccountsFromExcel(file)
+  //   return new ApiResponseSuccess<BulkCreateAccountsResponseDto>()
+  //     .setCode(200)
+  //     .setData(result)
+  //     .setMessage(`Bulk creation completed: ${result.successCount} succeeded, ${result.failureCount} failed`)
+  // }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
