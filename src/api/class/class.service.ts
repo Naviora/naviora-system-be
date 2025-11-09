@@ -944,6 +944,10 @@ export class ClassService {
       const query = this.moduleRepository
         .createQueryBuilder('module')
         .leftJoin('module.class', 'class')
+        .leftJoinAndSelect('module.teachingModules', 'teachingModule', 'teachingModule.isActive = :isActive', {
+          isActive: true
+        })
+        .leftJoinAndSelect('teachingModule.lecturer', 'lecturer')
         .where('class.classId = :classId', { classId })
 
       // Search filter
@@ -974,17 +978,25 @@ export class ClassService {
       })
 
       // Transform to DTO
-      const moduleDTOs: ModuleDTO[] = modules.map((module) =>
-        plainToInstance(ModuleDTO, {
+      const moduleDTOs: ModuleDTO[] = modules.map((module) => {
+        // Extract lecturer IDs from active teaching modules
+        const lecturerIds =
+          module.teachingModules
+            ?.filter((tm) => tm.isActive)
+            .map((tm) => tm.lecturer?.id)
+            .filter((id) => id !== undefined) || []
+
+        return plainToInstance(ModuleDTO, {
           module_id: module.moduleId,
           module_code: module.moduleCode,
           module_name: module.moduleName,
           module_description: module.moduleDescription || '',
           banner: module.banner || '',
+          lecturer_ids: lecturerIds,
           created_at: module.createdAt,
           updated_at: module.updatedAt
         })
-      )
+      })
 
       return {
         modules: moduleDTOs,

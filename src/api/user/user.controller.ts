@@ -10,8 +10,7 @@ import {
   Req,
   UseInterceptors,
   UploadedFile,
-  Query,
-  BadRequestException
+  Query
 } from '@nestjs/common'
 import { UserService } from './user.service'
 import { CreateAccountDto } from './dto/create-account.dto'
@@ -34,7 +33,6 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { Public } from '@decorators/auth.decorator'
 import { plainToInstance } from 'class-transformer'
 import { ProfileDTO } from './dto/profile-dto'
-import { BulkCreateAccountsResponseDto } from './dto/bulk-create-accounts-response.dto'
 
 @ApiTags('Users')
 @Controller({
