@@ -14,6 +14,7 @@ import { ClassDetailDTO } from './dto/class-detail.dto'
 import { ArrangeStudentsDto, ClassArrangementResultDto } from './dto/arrange-students.dto'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
+import { GetModulesByClassQueryDto } from './dto/get-modules-by-class-query.dto'
 
 @ApiTags('Classes')
 @Controller({
@@ -90,6 +91,33 @@ export class ClassController {
   @ResponseMessage('Get my assigned classes successfully')
   async getMyClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
     return await this.classService.getClassesForLecturer(currentUser.id, query)
+  }
+
+  @Get(':classId/modules')
+  @ApiOperation({
+    summary: 'Get modules by class ID',
+    description: `
+      Get paginated list of modules associated with a specific class. Available for Admin, Principal, and Lecturer roles.
+      
+      **Query Parameters:**
+      - \`page\`: Page number (default: 1)
+      - \`limit\`: Number of items per page (default: 10)
+      - \`q\`: Search by module name, code, or description (optional)
+      - \`order\`: Sort order - ASC or DESC (default: ASC)
+      - \`sort_by\`: Sort field - module_name, module_code, created_at, updated_at (default: created_at)
+    `
+  })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Modules retrieved successfully')
+  async getModulesByClassId(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Query() query: GetModulesByClassQueryDto
+  ) {
+    return await this.classService.getModulesByClassId(classId, query)
   }
 
   @Get(':classId')
