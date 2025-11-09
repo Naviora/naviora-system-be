@@ -1,4 +1,4 @@
-import { IVerifyEmailJob } from '@common/interfaces/job.interface'
+import { IAccountInfoJob, IVerifyEmailJob } from '@common/interfaces/job.interface'
 import { MailService } from '@mail/mail.service'
 import { Injectable, Logger } from '@nestjs/common'
 
@@ -11,5 +11,14 @@ export class EmailQueueService {
   async sendEmailVerification(data: IVerifyEmailJob): Promise<void> {
     this.logger.debug(`Sending email verification to ${data.email}`)
     await this.mailService.sendEmailVerification(data.email, data.token)
+  }
+
+  async sendAccountInfo(data: IAccountInfoJob): Promise<void> {
+    this.logger.debug(`Sending account info email to ${data.email}`)
+    await this.mailService.sendAccountInfo(data.email, {
+      name: data.name,
+      email: data.email,
+      password: data.password
+    })
   }
 }

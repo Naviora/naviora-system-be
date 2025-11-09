@@ -23,6 +23,12 @@ import { paginate } from '@utils/offset-pagination'
 import { MailService } from '@mail/mail.service'
 import { Role } from '@api/role/entities/role.entity'
 import { CreateAccountByAdminDto } from './dto/create-account-by-admin.dto'
+import { CreateAccountByAdminResponseDto } from './dto/create-account-by-admin.res.dto'
+import { BulkCreateAccountByAdminDto } from './dto/bulk-create-account-by-admin.dto'
+import { InjectQueue } from '@nestjs/bullmq'
+import { Queue } from 'bullmq'
+import { QueueName, JobName } from '@constants/job.constant'
+import { IAccountInfoJob } from '@common/interfaces/job.interface'
 import * as ExcelJS from 'exceljs'
 import { BulkCreateAccountsResponseDto, BulkCreateAccountResultDto } from './dto/bulk-create-accounts-response.dto'
 
@@ -37,7 +43,9 @@ export class UserService {
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService,
-    private readonly mailService: MailService
+    private readonly mailService: MailService,
+    @InjectQueue(QueueName.EMAIL)
+    private readonly emailQueue: Queue
   ) {}
 
   isExist = async (email: string): Promise<boolean> => {
@@ -351,22 +359,9 @@ export class UserService {
     }
   }
 
-  private generatePassword(length: number = 12): string {
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
-    let password = ''
-    const len = charset.length
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * len))
-    }
-    return password
-  }
-
   async createAccountByAdmin(createAccountDto: CreateAccountByAdminDto) {
-    const { email, name, role_id } = createAccountDto
+    const { email, name, role_id, password } = createAccountDto
     try {
-      this.logger.log(`Creating account for email: ${email} with name: ${name} and role_id: ${role_id}`)
-
-      // Check if email already exists
       if (await this.isExist(email)) {
         throw new ValidationException(ErrorCode.E003, 'Email already exists')
       }
@@ -374,7 +369,7 @@ export class UserService {
       // Validate role if provided
       let role: Role | null = null
       if (role_id) {
-        role = await this.roleRepository.findOne({ where: { id: parseInt(role_id) } })
+        role = await this.roleRepository.findOne({ where: { id: role_id } })
         if (!role) {
           throw new ValidationException(ErrorCode.E002, 'Role not found', [
             {
@@ -396,18 +391,16 @@ export class UserService {
         }
       }
 
-      // Generate password (not hashed yet, will be sent to user)
-      const plainPassword = this.generatePassword(12)
-
       // Hash password for storage
-      const hashPass = await hashString(plainPassword)
+      const hashPass = await hashString(password)
 
       // Create user
       const user = this.userRepository.create({
         name,
         email,
         password: hashPass,
-        role: role || null
+        role: role || null,
+        status: AccountStatus.Active
       })
 
       const newAccount = await this.userRepository.save(user)
@@ -415,13 +408,19 @@ export class UserService {
         throw new ValidationException(ErrorCode.A001)
       }
 
+      // Load role relation for response
+      const accountWithRole = await this.userRepository.findOne({
+        where: { id: newAccount.id },
+        relations: ['role']
+      })
+
       // Send email with account info (email and plain password)
-      // If email sending fails, log error but don't fail the request since account is already created
+      // === Can be move to background job ===
       try {
         await this.mailService.sendAccountInfo(email, {
           name,
           email,
-          password: plainPassword
+          password
         })
         this.logger.log(`Account info email sent successfully to ${email}`)
       } catch (mailError) {
@@ -429,164 +428,280 @@ export class UserService {
         // Don't throw - account is already created, email failure is non-critical
       }
 
-      return newAccount
+      return plainToInstance(CreateAccountByAdminResponseDto, accountWithRole || newAccount, {
+        excludeExtraneousValues: true
+      })
     } catch (error) {
-      this.logger.error(`Error creating account for ${email}:`, error)
       throw error
     }
   }
 
-  async bulkCreateAccountsFromExcel(file: Express.Multer.File): Promise<BulkCreateAccountsResponseDto> {
-    try {
-      const workbook = new ExcelJS.Workbook()
-      // Convert Multer buffer to Node.js Buffer for ExcelJS compatibility
-      const buffer = Buffer.from(new Uint8Array(file.buffer))
-      // TypeScript type incompatibility between Buffer types - safe to ignore at runtime
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      await workbook.xlsx.load(buffer)
+  async bulkCreateAccountByAdmin(bulkCreateDto: BulkCreateAccountByAdminDto) {
+    const { accounts } = bulkCreateDto
+    const results: {
+      success: CreateAccountByAdminResponseDto[]
+      failed: Array<{ account: CreateAccountByAdminDto; error: string }>
+    } = {
+      success: [],
+      failed: []
+    }
 
-      const worksheet = workbook.worksheets[0]
-      if (!worksheet) {
-        throw new ValidationException(ErrorCode.A001, 'Excel file is empty or invalid')
-      }
+    // Process accounts sequentially to avoid race conditions
+    for (const accountDto of accounts) {
+      try {
+        const { email, name, role_id, password } = accountDto
 
-      const results: BulkCreateAccountResultDto[] = []
-      let successCount = 0
-      let failureCount = 0
-
-      // Skip header row (row 1) and process from row 2
-      for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
-        const row = worksheet.getRow(rowNumber)
-
-        // Get values from columns (assuming: A=name, B=email, C=role)
-        const name = row.getCell(1).value?.toString()?.trim()
-        const email = row.getCell(2).value?.toString()?.trim()
-        const roleName = row.getCell(3).value?.toString()?.trim()
-
-        // Skip empty rows
-        if (!name && !email && !roleName) {
+        // Check if email already exists
+        if (await this.isExist(email)) {
+          results.failed.push({
+            account: accountDto,
+            error: 'Email already exists'
+          })
           continue
         }
 
-        // Validate required fields
-        if (!name || !email || !roleName) {
-          results.push({
-            email: email || '',
-            name: name || '',
-            role: roleName || '',
-            success: false,
-            error: 'Missing required fields: name, email, or role'
-          })
-          failureCount++
-          continue
-        }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailRegex.test(email)) {
-          results.push({
-            email,
-            name,
-            role: roleName,
-            success: false,
-            error: 'Invalid email format'
-          })
-          failureCount++
-          continue
-        }
-
-        try {
-          // Find role by name
-          const role = await this.roleRepository.findOne({
-            where: { name: roleName }
-          })
-
+        // Validate role if provided
+        let role: Role | null = null
+        if (role_id) {
+          role = await this.roleRepository.findOne({ where: { id: role_id } })
           if (!role) {
-            results.push({
-              email,
-              name,
-              role: roleName,
-              success: false,
-              error: `Role "${roleName}" not found`
+            results.failed.push({
+              account: accountDto,
+              error: 'Role not found'
             })
-            failureCount++
             continue
           }
 
-          // Check if Admin role is being assigned
+          // Ensure role is below Admin level
           if (role.name === RoleInAccount.Admin) {
-            results.push({
-              email,
-              name,
-              role: roleName,
-              success: false,
+            results.failed.push({
+              account: accountDto,
               error: 'Cannot create account with Admin role'
             })
-            failureCount++
             continue
           }
+        }
 
-          // Check if email already exists
-          if (await this.isExist(email)) {
-            results.push({
+        // Hash password for storage
+        const hashPass = await hashString(password)
+
+        // Create user
+        const user = this.userRepository.create({
+          name,
+          email,
+          password: hashPass,
+          role: role || null,
+          // ==== Temporary active account for first create
+          status: AccountStatus.Active
+        })
+
+        const newAccount = await this.userRepository.save(user)
+        if (!newAccount) {
+          results.failed.push({
+            account: accountDto,
+            error: 'Failed to create account'
+          })
+          continue
+        }
+
+        // Load role relation for response
+        const accountWithRole = await this.userRepository.findOne({
+          where: { id: newAccount.id },
+          relations: ['role']
+        })
+
+        // Add email job to background queue
+        try {
+          await this.emailQueue.add(
+            JobName.ACCOUNT_INFO,
+            {
               email,
               name,
-              role: roleName,
-              success: false,
-              error: 'Email already exists'
-            })
-            failureCount++
-            continue
-          }
-
-          // Create account
-          const createAccountDto: CreateAccountByAdminDto = {
-            name,
-            email,
-            role_id: role.id.toString()
-          }
-
-          await this.createAccountByAdmin(createAccountDto)
-
-          results.push({
-            email,
-            name,
-            role: roleName,
-            success: true
-          })
-          successCount++
-        } catch (error) {
-          this.logger.error(`Error creating account for ${email} at row ${rowNumber}:`, error)
-          results.push({
-            email,
-            name,
-            role: roleName,
-            success: false,
-            error: error instanceof ValidationException ? error.message : 'Failed to create account'
-          })
-          failureCount++
+              password
+            } as IAccountInfoJob,
+            {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 2000
+              }
+            }
+          )
+          this.logger.log(`Account info email job queued for ${email}`)
+        } catch (queueError) {
+          this.logger.error(`Failed to queue email job for ${email}:`, queueError)
+          // Don't fail the account creation if queue fails
         }
-      }
 
-      return {
-        total: results.length,
-        successCount,
-        failureCount,
-        results
+        const responseDto = plainToInstance(CreateAccountByAdminResponseDto, accountWithRole || newAccount, {
+          excludeExtraneousValues: true
+        })
+
+        results.success.push(responseDto)
+      } catch (error) {
+        this.logger.error(`Error creating account for ${accountDto.email}:`, error)
+        results.failed.push({
+          account: accountDto,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
       }
-    } catch (error) {
-      this.logger.error('Error processing Excel file:', error)
-      if (error instanceof ValidationException) {
-        throw error
-      }
-      throw new ValidationException(ErrorCode.A001, 'Failed to process Excel file', [
-        {
-          property: 'file',
-          code: ErrorCode.A001,
-          message: error instanceof Error ? error.message : 'Unknown error occurred'
-        }
-      ])
     }
+
+    return results
   }
+
+  // async bulkCreateAccountsFromExcel(file: Express.Multer.File): Promise<BulkCreateAccountsResponseDto> {
+  //   try {
+  //     const workbook = new ExcelJS.Workbook()
+  //     // Convert Multer buffer to Node.js Buffer for ExcelJS compatibility
+  //     const buffer = Buffer.from(new Uint8Array(file.buffer))
+  //     // TypeScript type incompatibility between Buffer types - safe to ignore at runtime
+  //     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  //     // @ts-ignore
+  //     await workbook.xlsx.load(buffer)
+
+  //     const worksheet = workbook.worksheets[0]
+  //     if (!worksheet) {
+  //       throw new ValidationException(ErrorCode.A001, 'Excel file is empty or invalid')
+  //     }
+
+  //     const results: BulkCreateAccountResultDto[] = []
+  //     let successCount = 0
+  //     let failureCount = 0
+
+  //     // Skip header row (row 1) and process from row 2
+  //     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+  //       const row = worksheet.getRow(rowNumber)
+
+  //       // Get values from columns (assuming: A=name, B=email, C=role)
+  //       const name = row.getCell(1).value?.toString()?.trim()
+  //       const email = row.getCell(2).value?.toString()?.trim()
+  //       const roleName = row.getCell(3).value?.toString()?.trim()
+
+  //       // Skip empty rows
+  //       if (!name && !email && !roleName) {
+  //         continue
+  //       }
+
+  //       // Validate required fields
+  //       if (!name || !email || !roleName) {
+  //         results.push({
+  //           email: email || '',
+  //           name: name || '',
+  //           role: roleName || '',
+  //           success: false,
+  //           error: 'Missing required fields: name, email, or role'
+  //         })
+  //         failureCount++
+  //         continue
+  //       }
+
+  //       // Validate email format
+  //       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  //       if (!emailRegex.test(email)) {
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: false,
+  //           error: 'Invalid email format'
+  //         })
+  //         failureCount++
+  //         continue
+  //       }
+
+  //       try {
+  //         // Find role by name
+  //         const role = await this.roleRepository.findOne({
+  //           where: { name: roleName }
+  //         })
+
+  //         if (!role) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: `Role "${roleName}" not found`
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Check if Admin role is being assigned
+  //         if (role.name === RoleInAccount.Admin) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: 'Cannot create account with Admin role'
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Check if email already exists
+  //         if (await this.isExist(email)) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: 'Email already exists'
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Create account
+  //         const createAccountDto: CreateAccountByAdminDto = {
+  //           name,
+  //           email,
+  //           role_id: role.id,
+  //         }
+
+  //         await this.createAccountByAdmin(createAccountDto)
+
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: true
+  //         })
+  //         successCount++
+  //       } catch (error) {
+  //         this.logger.error(`Error creating account for ${email} at row ${rowNumber}:`, error)
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: false,
+  //           error: error instanceof ValidationException ? error.message : 'Failed to create account'
+  //         })
+  //         failureCount++
+  //       }
+  //     }
+
+  //     return {
+  //       total: results.length,
+  //       successCount,
+  //       failureCount,
+  //       results
+  //     }
+  //   } catch (error) {
+  //     this.logger.error('Error processing Excel file:', error)
+  //     if (error instanceof ValidationException) {
+  //       throw error
+  //     }
+  //     throw new ValidationException(ErrorCode.A001, 'Failed to process Excel file', [
+  //       {
+  //         property: 'file',
+  //         code: ErrorCode.A001,
+  //         message: error instanceof Error ? error.message : 'Unknown error occurred'
+  //       }
+  //     ])
+  // }
+
+  // }
 }
