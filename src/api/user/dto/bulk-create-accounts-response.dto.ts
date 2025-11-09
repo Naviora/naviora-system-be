@@ -30,4 +30,3 @@ export class BulkCreateAccountsResponseDto {
   @ApiProperty({ description: 'Detailed results for each account', type: [BulkCreateAccountResultDto] })
   results: BulkCreateAccountResultDto[]
 }
-
