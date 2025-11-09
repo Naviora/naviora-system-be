@@ -707,7 +707,7 @@ export class EntryTestService {
     }
 
     // Get all submissions for this entry test with student info
-    let submissionsQuery = this.entryTestSubmissionRepository
+    const submissionsQuery = this.entryTestSubmissionRepository
       .createQueryBuilder('submission')
       .leftJoinAndSelect('submission.student', 'student')
       .leftJoinAndSelect('student.role', 'studentRole')

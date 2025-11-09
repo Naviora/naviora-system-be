@@ -3,7 +3,7 @@ import { Expose, Type } from 'class-transformer'
 import { OffsetPaginationDto } from '@common/dto/offset-pagination/offset-pagination.dto'
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
 
-export class EntryTestStudentGradeItemDto {
+export class FinalExamStudentGradeItemDto {
   @ApiProperty({ description: 'Student ID' })
   @Expose()
   studentId: string
@@ -20,7 +20,7 @@ export class EntryTestStudentGradeItemDto {
   @Expose()
   studentAvatar: string | null
 
-  @ApiProperty({ description: 'Entry test submission ID' })
+  @ApiProperty({ description: 'Final exam submission ID' })
   @Expose()
   submissionId: string
 
@@ -45,15 +45,15 @@ export class EntryTestStudentGradeItemDto {
   penalty: boolean | null
 }
 
-export class EntryTestStudentGradeListResponseDto {
-  @ApiProperty({ description: 'Entry test ID' })
+export class FinalExamStudentGradeListResponseDto {
+  @ApiProperty({ description: 'Final exam ID' })
   @Expose()
-  entryTestId: string
+  finalExamId: string
 
-  @ApiProperty({ type: [EntryTestStudentGradeItemDto], description: 'List of student grades' })
+  @ApiProperty({ type: [FinalExamStudentGradeItemDto], description: 'List of student grades' })
   @Expose()
-  @Type(() => EntryTestStudentGradeItemDto)
-  students: EntryTestStudentGradeItemDto[]
+  @Type(() => FinalExamStudentGradeItemDto)
+  students: FinalExamStudentGradeItemDto[]
 
   @ApiProperty({ type: OffsetPaginationDto, description: 'Pagination metadata' })
   @Expose()
