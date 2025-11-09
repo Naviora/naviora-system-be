@@ -399,7 +399,8 @@ export class UserService {
         name,
         email,
         password: hashPass,
-        role: role || null
+        role: role || null,
+        status: AccountStatus.Active
       })
 
       const newAccount = await this.userRepository.save(user)
@@ -489,7 +490,9 @@ export class UserService {
           name,
           email,
           password: hashPass,
-          role: role || null
+          role: role || null,
+          // ==== Temporary active account for first create
+          status: AccountStatus.Active
         })
 
         const newAccount = await this.userRepository.save(user)
@@ -699,5 +702,6 @@ export class UserService {
   //       }
   //     ])
   // }
+
   // }
 }
