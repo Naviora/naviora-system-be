@@ -11,4 +11,3 @@ export class GetModulesByClassQueryDto extends PageOptionsDto {
   @StringFieldOptional()
   readonly sort_by?: string
 }
-
