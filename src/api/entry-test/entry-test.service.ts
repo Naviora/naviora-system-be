@@ -20,6 +20,11 @@ import { ExamStatus } from '@common/enums/exam-status.enum'
 import { paginate } from '@utils/offset-pagination'
 import { GetEntryTestsQueryDto } from './dto/get-entry-tests-query.dto'
 import { AttemptStatus } from '@common/enums/attempt-status.enum'
+import { GetEntryTestStudentGradesQueryDto } from './dto/get-student-grades-query.dto'
+import {
+  EntryTestStudentGradeListResponseDto,
+  EntryTestStudentGradeItemDto
+} from './dto/entry-test-student-grade-list-response.dto'
 
 @Injectable()
 export class EntryTestService {
@@ -672,5 +677,80 @@ export class EntryTestService {
     const sorted1 = [...arr1].sort()
     const sorted2 = [...arr2].sort()
     return sorted1.every((id, index) => id === sorted2[index])
+  }
+
+  async getStudentGradeList(
+    entryTestId: string,
+    queryDto: GetEntryTestStudentGradesQueryDto | undefined,
+    currentUser: User
+  ): Promise<EntryTestStudentGradeListResponseDto> {
+    // Ensure queryDto has default values if not provided
+    // Create a new DTO with proper defaults to avoid readonly property issues
+    const paginationDto: GetEntryTestStudentGradesQueryDto = queryDto
+      ? Object.assign(new GetEntryTestStudentGradesQueryDto(), {
+          limit: queryDto.limit || 10,
+          page: queryDto.page || 1,
+          order: queryDto.order || 'ASC',
+          q: queryDto.q
+        })
+      : new GetEntryTestStudentGradesQueryDto()
+
+    // Get entry test to validate it exists
+    const entryTest = await this.entryTestRepository.findOne({
+      where: { entryTestId }
+    })
+
+    if (!entryTest) {
+      throw new ValidationException(ErrorCode.V004, 'Entry test not found', [
+        { property: 'entryTestId', code: ErrorCode.V004 }
+      ])
+    }
+
+    // Get all submissions for this entry test with student info
+    let submissionsQuery = this.entryTestSubmissionRepository
+      .createQueryBuilder('submission')
+      .leftJoinAndSelect('submission.student', 'student')
+      .leftJoinAndSelect('student.role', 'studentRole')
+      .where('submission.entryTestId = :entryTestId', { entryTestId })
+
+    // Note: Entry tests are not tied to modules/classes, so all admins/principals/lecturers can see all students
+    // No additional filtering needed based on role
+
+    // Apply search filter if provided
+    if (paginationDto.q) {
+      submissionsQuery.andWhere('(student.name ILIKE :search OR student.email ILIKE :search)', {
+        search: `%${paginationDto.q}%`
+      })
+    }
+
+    // Apply sorting
+    submissionsQuery.orderBy('student.name', paginationDto.order || 'ASC')
+    submissionsQuery.addOrderBy('submission.submittedAt', 'DESC')
+
+    // Apply pagination
+    const [submissions, metaDto] = await paginate<EntryTestSubmissionEntity>(submissionsQuery, paginationDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    // Transform to response DTO
+    const studentGrades: EntryTestStudentGradeItemDto[] = submissions.map((submission) => ({
+      studentId: submission.student.id,
+      studentName: submission.student.name,
+      studentEmail: submission.student.email,
+      studentAvatar: submission.student.avatar,
+      submissionId: submission.entryTestSubmissionId,
+      score: submission.score,
+      attemptStatus: submission.attemptStatus,
+      submittedAt: submission.submittedAt,
+      note: submission.note,
+      penalty: submission.penalty
+    }))
+
+    return plainToInstance(EntryTestStudentGradeListResponseDto, {
+      entryTestId,
+      students: studentGrades,
+      pagination: metaDto
+    })
   }
 }
