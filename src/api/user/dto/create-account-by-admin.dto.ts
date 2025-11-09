@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsEmail, IsNotEmpty, IsOptional, IsNumberString } from 'class-validator'
-import { StringField } from '@decorators/field.decorators'
+import { EmailField, NumberField, StringField } from '@decorators/field.decorators'
 
 export class CreateAccountByAdminDto {
   @ApiProperty({ description: 'User name', example: 'John Doe' })
@@ -8,12 +7,14 @@ export class CreateAccountByAdminDto {
   name: string
 
   @ApiProperty({ description: 'User email', example: 'john.doe@example.com' })
-  @IsEmail()
-  @IsNotEmpty()
+  @EmailField()
   email: string
 
   @ApiProperty({ description: 'Role ID (optional, must be below Admin level)', example: '2', required: false })
-  @IsOptional()
-  @IsNumberString()
-  role_id?: string
+  @NumberField()
+  role_id: number
+
+  @ApiProperty({ description: 'Password', example: 'Password@123' })
+  @StringField()
+  password: string
 }

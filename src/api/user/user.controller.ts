@@ -15,6 +15,9 @@ import {
 import { UserService } from './user.service'
 import { CreateAccountDto } from './dto/create-account.dto'
 import { CreateAccountByAdminDto } from './dto/create-account-by-admin.dto'
+import { CreateAccountByAdminResponseDto } from './dto/create-account-by-admin.res.dto'
+import { BulkCreateAccountByAdminDto } from './dto/bulk-create-account-by-admin.dto'
+import { BulkCreateAccountByAdminResponseDto } from './dto/bulk-create-account-by-admin.res.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
 import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
 import { GetUsersQueryDto } from './dto/get-users-query.dto'
@@ -179,14 +182,55 @@ export class UserController {
         value: {
           name: 'John Doe',
           email: 'john.doe@example.com',
-          role_id: '2'
+          role_id: 2
         }
       }
     }
   })
+  @ApiResponse({ status: 201, description: 'Account created successfully', type: CreateAccountByAdminResponseDto })
   @ResponseMessage('Account created successfully, credentials sent via email')
   async createAccountByAdmin(@Body() createAccountDto: CreateAccountByAdminDto) {
     return await this.userService.createAccountByAdmin(createAccountDto)
+  }
+
+  @Post('admin/bulk-create')
+  @ApiOperation({
+    summary: 'Admin: Bulk create accounts and send credentials via email (background job)'
+  })
+  @ApiBody({
+    description:
+      'Create multiple accounts with roles, passwords will be auto-generated and sent via email in background',
+    type: BulkCreateAccountByAdminDto,
+    examples: {
+      example1: {
+        summary: 'Bulk create accounts',
+        value: {
+          accounts: [
+            {
+              name: 'John Doe',
+              email: 'john.doe@example.com',
+              role_id: 2,
+              password: 'Password@123'
+            },
+            {
+              name: 'Jane Smith',
+              email: 'jane.smith@example.com',
+              role_id: 3,
+              password: 'Password@456'
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Bulk account creation completed',
+    type: BulkCreateAccountByAdminResponseDto
+  })
+  @ResponseMessage('Bulk account creation completed, emails will be sent in background')
+  async bulkCreateAccountByAdmin(@Body() bulkCreateDto: BulkCreateAccountByAdminDto) {
+    return await this.userService.bulkCreateAccountByAdmin(bulkCreateDto)
   }
 
   @Delete(':id')

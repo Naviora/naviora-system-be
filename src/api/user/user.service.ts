@@ -23,6 +23,12 @@ import { paginate } from '@utils/offset-pagination'
 import { MailService } from '@mail/mail.service'
 import { Role } from '@api/role/entities/role.entity'
 import { CreateAccountByAdminDto } from './dto/create-account-by-admin.dto'
+import { CreateAccountByAdminResponseDto } from './dto/create-account-by-admin.res.dto'
+import { BulkCreateAccountByAdminDto } from './dto/bulk-create-account-by-admin.dto'
+import { InjectQueue } from '@nestjs/bullmq'
+import { Queue } from 'bullmq'
+import { QueueName, JobName } from '@constants/job.constant'
+import { IAccountInfoJob } from '@common/interfaces/job.interface'
 
 @Injectable()
 export class UserService {
@@ -35,7 +41,9 @@ export class UserService {
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly cloudinaryService: CloudinaryService,
-    private readonly mailService: MailService
+    private readonly mailService: MailService,
+    @InjectQueue(QueueName.EMAIL)
+    private readonly emailQueue: Queue
   ) {}
 
   isExist = async (email: string): Promise<boolean> => {
@@ -349,22 +357,9 @@ export class UserService {
     }
   }
 
-  private generatePassword(length: number = 12): string {
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
-    let password = ''
-    const len = charset.length
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * len))
-    }
-    return password
-  }
-
   async createAccountByAdmin(createAccountDto: CreateAccountByAdminDto) {
-    const { email, name, role_id } = createAccountDto
+    const { email, name, role_id, password } = createAccountDto
     try {
-      this.logger.log(`Creating account for email: ${email} with name: ${name} and role_id: ${role_id}`)
-
-      // Check if email already exists
       if (await this.isExist(email)) {
         throw new ValidationException(ErrorCode.E003, 'Email already exists')
       }
@@ -372,7 +367,7 @@ export class UserService {
       // Validate role if provided
       let role: Role | null = null
       if (role_id) {
-        role = await this.roleRepository.findOne({ where: { id: parseInt(role_id) } })
+        role = await this.roleRepository.findOne({ where: { id: role_id } })
         if (!role) {
           throw new ValidationException(ErrorCode.E002, 'Role not found', [
             {
@@ -394,11 +389,8 @@ export class UserService {
         }
       }
 
-      // Generate password (not hashed yet, will be sent to user)
-      const plainPassword = this.generatePassword(12)
-
       // Hash password for storage
-      const hashPass = await hashString(plainPassword)
+      const hashPass = await hashString(password)
 
       // Create user
       const user = this.userRepository.create({
@@ -413,13 +405,19 @@ export class UserService {
         throw new ValidationException(ErrorCode.A001)
       }
 
+      // Load role relation for response
+      const accountWithRole = await this.userRepository.findOne({
+        where: { id: newAccount.id },
+        relations: ['role']
+      })
+
       // Send email with account info (email and plain password)
-      // If email sending fails, log error but don't fail the request since account is already created
+      // === Can be move to background job ===
       try {
         await this.mailService.sendAccountInfo(email, {
           name,
           email,
-          password: plainPassword
+          password
         })
         this.logger.log(`Account info email sent successfully to ${email}`)
       } catch (mailError) {
@@ -427,10 +425,123 @@ export class UserService {
         // Don't throw - account is already created, email failure is non-critical
       }
 
-      return newAccount
+      return plainToInstance(CreateAccountByAdminResponseDto, accountWithRole || newAccount, {
+        excludeExtraneousValues: true
+      })
     } catch (error) {
-      this.logger.error(`Error creating account for ${email}:`, error)
       throw error
     }
+  }
+
+  async bulkCreateAccountByAdmin(bulkCreateDto: BulkCreateAccountByAdminDto) {
+    const { accounts } = bulkCreateDto
+    const results: {
+      success: CreateAccountByAdminResponseDto[]
+      failed: Array<{ account: CreateAccountByAdminDto; error: string }>
+    } = {
+      success: [],
+      failed: []
+    }
+
+    // Process accounts sequentially to avoid race conditions
+    for (const accountDto of accounts) {
+      try {
+        const { email, name, role_id, password } = accountDto
+
+        // Check if email already exists
+        if (await this.isExist(email)) {
+          results.failed.push({
+            account: accountDto,
+            error: 'Email already exists'
+          })
+          continue
+        }
+
+        // Validate role if provided
+        let role: Role | null = null
+        if (role_id) {
+          role = await this.roleRepository.findOne({ where: { id: role_id } })
+          if (!role) {
+            results.failed.push({
+              account: accountDto,
+              error: 'Role not found'
+            })
+            continue
+          }
+
+          // Ensure role is below Admin level
+          if (role.name === RoleInAccount.Admin) {
+            results.failed.push({
+              account: accountDto,
+              error: 'Cannot create account with Admin role'
+            })
+            continue
+          }
+        }
+
+        // Hash password for storage
+        const hashPass = await hashString(password)
+
+        // Create user
+        const user = this.userRepository.create({
+          name,
+          email,
+          password: hashPass,
+          role: role || null
+        })
+
+        const newAccount = await this.userRepository.save(user)
+        if (!newAccount) {
+          results.failed.push({
+            account: accountDto,
+            error: 'Failed to create account'
+          })
+          continue
+        }
+
+        // Load role relation for response
+        const accountWithRole = await this.userRepository.findOne({
+          where: { id: newAccount.id },
+          relations: ['role']
+        })
+
+        // Add email job to background queue
+        try {
+          await this.emailQueue.add(
+            JobName.ACCOUNT_INFO,
+            {
+              email,
+              name,
+              password
+            } as IAccountInfoJob,
+            {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 2000
+              }
+            }
+          )
+          this.logger.log(`Account info email job queued for ${email}`)
+        } catch (queueError) {
+          this.logger.error(`Failed to queue email job for ${email}:`, queueError)
+          // Don't fail the account creation if queue fails
+        }
+
+        const responseDto = plainToInstance(CreateAccountByAdminResponseDto, accountWithRole || newAccount, {
+          excludeExtraneousValues: true
+        })
+
+        results.success.push(responseDto)
+      } catch (error) {
+        this.logger.error(`Error creating account for ${accountDto.email}:`, error)
+        results.failed.push({
+          account: accountDto,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
+      }
+    }
+
+    return results
   }
 }
