@@ -12,6 +12,7 @@ import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-s
 import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
 import { ClassEnrolment } from './entities/class-enrolment.entity'
 import { ModuleEntity } from '@api/module/entities/module.entity'
+import { TeachingModule } from '@api/module/entities/teaching-module.entity'
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { ModuleEntity } from '@api/module/entities/module.entity'
       EntryTestSubmissionEntity,
       EntryTestEntity,
       ClassEnrolment,
-      ModuleEntity
+      ModuleEntity,
+      TeachingModule
     ]),
     CloudinaryModule,
     JwtModule,
