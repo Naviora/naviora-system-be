@@ -757,7 +757,8 @@ export class ReviewedExerciseService {
           limit: queryDto.limit || 10,
           page: queryDto.page || 1,
           order: queryDto.order || 'ASC',
-          q: queryDto.q
+          q: queryDto.q,
+          attemptStatus: queryDto.attemptStatus
         })
       : new GetStudentGradesQueryDto()
     // Get reviewed exercise with lesson, module, and class
@@ -836,6 +837,12 @@ export class ReviewedExerciseService {
     if (paginationDto.q) {
       submissionsQuery.andWhere('(student.name ILIKE :search OR student.email ILIKE :search)', {
         search: `%${paginationDto.q}%`
+      })
+    }
+
+    if (paginationDto.attemptStatus) {
+      submissionsQuery.andWhere('submission.attemptStatus = :attemptStatus', {
+        attemptStatus: paginationDto.attemptStatus
       })
     }
 
