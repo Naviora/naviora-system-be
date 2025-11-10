@@ -9,6 +9,7 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
 import { StreakResponseDto } from './dto/streak-response.dto'
+import { Public } from '@decorators/auth.decorator'
 
 @ApiTags('Streaks')
 @Controller({
@@ -16,12 +17,13 @@ import { StreakResponseDto } from './dto/streak-response.dto'
   version: '1'
 })
 @ApiBearerAuth('Authorization')
-@UseGuards(AccessTokenGuard, RolesGuard)
+@UseGuards(AccessTokenGuard)
+// @Public()
 export class StreakController {
   constructor(private readonly streakService: StreakService) {}
 
   @Get('me')
-  @Roles(RoleInAccount.Student)
+  // @Roles(RoleInAccount.Student)
   @ApiOperation({
     summary: 'Get my streak',
     description: 'Get the current streak information for the authenticated student'
@@ -32,7 +34,7 @@ export class StreakController {
   }
 
   @Get('student/:studentId')
-  @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
+  // @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({
     summary: 'Get streak by student ID',
     description: 'Get streak information for a specific student. Available for Admin, Principal, and Lecturer roles.'
