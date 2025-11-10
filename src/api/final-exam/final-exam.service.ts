@@ -26,6 +26,7 @@ import {
   FinalExamStudentGradeItemDto
 } from './dto/final-exam-student-grade-list-response.dto'
 import { StreakService } from '@api/streak/streak.service'
+import { QuestionSetBasicInfoDto } from '@api/entry-test/dto/question-set-basic-info.dto'
 
 @Injectable()
 export class FinalExamService {
@@ -104,9 +105,15 @@ export class FinalExamService {
       throw new ValidationException(ErrorCode.MODULE002, 'Failed to create final exam')
     }
 
+    // Reload final exam with full question set relations to get all fields
+    const finalExamWithRelations = await this.finalExamRepository.findOne({
+      where: { finalExamId: savedFinalExam.finalExamId },
+      relations: ['questionSets', 'createdBy', 'updatedBy']
+    })
+
     return plainToInstance(FinalExamResponseDto, {
-      ...savedFinalExam,
-      questionSets: savedFinalExam.questionSets.map((qs) => qs.questionSetId)
+      ...finalExamWithRelations,
+      questionSets: this.mapQuestionSetsToBasicInfo(finalExamWithRelations.questionSets)
     })
   }
 
@@ -240,9 +247,15 @@ export class FinalExamService {
       ])
     }
 
+    // Reload final exam with full question set relations to get all fields
+    const finalExamWithRelations = await this.finalExamRepository.findOne({
+      where: { finalExamId: savedFinalExam.finalExamId },
+      relations: ['questionSets', 'createdBy', 'updatedBy']
+    })
+
     return plainToInstance(FinalExamResponseDto, {
-      ...savedFinalExam,
-      questionSets: savedFinalExam.questionSets.map((qs) => qs.questionSetId)
+      ...finalExamWithRelations,
+      questionSets: this.mapQuestionSetsToBasicInfo(finalExamWithRelations.questionSets)
     })
   }
 
@@ -356,7 +369,7 @@ export class FinalExamService {
     const mappedFinalExams = finalExams.map((fe) =>
       plainToInstance(FinalExamResponseDto, {
         ...fe,
-        questionSets: fe.questionSets.map((qs) => qs.questionSetId)
+        questionSets: this.mapQuestionSetsToBasicInfo(fe.questionSets)
       })
     )
 
@@ -380,7 +393,7 @@ export class FinalExamService {
 
     return plainToInstance(FinalExamResponseDto, {
       ...finalExam,
-      questionSets: finalExam.questionSets.map((qs) => qs.questionSetId)
+      questionSets: this.mapQuestionSetsToBasicInfo(finalExam.questionSets)
     })
   }
 
@@ -414,13 +427,13 @@ export class FinalExamService {
 
       return plainToInstance(FinalExamResponseDto, {
         ...latestActiveExam,
-        questionSets: latestActiveExam.questionSets.map((qs) => qs.questionSetId)
+        questionSets: this.mapQuestionSetsToBasicInfo(latestActiveExam.questionSets)
       })
     }
 
     return plainToInstance(FinalExamResponseDto, {
       ...finalExam,
-      questionSets: finalExam.questionSets.map((qs) => qs.questionSetId)
+      questionSets: this.mapQuestionSetsToBasicInfo(finalExam.questionSets)
     })
   }
 
@@ -681,6 +694,23 @@ export class FinalExamService {
     const sorted1 = [...arr1].sort()
     const sorted2 = [...arr2].sort()
     return sorted1.every((id, index) => id === sorted2[index])
+  }
+
+  /**
+   * Map question sets to basic info DTO
+   * @param questionSets Array of question set entities
+   * @returns Array of QuestionSetBasicInfoDto
+   */
+  private mapQuestionSetsToBasicInfo(questionSets: QuestionSetEntity[]): QuestionSetBasicInfoDto[] {
+    return questionSets.map((qs) =>
+      plainToInstance(QuestionSetBasicInfoDto, {
+        questionSetId: qs.questionSetId,
+        title: qs.title,
+        description: qs.description,
+        totalQuestions: qs.config?.general?.total_questions || 0,
+        durationMinutes: qs.config?.general?.duration_minutes || 0
+      })
+    )
   }
 
   async getStudentGradeList(
