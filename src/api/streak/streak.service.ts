@@ -113,11 +113,11 @@ export class StreakService {
    * @returns Streak information
    */
   async getMyStreak(currentUser: User): Promise<StreakResponseDto> {
-    if (currentUser.role?.name !== RoleInAccount.Student) {
-      throw new ValidationException(ErrorCode.USER002, 'Only students can view their streak', [
-        { property: 'role', code: ErrorCode.USER002 }
-      ])
-    }
+    // if (currentUser.role?.name !== RoleInAccount.Student) {
+    //   throw new ValidationException(ErrorCode.USER002, 'Only students can view their streak', [
+    //     { property: 'role', code: ErrorCode.USER002 }
+    //   ])
+    // }
 
     return this.getStreakByStudentId(currentUser.id)
   }
