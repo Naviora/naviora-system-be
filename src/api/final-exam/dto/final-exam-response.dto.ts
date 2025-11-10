@@ -2,6 +2,7 @@ import { User } from '@api/user/entities/user.entity'
 import { ExamStatus } from '@common/enums/exam-status.enum'
 import { ApiProperty } from '@nestjs/swagger'
 import { Expose } from 'class-transformer'
+import { QuestionSetBasicInfoDto } from '@api/entry-test/dto/question-set-basic-info.dto'
 
 export class FinalExamResponseDto {
   @ApiProperty()
@@ -28,9 +29,9 @@ export class FinalExamResponseDto {
   @Expose()
   endTime: Date
 
-  @ApiProperty({ type: [String] })
+  @ApiProperty({ type: [QuestionSetBasicInfoDto] })
   @Expose()
-  questionSets: string[]
+  questionSets: QuestionSetBasicInfoDto[]
 
   @ApiProperty()
   @Expose()

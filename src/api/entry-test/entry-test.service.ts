@@ -26,6 +26,7 @@ import {
   EntryTestStudentGradeItemDto
 } from './dto/entry-test-student-grade-list-response.dto'
 import { StreakService } from '@api/streak/streak.service'
+import { QuestionSetBasicInfoDto } from './dto/question-set-basic-info.dto'
 
 @Injectable()
 export class EntryTestService {
@@ -104,9 +105,15 @@ export class EntryTestService {
       throw new ValidationException(ErrorCode.MODULE002, 'Failed to create entry test')
     }
 
+    // Reload entry test with full question set relations to get all fields
+    const entryTestWithRelations = await this.entryTestRepository.findOne({
+      where: { entryTestId: savedEntryTest.entryTestId },
+      relations: ['questionSets', 'createdBy', 'updatedBy']
+    })
+
     return plainToInstance(EntryTestResponseDto, {
-      ...savedEntryTest,
-      questionSets: savedEntryTest.questionSets.map((qs) => qs.questionSetId)
+      ...entryTestWithRelations,
+      questionSets: this.mapQuestionSetsToBasicInfo(entryTestWithRelations.questionSets)
     })
   }
 
@@ -240,9 +247,15 @@ export class EntryTestService {
       ])
     }
 
+    // Reload entry test with full question set relations to get all fields
+    const entryTestWithRelations = await this.entryTestRepository.findOne({
+      where: { entryTestId: savedEntryTest.entryTestId },
+      relations: ['questionSets', 'createdBy', 'updatedBy']
+    })
+
     return plainToInstance(EntryTestResponseDto, {
-      ...savedEntryTest,
-      questionSets: savedEntryTest.questionSets.map((qs) => qs.questionSetId)
+      ...entryTestWithRelations,
+      questionSets: this.mapQuestionSetsToBasicInfo(entryTestWithRelations.questionSets)
     })
   }
 
@@ -363,7 +376,7 @@ export class EntryTestService {
     const mappedEntryTests = entryTests.map((et) =>
       plainToInstance(EntryTestResponseDto, {
         ...et,
-        questionSets: et.questionSets.map((qs) => qs.questionSetId)
+        questionSets: this.mapQuestionSetsToBasicInfo(et.questionSets)
       })
     )
 
@@ -387,7 +400,7 @@ export class EntryTestService {
 
     return plainToInstance(EntryTestResponseDto, {
       ...entryTest,
-      questionSets: entryTest.questionSets.map((qs) => qs.questionSetId)
+      questionSets: this.mapQuestionSetsToBasicInfo(entryTest.questionSets)
     })
   }
 
@@ -421,13 +434,13 @@ export class EntryTestService {
 
       return plainToInstance(EntryTestResponseDto, {
         ...latestActiveTest,
-        questionSets: latestActiveTest.questionSets.map((qs) => qs.questionSetId)
+        questionSets: this.mapQuestionSetsToBasicInfo(latestActiveTest.questionSets)
       })
     }
 
     return plainToInstance(EntryTestResponseDto, {
       ...entryTest,
-      questionSets: entryTest.questionSets.map((qs) => qs.questionSetId)
+      questionSets: this.mapQuestionSetsToBasicInfo(entryTest.questionSets)
     })
   }
   async softDeleteEntryTest(entryTestId: string, currentUser: User) {
@@ -687,6 +700,23 @@ export class EntryTestService {
     const sorted1 = [...arr1].sort()
     const sorted2 = [...arr2].sort()
     return sorted1.every((id, index) => id === sorted2[index])
+  }
+
+  /**
+   * Map question sets to basic info DTO
+   * @param questionSets Array of question set entities
+   * @returns Array of QuestionSetBasicInfoDto
+   */
+  private mapQuestionSetsToBasicInfo(questionSets: QuestionSetEntity[]): QuestionSetBasicInfoDto[] {
+    return questionSets.map((qs) =>
+      plainToInstance(QuestionSetBasicInfoDto, {
+        questionSetId: qs.questionSetId,
+        title: qs.title,
+        description: qs.description,
+        totalQuestions: qs.config?.general?.total_questions || 0,
+        durationMinutes: qs.config?.general?.duration_minutes || 0
+      })
+    )
   }
 
   async getStudentGradeList(
