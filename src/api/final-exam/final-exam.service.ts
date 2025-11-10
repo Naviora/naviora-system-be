@@ -725,7 +725,8 @@ export class FinalExamService {
           limit: queryDto.limit || 10,
           page: queryDto.page || 1,
           order: queryDto.order || 'ASC',
-          q: queryDto.q
+          q: queryDto.q,
+          attemptStatus: queryDto.attemptStatus
         })
       : new GetFinalExamStudentGradesQueryDto()
 
@@ -754,6 +755,12 @@ export class FinalExamService {
     if (paginationDto.q) {
       submissionsQuery.andWhere('(student.name ILIKE :search OR student.email ILIKE :search)', {
         search: `%${paginationDto.q}%`
+      })
+    }
+
+    if (paginationDto.attemptStatus) {
+      submissionsQuery.andWhere('submission.attemptStatus = :attemptStatus', {
+        attemptStatus: paginationDto.attemptStatus
       })
     }
 
