@@ -763,6 +763,13 @@ export class EntryTestService {
       })
     }
 
+    // Apply attempt status filter if provided
+    if (paginationDto.attemptStatus) {
+      submissionsQuery.andWhere('submission.attemptStatus = :attemptStatus', {
+        attemptStatus: paginationDto.attemptStatus
+      })
+    }
+
     // Apply sorting
     submissionsQuery.orderBy('student.name', paginationDto.order || 'ASC')
     submissionsQuery.addOrderBy('submission.submittedAt', 'DESC')

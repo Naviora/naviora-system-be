@@ -236,6 +236,7 @@ export class EntryTestController {
       - \`limit\`: Number of items per page (default: 10)
       - \`q\`: Search by student name or email (optional)
       - \`order\`: Sort order - ASC or DESC (default: ASC)
+      - \`attemptStatus\`: Filter by attempt status - IN_PROGRESS, SUBMITTED, GRADED, or CANCELLED (optional)
       
       **Response includes:**
       - Student information (ID, name, email, avatar)
