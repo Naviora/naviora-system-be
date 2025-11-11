@@ -322,6 +322,9 @@ export class ReviewedExerciseService {
     })
 
     if (existingSubmission) {
+      if (existingSubmission.attemptStatus === AttemptStatus.IN_PROGRESS) {
+        return plainToInstance(ReviewedExerciseSubmissionResponseDto, existingSubmission)
+      }
       throw new ValidationException(ErrorCode.V004, 'Student already has a submission for this reviewed exercise', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
