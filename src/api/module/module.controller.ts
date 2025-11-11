@@ -80,11 +80,19 @@ export class ModulesController {
     return await this.modulesService.create(createModuleDto, banner)
   }
 
-  @ApiOperation({ summary: 'Get Modules', description: 'Get list of modules with pagination, search and filters' })
+  @ApiOperation({
+    summary: 'Get Modules',
+    description: `
+      Get list of modules with pagination, search and filters. Lecturers only see modules for classes they are assigned to.
+
+      **Additional Filters:**
+      - \`class_id\`: Filter modules by class ID
+    `
+  })
   @Get()
   @ResponseMessage('Get Modules successfully')
-  async getModules(@Query() query: GetModulesQueryDto) {
-    return await this.modulesService.getModules(query)
+  async getModules(@Query() query: GetModulesQueryDto, @CurrentUser() currentUser: User) {
+    return await this.modulesService.getModules(query, currentUser)
   }
 
   @Get(':moduleId')

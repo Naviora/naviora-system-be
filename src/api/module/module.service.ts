@@ -152,8 +152,24 @@ export class ModulesService {
     }
   }
 
-  async getModules(queryDto: GetModulesQueryDto) {
+  async getModules(queryDto: GetModulesQueryDto, currentUser?: User) {
     const query = this.moduleRepository.createQueryBuilder('module')
+    query.leftJoinAndSelect('module.class', 'class')
+    query.distinct(true)
+
+    const userRole = currentUser ? extractUserRole(currentUser) : undefined
+
+    if (userRole === RoleInAccount.Lecturer && currentUser) {
+      query
+        .innerJoin('module.teachingModules', 'teachingModule', 'teachingModule.isActive = true')
+        .innerJoin('teachingModule.lecturer', 'lecturer', 'lecturer.id = :lecturerId', {
+          lecturerId: currentUser.id
+        })
+    }
+
+    if (queryDto.class_id) {
+      query.andWhere('class.classId = :classId', { classId: queryDto.class_id })
+    }
 
     // Search filter
     if (queryDto.q) {
