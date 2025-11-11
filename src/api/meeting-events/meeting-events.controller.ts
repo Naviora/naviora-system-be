@@ -24,7 +24,7 @@ export class MeetingEventsController {
   @Get('weekly')
   @ApiOperation({ summary: 'Get weekly meeting events by role' })
   @ResponseMessage('Get weekly meeting events successfully')
-  async getWeekly(@Query() query: GetWeeklyMeetingEventsQueryDto, @CurrentUser() currentUser: User) {
-    return await this.meetingEventsService.getWeekly(currentUser.id, currentUser.role?.name, query)
+  async getWeekly(@Query() query: GetWeeklyMeetingEventsQueryDto, @CurrentUser() currentUser) {
+    return await this.meetingEventsService.getWeekly(currentUser.id, currentUser.role, query)
   }
 }
