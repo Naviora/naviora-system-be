@@ -610,9 +610,19 @@ export class FinalExamService {
     })
 
     if (submissions.length === 0) {
-      throw new ValidationException(ErrorCode.FINAL_EXAM001, 'No submissions found for this final exam', [
-        { property: 'finalExamId', code: ErrorCode.FINAL_EXAM001 }
-      ])
+      return {
+        finalExamId: finalExam.finalExamId,
+        finalExamTitle: finalExam.title,
+        statistics: {
+          totalSubmissions: 0,
+          averageScore: 0,
+          highestScore: 0,
+          lowestScore: 0,
+          medianScore: 0,
+          standardDeviation: 0
+        },
+        scoreRanges: []
+      }
     }
 
     const scores = submissions.map((submission) => submission.score).filter((score) => score !== null) as number[]
