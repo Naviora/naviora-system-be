@@ -154,12 +154,6 @@ export class ClassService {
       ])
     }
 
-    if (lecturer.role?.name !== RoleInAccount.Lecturer) {
-      throw new ValidationException(ErrorCode.CLASS005, 'User is not a lecturer', [
-        { property: 'lecturer_id', code: ErrorCode.CLASS005 }
-      ])
-    }
-
     // Query classes through teaching assignments
     const query = this.classRepository
       .createQueryBuilder('class')

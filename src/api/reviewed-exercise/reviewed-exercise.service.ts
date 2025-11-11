@@ -659,9 +659,19 @@ export class ReviewedExerciseService {
     })
 
     if (submissions.length === 0) {
-      throw new ValidationException(ErrorCode.V004, 'No submissions found for this reviewed exercise', [
-        { property: 'reviewedExerciseId', code: ErrorCode.V004 }
-      ])
+      return {
+        reviewedExerciseId: reviewedExercise.reviewedExerciseId,
+        lessonId: reviewedExercise.lessonId,
+        statistics: {
+          totalSubmissions: 0,
+          averageScore: 0,
+          highestScore: 0,
+          lowestScore: 0,
+          medianScore: 0,
+          standardDeviation: 0
+        },
+        scoreRanges: []
+      }
     }
 
     const scores = submissions.map((submission) => submission.score).filter((score) => score !== null) as number[]

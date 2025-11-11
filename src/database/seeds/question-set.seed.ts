@@ -119,5 +119,95 @@ export const questionSetSeedData = [
         enable_copy_paste_restriction: true
       }
     }
+  },
+  {
+    title: 'Bộ đề testing dev - Ngẫu nhiên 1',
+    description: 'Bộ câu hỏi 10 câu phục vụ test tính năng trong development',
+    questions: [],
+    config: {
+      general: {
+        duration_minutes: 12,
+        total_questions: 10,
+        allow_review: false,
+        shuffle_questions: true,
+        shuffle_answers: true
+      },
+      scoring: {
+        per_question: true,
+        passing_score: 8
+      },
+      behavior: {
+        show_correct_after_submit: false,
+        max_attempts: 1
+      },
+      composition: {
+        question_sources: ['question'],
+        topics: ['cơ chế di truyền', 'đột biến', 'di truyền người']
+      },
+      proctoring: {
+        enable_tab_tracking: true,
+        enable_copy_paste_restriction: true
+      }
+    }
+  },
+  {
+    title: 'Bộ đề testing dev - Ngẫu nhiên 2',
+    description: 'Bộ câu hỏi 10 câu phục vụ test UI/UX làm bài',
+    questions: [],
+    config: {
+      general: {
+        duration_minutes: 15,
+        total_questions: 10,
+        allow_review: false,
+        shuffle_questions: true,
+        shuffle_answers: true
+      },
+      scoring: {
+        per_question: true,
+        passing_score: 8
+      },
+      behavior: {
+        show_correct_after_submit: false,
+        max_attempts: 1
+      },
+      composition: {
+        question_sources: ['question'],
+        topics: ['phiên mã', 'dịch mã', 'quy luật Mendel']
+      },
+      proctoring: {
+        enable_tab_tracking: true,
+        enable_copy_paste_restriction: true
+      }
+    }
+  },
+  {
+    title: 'Bộ đề testing dev - Ngẫu nhiên 3',
+    description: 'Bộ câu hỏi 10 câu kiểm thử logic chấm điểm và nộp bài',
+    questions: [],
+    config: {
+      general: {
+        duration_minutes: 10,
+        total_questions: 10,
+        allow_review: false,
+        shuffle_questions: true,
+        shuffle_answers: true
+      },
+      scoring: {
+        per_question: true,
+        passing_score: 8
+      },
+      behavior: {
+        show_correct_after_submit: false,
+        max_attempts: 1
+      },
+      composition: {
+        question_sources: ['question'],
+        topics: ['quần thể', 'quần xã', 'tiến hóa nhỏ']
+      },
+      proctoring: {
+        enable_tab_tracking: true,
+        enable_copy_paste_restriction: true
+      }
+    }
   }
 ]
