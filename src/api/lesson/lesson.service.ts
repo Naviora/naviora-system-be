@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common'
 import { CreateLessonDto } from './dto/create-lesson.dto'
 import { UpdateLessonDto } from './dto/update-lesson.dto'
-import { LessonResponseDto, MaterialResponseDto, ReviewedExerciseResponseDto } from './dto/lesson-response.dto'
+import {
+  LessonResponseDto,
+  MaterialResponseDto,
+  QuestionSetSummaryDto,
+  ReviewedExerciseResponseDto,
+  ReviewedExerciseSubmissionResponseDto
+} from './dto/lesson-response.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { In, Repository } from 'typeorm'
@@ -19,6 +25,7 @@ import { RoleInAccount } from '@common/enums/account-role.enum'
 import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 import { extractUserRole } from '@utils/common.util'
 import { StreakService } from '@api/streak/streak.service'
+import { ReviewedExerciseSubmissionEntity } from '@api/reviewed-exercise/entities/reviewed-exercise-submission.entity'
 
 @Injectable()
 export class LessonService {
@@ -39,6 +46,8 @@ export class LessonService {
     private readonly classEnrolmentRepository: Repository<ClassEnrolment>,
     @InjectRepository(LessonProgress)
     private readonly lessonProgressRepository: Repository<LessonProgress>,
+    @InjectRepository(ReviewedExerciseSubmissionEntity)
+    private readonly reviewedExerciseSubmissionRepository: Repository<ReviewedExerciseSubmissionEntity>,
     private readonly streakService: StreakService
   ) {}
 
@@ -92,6 +101,7 @@ export class LessonService {
         .leftJoinAndSelect('lesson.module', 'module')
         .leftJoinAndSelect('module.class', 'class')
         .leftJoinAndSelect('lesson.reviewedExercises', 'reviewedExercises')
+        .leftJoinAndSelect('reviewedExercises.questionSets', 'questionSets')
         .where('lesson.lessonId = :id', { id })
         .getOne()
       if (!lesson) {
@@ -125,26 +135,97 @@ export class LessonService {
         plainToInstance(MaterialResponseDto, material, { excludeExtraneousValues: true })
       )
 
-      const reviewedExercises = lesson.reviewedExercises?.map((reviewedExercise) =>
-        plainToInstance(
+      const reviewedExerciseEntities = lesson.reviewedExercises ?? []
+
+      let studentSubmissionsByExerciseId: Record<string, ReviewedExerciseSubmissionEntity[]> = {}
+      const isStudent = extractUserRole(currentUser) === RoleInAccount.Student
+
+      if (isStudent && reviewedExerciseEntities.length > 0) {
+        const reviewedExerciseIds = reviewedExerciseEntities.map(
+          (reviewedExercise) => reviewedExercise.reviewedExerciseId
+        )
+        const submissions = await this.reviewedExerciseSubmissionRepository.find({
+          where: {
+            reviewedExerciseId: In(reviewedExerciseIds),
+            studentId: currentUser.id
+          },
+          relations: ['questionSet']
+        })
+
+        studentSubmissionsByExerciseId = submissions.reduce<Record<string, ReviewedExerciseSubmissionEntity[]>>(
+          (acc, submission) => {
+            if (!acc[submission.reviewedExerciseId]) {
+              acc[submission.reviewedExerciseId] = []
+            }
+            acc[submission.reviewedExerciseId].push(submission)
+            return acc
+          },
+          {}
+        )
+      }
+
+      const reviewedExercises = reviewedExerciseEntities.map((reviewedExercise) => {
+        const questionSets =
+          reviewedExercise.questionSets?.map((questionSet) =>
+            plainToInstance(
+              QuestionSetSummaryDto,
+              {
+                questionSetId: questionSet.questionSetId,
+                title: questionSet.title,
+                description: questionSet.description
+              },
+              { excludeExtraneousValues: true }
+            )
+          ) ?? []
+
+        const studentSubmissions =
+          studentSubmissionsByExerciseId[reviewedExercise.reviewedExerciseId]?.map((submission) =>
+            plainToInstance(
+              ReviewedExerciseSubmissionResponseDto,
+              {
+                reviewedExerciseSubmissionId: submission.reviewedExerciseSubmissionId,
+                reviewedExerciseId: submission.reviewedExerciseId,
+                studentId: submission.studentId,
+                questionSetId: submission.questionSetId,
+                attemptStatus: submission.attemptStatus,
+                score: submission.score,
+                submittedAt: submission.submittedAt,
+                createdAt: submission.createdAt,
+                updatedAt: submission.updatedAt,
+                questionSet: submission.questionSet
+                  ? {
+                      questionSetId: submission.questionSet.questionSetId,
+                      title: submission.questionSet.title,
+                      description: submission.questionSet.description
+                    }
+                  : null
+              },
+              { excludeExtraneousValues: true }
+            )
+          ) ?? []
+
+        return plainToInstance(
           ReviewedExerciseResponseDto,
           {
             reviewedExerciseId: reviewedExercise.reviewedExerciseId,
             status: reviewedExercise.status,
             startTime: reviewedExercise.startTime,
             endTime: reviewedExercise.endTime,
-            lecturerId: reviewedExercise.lecturerId
+            lecturerId: reviewedExercise.lecturerId,
+            questionSets,
+            isSubmitted: studentSubmissions.length > 0,
+            studentSubmissions
           },
           { excludeExtraneousValues: true }
         )
-      )
+      })
 
       const result = plainToInstance(
         LessonResponseDto,
         {
           ...lesson,
           materials: transformedMaterials,
-          reviewedExercises: reviewedExercises || []
+          reviewedExercises
         },
         { excludeExtraneousValues: true }
       )
