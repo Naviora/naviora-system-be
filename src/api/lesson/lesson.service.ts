@@ -220,10 +220,20 @@ export class LessonService {
         )
       })
 
+      // Determine lesson completion for student user
+      let isCompleted: boolean | null = null
+      if (isStudent) {
+        const progress = await this.lessonProgressRepository.findOne({
+          where: { lessonId: id, studentId: currentUser.id }
+        })
+        isCompleted = !!progress
+      }
+
       const result = plainToInstance(
         LessonResponseDto,
         {
           ...lesson,
+          isCompleted,
           materials: transformedMaterials,
           reviewedExercises
         },

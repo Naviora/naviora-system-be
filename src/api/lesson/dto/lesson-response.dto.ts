@@ -115,6 +115,10 @@ export class LessonResponseDto {
   @Expose()
   lessonContent: string
 
+  @ApiProperty({ nullable: true })
+  @Expose()
+  isCompleted: boolean | null
+
   @ApiProperty()
   @Expose()
   createdAt: Date
