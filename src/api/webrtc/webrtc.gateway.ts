@@ -218,12 +218,9 @@ export class WebRTCGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('send-message')
-  handleSendMessage(
-    @MessageBody() data: { roomId: string; userId: string; message: string; timestamp: number },
-    @ConnectedSocket() client: Socket
-  ) {
+  handleSendMessage(@MessageBody() data: { roomId: string; userId: string; message: string; timestamp: number }) {
     this.logger.log(`Message from ${data.userId} in room ${data.roomId}: ${data.message}`)
-    client.to(data.roomId).emit('new-message', {
+    this.server.to(data.roomId).emit('new-message', {
       userId: data.userId,
       message: data.message,
       timestamp: data.timestamp
