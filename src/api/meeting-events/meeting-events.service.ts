@@ -102,6 +102,7 @@ export class MeetingEventsService {
     const qb = this.meetingEventsRepo
       .createQueryBuilder('ev')
       .leftJoin('ev.class', 'class')
+      .leftJoinAndSelect('ev.host', 'host')
       // overlap condition: event intersects [start, end]
       .where('ev.startTime < :end AND ev.endTime > :start', { start, end })
 
@@ -129,6 +130,14 @@ export class MeetingEventsService {
       id: e.meetingEventsId,
       class_id: e.classId,
       host_by: e.hostBy,
+      host_detail: e.host
+        ? {
+            id: e.host.id,
+            name: e.host.name,
+            email: e.host.email,
+            avatar: e.host.avatar
+          }
+        : null,
       invitee: e.invitee ?? [],
       title: e.title,
       description: e.description,
