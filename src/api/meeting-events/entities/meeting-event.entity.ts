@@ -32,6 +32,9 @@ export class MeetingEventEntity extends AbstractEntity {
   @Column({ type: 'timestamptz', nullable: false })
   endTime: Date
 
+  @Column({ type: 'varchar', length: 16, nullable: false })
+  code: string
+
   @ManyToOne(() => Class, { nullable: false })
   @JoinColumn({ name: 'class_id' })
   class: Class

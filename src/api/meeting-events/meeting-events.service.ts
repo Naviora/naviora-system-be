@@ -65,6 +65,9 @@ export class MeetingEventsService {
       }
     }
 
+    // generate a short unique meeting code (8-12 chars)
+    const meetingCode = await this.generateUniqueMeetingCode()
+
     const entity = this.meetingEventsRepo.create({
       classId: class_id,
       hostBy: host_by,
@@ -73,7 +76,8 @@ export class MeetingEventsService {
       description: description ?? null,
       note: note ?? null,
       startTime: start,
-      endTime: end
+      endTime: end,
+      code: meetingCode
     })
 
     const saved = await this.meetingEventsRepo.save(entity)
@@ -82,6 +86,7 @@ export class MeetingEventsService {
       id: saved.meetingEventsId,
       class_id: saved.classId,
       host_by: saved.hostBy,
+      meeting_code: saved.code,
       invitee: saved.invitee ?? [],
       title: saved.title,
       description: saved.description,
@@ -130,6 +135,7 @@ export class MeetingEventsService {
       id: e.meetingEventsId,
       class_id: e.classId,
       host_by: e.hostBy,
+      meeting_code: e.code,
       host_detail: e.host
         ? {
             id: e.host.id,
@@ -147,5 +153,30 @@ export class MeetingEventsService {
       created_at: e.createdAt,
       updated_at: e.updatedAt
     }))
+  }
+
+  private async generateUniqueMeetingCode(): Promise<string> {
+    const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // exclude easily confused chars
+    const minLen = 8
+    const maxLen = 12
+
+    const randomCode = (len: number) => {
+      let out = ''
+      for (let i = 0; i < len; i++) {
+        out += charset[Math.floor(Math.random() * charset.length)]
+      }
+      return out
+    }
+
+    // Try a few times to avoid rare collisions
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const len = Math.floor(Math.random() * (maxLen - minLen + 1)) + minLen
+      const code = randomCode(len)
+      const exists = await this.meetingEventsRepo.findOne({ where: { code } })
+      if (!exists) return code
+    }
+
+    // Fallback to a timestamp-based suffix if collisions persist
+    return `MTG${Date.now().toString(36).toUpperCase()}`.slice(0, 12)
   }
 }
