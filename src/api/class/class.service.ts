@@ -29,6 +29,7 @@ import { StudentListResponseDto, StudentListItemDto } from './dto/student-list-r
 import { ModuleEntity } from '@api/module/entities/module.entity'
 import { ModuleDTO } from '@api/module/dto/module.dto'
 import { GetModulesByClassQueryDto } from './dto/get-modules-by-class-query.dto'
+import { Order } from '@constants/app.constant'
 
 @Injectable()
 export class ClassService {
@@ -114,7 +115,8 @@ export class ClassService {
     const rawSort = queryDto.sort_by || 'created_at'
     const mappedSort = sortMapping[rawSort]
     const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
-    query.orderBy(`class.${sortField}`, queryDto.order)
+    const sortOrder = Order.DESC
+    query.orderBy(`class.${sortField}`, sortOrder)
 
     // Pagination
     const [classes, metaDto] = await paginate<Class>(query, queryDto, {

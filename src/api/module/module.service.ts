@@ -23,6 +23,7 @@ import { AttemptStatus } from '@common/enums/attempt-status.enum'
 import { LessonEntity } from '@api/lesson/entities/lesson.entity'
 import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 import { extractUserRole } from '@utils/common.util'
+import { Order } from '@constants/app.constant'
 
 @Injectable()
 export class ModulesService {
@@ -189,7 +190,8 @@ export class ModulesService {
     const rawSort = queryDto.sort_by || 'created_at'
     const mappedSort = sortMapping[rawSort]
     const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
-    query.orderBy(`module.${sortField}`, queryDto.order)
+    const sortOrder = Order.DESC
+    query.orderBy(`module.${sortField}`, sortOrder)
 
     // Pagination
     const [modules, metaDto] = await paginate<ModuleEntity>(query, queryDto, {
