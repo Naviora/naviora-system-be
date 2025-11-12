@@ -1,7 +1,7 @@
 import { ClassType } from '@common/enums/class-types.enum'
 import { IsDateFormat } from '@decorators/validators/is-date-format.decorator'
 import { ApiProperty } from '@nestjs/swagger'
-import { IsEnum, IsNotEmpty, Matches, MaxLength, IsString } from 'class-validator'
+import { IsEnum, IsNotEmpty, MaxLength, IsString } from 'class-validator'
 
 export class CreateClassDto {
   @ApiProperty({
@@ -9,9 +9,9 @@ export class CreateClassDto {
     example: 'BIO-25-001'
   })
   @IsNotEmpty()
-  @Matches(/^BIO-\d{2}-\d{3}$/i, {
-    message: 'class_code must match format BIO-YY-NNN (e.g., BIO-25-001)'
-  })
+  // @Matches(/^BIO-\d{2}-\d{3}$/i, {
+  //   message: 'class_code must match format BIO-YY-NNN (e.g., BIO-25-001)'
+  // })
   class_code: string
 
   @ApiProperty({
