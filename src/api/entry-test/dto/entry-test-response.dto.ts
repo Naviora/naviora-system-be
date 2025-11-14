@@ -48,4 +48,11 @@ export class EntryTestResponseDto {
   @ApiProperty()
   @Expose()
   updatedAt: Date
+
+  @ApiProperty({
+    description: 'Whether the current student has already submitted/attempted this entry test',
+    required: false
+  })
+  @Expose()
+  isSubmitted?: boolean
 }
