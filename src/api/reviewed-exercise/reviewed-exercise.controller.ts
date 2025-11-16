@@ -172,8 +172,8 @@ export class ReviewedExerciseController {
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of reviewed exercises' })
   @ResponseMessage('Lấy danh sách bài tập có chấm điểm thành công')
-  async getReviewedExercises(@Query() query: GetReviewedExercisesQueryDto) {
-    return await this.reviewedExerciseService.getReviewedExercises(query)
+  async getReviewedExercises(@Query() query: GetReviewedExercisesQueryDto, @CurrentUser() currentUser?: User) {
+    return await this.reviewedExerciseService.getReviewedExercises(query, currentUser)
   }
 
   @Get('latest/active/:lessonId')
@@ -181,9 +181,10 @@ export class ReviewedExerciseController {
   @ApiOperation({ summary: 'Get the latest active reviewed exercise for a lesson' })
   @ResponseMessage('Lấy bài tập có chấm điểm đang hoạt động mới nhất thành công')
   async getLatestActiveReviewedExercise(
-    @Param('lessonId', new ParseUUIDPipe({ version: '4' })) lessonId: string
+    @Param('lessonId', new ParseUUIDPipe({ version: '4' })) lessonId: string,
+    @CurrentUser() currentUser: User
   ): Promise<ReviewedExerciseResponseDto | null> {
-    return await this.reviewedExerciseService.getLatestActiveReviewedExerciseForStudent(lessonId)
+    return await this.reviewedExerciseService.getLatestActiveReviewedExerciseForStudent(lessonId, currentUser)
   }
 
   @Get(':reviewedExerciseId/score-spectrum')
@@ -235,9 +236,10 @@ export class ReviewedExerciseController {
   @ApiOperation({ summary: 'Get a single reviewed exercise by ID' })
   @ResponseMessage('Lấy bài tập có chấm điểm thành công')
   async getReviewedExerciseById(
-    @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string
+    @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string,
+    @CurrentUser() currentUser?: User
   ): Promise<ReviewedExerciseResponseDto> {
-    return await this.reviewedExerciseService.getReviewedExerciseById(reviewedExerciseId)
+    return await this.reviewedExerciseService.getReviewedExerciseById(reviewedExerciseId, currentUser)
   }
 
   @Delete(':reviewedExerciseId')
