@@ -95,6 +95,11 @@ export class QuestionSetService {
       query.andWhere('question_set.lecturer_id = :lecturerId', { lecturerId: queryDto.lecturerId })
     }
 
+    // isInUse filter
+    if (queryDto.isInUse !== undefined) {
+      query.andWhere('question_set.isInUse = :isInUse', { isInUse: queryDto.isInUse })
+    }
+
     // Sorting
     const validSortFields = ['title', 'description', 'createdAt', 'updatedAt']
     const sortMapping: Record<string, string> = {
@@ -123,6 +128,7 @@ export class QuestionSetService {
         durationMinutes: q.config.general.duration_minutes,
         passingScore: q.config.general.passing_score,
         maxAttempts: q.config.general.max_attempts,
+        isInUse: q.isInUse,
         lecturer: {
           userId: q.lecturer.id,
           name: q.lecturer.name,
@@ -136,7 +142,7 @@ export class QuestionSetService {
 
     return {
       question_sets: mappedQuestionSets,
-      pagiantion: metaDto
+      pagination: metaDto
     }
   }
 
@@ -171,6 +177,7 @@ export class QuestionSetService {
       description: questionSet.description,
       questions: detailedQuestions,
       config: plainToInstance(ConfigDetailDto, questionSet.config),
+      isInUse: questionSet.isInUse,
       lecturer: {
         userId: questionSet.lecturer.id,
         name: questionSet.lecturer.name,

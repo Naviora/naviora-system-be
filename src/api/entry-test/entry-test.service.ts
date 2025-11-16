@@ -180,14 +180,18 @@ export class EntryTestService {
     if (updateDto.description !== undefined) {
       entryTest.description = updateDto.description
     }
-    if (updateDto.status !== undefined) {
-      const existingActiveEntryTest = await this.entryTestRepository.findOne({
-        where: { status: ExamStatus.ACTIVE }
-      })
-      if (existingActiveEntryTest && updateDto.status === ExamStatus.ACTIVE) {
-        throw new ValidationException(ErrorCode.ENTRY_TEST005, 'There is already an active entry test', [
-          { property: 'status', code: ErrorCode.ENTRY_TEST005 }
-        ])
+    if (updateDto.status !== undefined && updateDto.status !== entryTest.status) {
+      // Only check for existing active entry test if trying to set status to ACTIVE
+      if (updateDto.status === ExamStatus.ACTIVE) {
+        const existingActiveEntryTest = await this.entryTestRepository.findOne({
+          where: { status: ExamStatus.ACTIVE }
+        })
+        // Exclude the current entry test from the check
+        if (existingActiveEntryTest && existingActiveEntryTest.entryTestId !== entryTest.entryTestId) {
+          throw new ValidationException(ErrorCode.ENTRY_TEST005, 'There is already an active entry test', [
+            { property: 'status', code: ErrorCode.ENTRY_TEST005 }
+          ])
+        }
       }
       entryTest.status = updateDto.status
     }
