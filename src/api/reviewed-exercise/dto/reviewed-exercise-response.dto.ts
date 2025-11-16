@@ -51,4 +51,8 @@ export class ReviewedExerciseResponseDto {
   @ApiProperty()
   @Expose()
   updatedAt: Date
+
+  @ApiProperty({ description: 'Whether the current student has attempted/submitted this exercise', required: false })
+  @Expose()
+  isSubmitted?: boolean
 }

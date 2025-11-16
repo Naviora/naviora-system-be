@@ -48,4 +48,11 @@ export class FinalExamResponseDto {
   @ApiProperty()
   @Expose()
   updatedAt: Date
+
+  @ApiProperty({
+    description: 'Whether the current student has already submitted/attempted this final exam',
+    required: false
+  })
+  @Expose()
+  isSubmitted?: boolean
 }

@@ -199,16 +199,16 @@ export class FinalExamController {
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of final exams' })
   @ResponseMessage('Final exams retrieved successfully')
-  async getFinalExams(@Query() query: GetFinalExamsQueryDto) {
-    return await this.finalExamService.getFinalExams(query)
+  async getFinalExams(@Query() query: GetFinalExamsQueryDto, @CurrentUser() currentUser?: User) {
+    return await this.finalExamService.getFinalExams(query, currentUser)
   }
 
   @Get('latest/active')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Get the latest active final exam for student' })
   @ResponseMessage('Latest active final exam retrieved successfully')
-  async getLatestActiveFinalExam(): Promise<FinalExamResponseDto | null> {
-    return await this.finalExamService.getLatestActiveFinalExamForStudent()
+  async getLatestActiveFinalExam(@CurrentUser() currentUser: User): Promise<FinalExamResponseDto | null> {
+    return await this.finalExamService.getLatestActiveFinalExamForStudent(currentUser)
   }
 
   @Get(':finalExamId/score-spectrum')
@@ -259,9 +259,10 @@ export class FinalExamController {
   @ApiOperation({ summary: 'Get a single final exam by ID' })
   @ResponseMessage('Final exam retrieved successfully')
   async getFinalExamById(
-    @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string
+    @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string,
+    @CurrentUser() currentUser?: User
   ): Promise<FinalExamResponseDto> {
-    return await this.finalExamService.getFinalExamById(finalExamId)
+    return await this.finalExamService.getFinalExamById(finalExamId, currentUser)
   }
 
   @Delete(':finalExamId')

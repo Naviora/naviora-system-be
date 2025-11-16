@@ -27,6 +27,8 @@ import {
 } from './dto/entry-test-student-grade-list-response.dto'
 import { StreakService } from '@api/streak/streak.service'
 import { QuestionSetBasicInfoDto } from './dto/question-set-basic-info.dto'
+import { extractUserRole } from '@utils/common.util'
+import { RoleInAccount } from '@common/enums/account-role.enum'
 
 @Injectable()
 export class EntryTestService {
@@ -328,7 +330,7 @@ export class EntryTestService {
     return plainToInstance(EntryTestSubmissionResponseDto, savedSubmission)
   }
 
-  async getEntryTests(queryDto: GetEntryTestsQueryDto) {
+  async getEntryTests(queryDto: GetEntryTestsQueryDto, currentUser?: User) {
     const query = this.entryTestRepository.createQueryBuilder('entry_test')
 
     query.leftJoinAndSelect('entry_test.questionSets', 'questionSets')
@@ -373,10 +375,30 @@ export class EntryTestService {
       takeAll: false
     })
 
+    const isStudent = currentUser && extractUserRole(currentUser) === RoleInAccount.Student
+    let submissionsByEntryTestId: Record<string, boolean> = {}
+
+    if (isStudent && entryTests.length > 0) {
+      const entryTestIds = entryTests.map((et) => et.entryTestId)
+      const submissions = await this.entryTestSubmissionRepository.find({
+        where: {
+          entryTestId: In(entryTestIds),
+          studentId: currentUser.id
+        },
+        select: ['entryTestId']
+      })
+
+      submissionsByEntryTestId = submissions.reduce<Record<string, boolean>>((acc, submission) => {
+        acc[submission.entryTestId] = true
+        return acc
+      }, {})
+    }
+
     const mappedEntryTests = entryTests.map((et) =>
       plainToInstance(EntryTestResponseDto, {
         ...et,
-        questionSets: this.mapQuestionSetsToBasicInfo(et.questionSets)
+        questionSets: this.mapQuestionSetsToBasicInfo(et.questionSets),
+        isSubmitted: isStudent ? submissionsByEntryTestId[et.entryTestId] || false : undefined
       })
     )
 
@@ -386,7 +408,7 @@ export class EntryTestService {
     }
   }
 
-  async getEntryTestById(entryTestId: string): Promise<EntryTestResponseDto> {
+  async getEntryTestById(entryTestId: string, currentUser?: User): Promise<EntryTestResponseDto> {
     const entryTest = await this.entryTestRepository.findOne({
       where: { entryTestId },
       relations: ['questionSets', 'createdBy', 'updatedBy']
@@ -398,13 +420,28 @@ export class EntryTestService {
       ])
     }
 
+    let isSubmitted: boolean | undefined = undefined
+    const isStudent = currentUser && extractUserRole(currentUser) === RoleInAccount.Student
+
+    if (isStudent) {
+      const submission = await this.entryTestSubmissionRepository.findOne({
+        where: {
+          entryTestId,
+          studentId: currentUser.id
+        },
+        select: ['entryTestId']
+      })
+      isSubmitted = !!submission
+    }
+
     return plainToInstance(EntryTestResponseDto, {
       ...entryTest,
-      questionSets: this.mapQuestionSetsToBasicInfo(entryTest.questionSets)
+      questionSets: this.mapQuestionSetsToBasicInfo(entryTest.questionSets),
+      isSubmitted
     })
   }
 
-  async getLatestActiveEntryTestForStudent(): Promise<EntryTestResponseDto | null> {
+  async getLatestActiveEntryTestForStudent(currentUser: User): Promise<EntryTestResponseDto | null> {
     const now = new Date()
 
     // Find the latest active entry test that is currently within the time window
@@ -432,15 +469,33 @@ export class EntryTestService {
 
       if (!latestActiveTest) return null
 
+      const submission = await this.entryTestSubmissionRepository.findOne({
+        where: {
+          entryTestId: latestActiveTest.entryTestId,
+          studentId: currentUser.id
+        },
+        select: ['entryTestId']
+      })
+
       return plainToInstance(EntryTestResponseDto, {
         ...latestActiveTest,
-        questionSets: this.mapQuestionSetsToBasicInfo(latestActiveTest.questionSets)
+        questionSets: this.mapQuestionSetsToBasicInfo(latestActiveTest.questionSets),
+        isSubmitted: !!submission
       })
     }
 
+    const submission = await this.entryTestSubmissionRepository.findOne({
+      where: {
+        entryTestId: entryTest.entryTestId,
+        studentId: currentUser.id
+      },
+      select: ['entryTestId']
+    })
+
     return plainToInstance(EntryTestResponseDto, {
       ...entryTest,
-      questionSets: this.mapQuestionSetsToBasicInfo(entryTest.questionSets)
+      questionSets: this.mapQuestionSetsToBasicInfo(entryTest.questionSets),
+      isSubmitted: !!submission
     })
   }
   async softDeleteEntryTest(entryTestId: string, currentUser: User) {

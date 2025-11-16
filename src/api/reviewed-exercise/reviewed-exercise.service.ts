@@ -358,7 +358,7 @@ export class ReviewedExerciseService {
     return plainToInstance(ReviewedExerciseSubmissionResponseDto, savedSubmission)
   }
 
-  async getReviewedExercises(queryDto: GetReviewedExercisesQueryDto) {
+  async getReviewedExercises(queryDto: GetReviewedExercisesQueryDto, currentUser?: User) {
     const query = this.reviewedExerciseRepository.createQueryBuilder('reviewed_exercise')
 
     query.leftJoinAndSelect('reviewed_exercise.questionSets', 'questionSets')
@@ -403,12 +403,33 @@ export class ReviewedExerciseService {
       takeAll: false
     })
 
+    // Check if student has submitted for each reviewed exercise
+    const isStudent = currentUser && extractUserRole(currentUser) === RoleInAccount.Student
+    let studentSubmissionsByExerciseId: Record<string, boolean> = {}
+
+    if (isStudent && reviewedExercises.length > 0) {
+      const reviewedExerciseIds = reviewedExercises.map((re) => re.reviewedExerciseId)
+      const submissions = await this.reviewedExerciseSubmissionRepository.find({
+        where: {
+          reviewedExerciseId: In(reviewedExerciseIds),
+          studentId: currentUser.id
+        },
+        select: ['reviewedExerciseId']
+      })
+
+      studentSubmissionsByExerciseId = submissions.reduce<Record<string, boolean>>((acc, submission) => {
+        acc[submission.reviewedExerciseId] = true
+        return acc
+      }, {})
+    }
+
     const mappedReviewedExercises = reviewedExercises.map((re) =>
       plainToInstance(ReviewedExerciseResponseDto, {
         ...re,
         lessonId: re.lessonId,
         lecturerId: re.lecturerId,
-        questionSets: re.questionSets.map((qs) => qs.questionSetId)
+        questionSets: re.questionSets.map((qs) => qs.questionSetId),
+        isSubmitted: isStudent ? studentSubmissionsByExerciseId[re.reviewedExerciseId] || false : undefined
       })
     )
 
@@ -418,7 +439,7 @@ export class ReviewedExerciseService {
     }
   }
 
-  async getReviewedExerciseById(reviewedExerciseId: string): Promise<ReviewedExerciseResponseDto> {
+  async getReviewedExerciseById(reviewedExerciseId: string, currentUser?: User): Promise<ReviewedExerciseResponseDto> {
     const reviewedExercise = await this.reviewedExerciseRepository.findOne({
       where: { reviewedExerciseId },
       relations: ['lesson', 'lecturer', 'questionSets', 'createdBy', 'updatedBy']
@@ -430,15 +451,34 @@ export class ReviewedExerciseService {
       ])
     }
 
+    // Check if student has submitted this reviewed exercise
+    let isSubmitted: boolean | undefined = undefined
+    const isStudent = currentUser && extractUserRole(currentUser) === RoleInAccount.Student
+
+    if (isStudent) {
+      const submission = await this.reviewedExerciseSubmissionRepository.findOne({
+        where: {
+          reviewedExerciseId,
+          studentId: currentUser.id
+        },
+        select: ['reviewedExerciseId']
+      })
+      isSubmitted = !!submission
+    }
+
     return plainToInstance(ReviewedExerciseResponseDto, {
       ...reviewedExercise,
       lessonId: reviewedExercise.lessonId,
       lecturerId: reviewedExercise.lecturerId,
-      questionSets: reviewedExercise.questionSets.map((qs) => qs.questionSetId)
+      questionSets: reviewedExercise.questionSets.map((qs) => qs.questionSetId),
+      isSubmitted
     })
   }
 
-  async getLatestActiveReviewedExerciseForStudent(lessonId: string): Promise<ReviewedExerciseResponseDto | null> {
+  async getLatestActiveReviewedExerciseForStudent(
+    lessonId: string,
+    currentUser: User
+  ): Promise<ReviewedExerciseResponseDto | null> {
     const now = new Date()
 
     // Find the latest active reviewed exercise for the lesson that is currently within the time window
@@ -472,19 +512,39 @@ export class ReviewedExerciseService {
 
       if (!latestActiveExercise) return null
 
+      // Check if student has submitted this reviewed exercise
+      const submission = await this.reviewedExerciseSubmissionRepository.findOne({
+        where: {
+          reviewedExerciseId: latestActiveExercise.reviewedExerciseId,
+          studentId: currentUser.id
+        },
+        select: ['reviewedExerciseId']
+      })
+
       return plainToInstance(ReviewedExerciseResponseDto, {
         ...latestActiveExercise,
         lessonId: latestActiveExercise.lessonId,
         lecturerId: latestActiveExercise.lecturerId,
-        questionSets: latestActiveExercise.questionSets.map((qs) => qs.questionSetId)
+        questionSets: latestActiveExercise.questionSets.map((qs) => qs.questionSetId),
+        isSubmitted: !!submission
       })
     }
+
+    // Check if student has submitted this reviewed exercise
+    const submission = await this.reviewedExerciseSubmissionRepository.findOne({
+      where: {
+        reviewedExerciseId: reviewedExercise.reviewedExerciseId,
+        studentId: currentUser.id
+      },
+      select: ['reviewedExerciseId']
+    })
 
     return plainToInstance(ReviewedExerciseResponseDto, {
       ...reviewedExercise,
       lessonId: reviewedExercise.lessonId,
       lecturerId: reviewedExercise.lecturerId,
-      questionSets: reviewedExercise.questionSets.map((qs) => qs.questionSetId)
+      questionSets: reviewedExercise.questionSets.map((qs) => qs.questionSetId),
+      isSubmitted: !!submission
     })
   }
 

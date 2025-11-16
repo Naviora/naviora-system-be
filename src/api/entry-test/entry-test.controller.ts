@@ -199,16 +199,16 @@ export class EntryTestController {
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of entry tests' })
   @ResponseMessage('Entry tests retrieved successfully')
-  async getEntryTests(@Query() query: GetEntryTestsQueryDto) {
-    return await this.entryTestService.getEntryTests(query)
+  async getEntryTests(@Query() query: GetEntryTestsQueryDto, @CurrentUser() currentUser?: User) {
+    return await this.entryTestService.getEntryTests(query, currentUser)
   }
 
   @Get('latest/active')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Get the latest active entry test for student' })
   @ResponseMessage('Latest active entry test retrieved successfully')
-  async getLatestActiveEntryTest(): Promise<EntryTestResponseDto | null> {
-    return await this.entryTestService.getLatestActiveEntryTestForStudent()
+  async getLatestActiveEntryTest(@CurrentUser() currentUser: User): Promise<EntryTestResponseDto | null> {
+    return await this.entryTestService.getLatestActiveEntryTestForStudent(currentUser)
   }
 
   @Get(':entryTestId/score-spectrum')
@@ -259,9 +259,10 @@ export class EntryTestController {
   @ApiOperation({ summary: 'Get a single entry test by ID' })
   @ResponseMessage('Entry test retrieved successfully')
   async getEntryTestById(
-    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
+    @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
+    @CurrentUser() currentUser?: User
   ): Promise<EntryTestResponseDto> {
-    return await this.entryTestService.getEntryTestById(entryTestId)
+    return await this.entryTestService.getEntryTestById(entryTestId, currentUser)
   }
 
   @Delete(':entryTestId')

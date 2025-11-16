@@ -27,6 +27,8 @@ import {
 } from './dto/final-exam-student-grade-list-response.dto'
 import { StreakService } from '@api/streak/streak.service'
 import { QuestionSetBasicInfoDto } from '@api/entry-test/dto/question-set-basic-info.dto'
+import { extractUserRole } from '@utils/common.util'
+import { RoleInAccount } from '@common/enums/account-role.enum'
 
 @Injectable()
 export class FinalExamService {
@@ -321,7 +323,7 @@ export class FinalExamService {
     return plainToInstance(FinalExamSubmissionResponseDto, savedSubmission)
   }
 
-  async getFinalExams(queryDto: GetFinalExamsQueryDto) {
+  async getFinalExams(queryDto: GetFinalExamsQueryDto, currentUser?: User) {
     const query = this.finalExamRepository.createQueryBuilder('final_exam')
 
     query.leftJoinAndSelect('final_exam.questionSets', 'questionSets')
@@ -366,10 +368,30 @@ export class FinalExamService {
       takeAll: false
     })
 
+    const isStudent = currentUser && extractUserRole(currentUser) === RoleInAccount.Student
+    let submissionsByFinalExamId: Record<string, boolean> = {}
+
+    if (isStudent && finalExams.length > 0) {
+      const finalExamIds = finalExams.map((fe) => fe.finalExamId)
+      const submissions = await this.finalExamSubmissionRepository.find({
+        where: {
+          finalExamId: In(finalExamIds),
+          studentId: currentUser.id
+        },
+        select: ['finalExamId']
+      })
+
+      submissionsByFinalExamId = submissions.reduce<Record<string, boolean>>((acc, submission) => {
+        acc[submission.finalExamId] = true
+        return acc
+      }, {})
+    }
+
     const mappedFinalExams = finalExams.map((fe) =>
       plainToInstance(FinalExamResponseDto, {
         ...fe,
-        questionSets: this.mapQuestionSetsToBasicInfo(fe.questionSets)
+        questionSets: this.mapQuestionSetsToBasicInfo(fe.questionSets),
+        isSubmitted: isStudent ? submissionsByFinalExamId[fe.finalExamId] || false : undefined
       })
     )
 
@@ -379,7 +401,7 @@ export class FinalExamService {
     }
   }
 
-  async getFinalExamById(finalExamId: string): Promise<FinalExamResponseDto> {
+  async getFinalExamById(finalExamId: string, currentUser?: User): Promise<FinalExamResponseDto> {
     const finalExam = await this.finalExamRepository.findOne({
       where: { finalExamId },
       relations: ['questionSets', 'createdBy', 'updatedBy']
@@ -391,13 +413,28 @@ export class FinalExamService {
       ])
     }
 
+    let isSubmitted: boolean | undefined = undefined
+    const isStudent = currentUser && extractUserRole(currentUser) === RoleInAccount.Student
+
+    if (isStudent) {
+      const submission = await this.finalExamSubmissionRepository.findOne({
+        where: {
+          finalExamId,
+          studentId: currentUser.id
+        },
+        select: ['finalExamId']
+      })
+      isSubmitted = !!submission
+    }
+
     return plainToInstance(FinalExamResponseDto, {
       ...finalExam,
-      questionSets: this.mapQuestionSetsToBasicInfo(finalExam.questionSets)
+      questionSets: this.mapQuestionSetsToBasicInfo(finalExam.questionSets),
+      isSubmitted
     })
   }
 
-  async getLatestActiveFinalExamForStudent(): Promise<FinalExamResponseDto | null> {
+  async getLatestActiveFinalExamForStudent(currentUser: User): Promise<FinalExamResponseDto | null> {
     const now = new Date()
 
     // Find the latest active final exam that is currently within the time window
@@ -425,15 +462,33 @@ export class FinalExamService {
 
       if (!latestActiveExam) return null
 
+      const submission = await this.finalExamSubmissionRepository.findOne({
+        where: {
+          finalExamId: latestActiveExam.finalExamId,
+          studentId: currentUser.id
+        },
+        select: ['finalExamId']
+      })
+
       return plainToInstance(FinalExamResponseDto, {
         ...latestActiveExam,
-        questionSets: this.mapQuestionSetsToBasicInfo(latestActiveExam.questionSets)
+        questionSets: this.mapQuestionSetsToBasicInfo(latestActiveExam.questionSets),
+        isSubmitted: !!submission
       })
     }
 
+    const submission = await this.finalExamSubmissionRepository.findOne({
+      where: {
+        finalExamId: finalExam.finalExamId,
+        studentId: currentUser.id
+      },
+      select: ['finalExamId']
+    })
+
     return plainToInstance(FinalExamResponseDto, {
       ...finalExam,
-      questionSets: this.mapQuestionSetsToBasicInfo(finalExam.questionSets)
+      questionSets: this.mapQuestionSetsToBasicInfo(finalExam.questionSets),
+      isSubmitted: !!submission
     })
   }
 
