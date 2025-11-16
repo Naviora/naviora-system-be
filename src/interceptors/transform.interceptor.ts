@@ -57,18 +57,18 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
     if (statusCode >= 200 && statusCode < 300) {
       switch (method.toUpperCase()) {
         case 'GET':
-          return 'Data retrieved successfully'
+          return 'Lấy dữ liệu thành công'
         case 'POST':
-          return 'Resource created successfully'
+          return 'Tạo tài nguyên thành công'
         case 'PUT':
         case 'PATCH':
-          return 'Resource updated successfully'
+          return 'Cập nhật tài nguyên thành công'
         case 'DELETE':
-          return 'Resource deleted successfully'
+          return 'Xóa tài nguyên thành công'
         default:
-          return 'Operation completed successfully'
+          return 'Thao tác hoàn tất thành công'
       }
     }
-    return 'Success'
+    return 'Thành công'
   }
 }

@@ -47,7 +47,7 @@ export class ClassController {
       }
     }
   })
-  @ResponseMessage('Class created successfully')
+  @ResponseMessage('Tạo lớp học thành công')
   async create(@Body() createClassDto: CreateClassDto) {
     const created = await this.classService.create(createClassDto)
     return {
@@ -66,7 +66,7 @@ export class ClassController {
   @ApiOperation({ summary: 'Get Classes', description: 'Get list of classes with pagination, search and filters' })
   @ApiBearerAuth()
   @Get()
-  @ResponseMessage('Get Classes successfully')
+  @ResponseMessage('Lấy danh sách lớp học thành công')
   async getClasses(@Query() query: GetClassesQueryDto) {
     return await this.classService.getClasses(query)
   }
@@ -78,7 +78,7 @@ export class ClassController {
     summary: 'Get my enrolled classes',
     description: 'Get list of classes in which the current student is enrolled with pagination, search and filters'
   })
-  @ResponseMessage('Get my enrolled classes successfully')
+  @ResponseMessage('Lấy danh sách lớp học đã đăng ký thành công')
   async getMyEnrolledClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
     return await this.classService.getClassesForStudent(currentUser.id, query)
   }
@@ -90,7 +90,7 @@ export class ClassController {
     summary: 'Get my assigned classes',
     description: 'Get list of classes assigned to the current lecturer with pagination, search and filters'
   })
-  @ResponseMessage('Get my assigned classes successfully')
+  @ResponseMessage('Lấy danh sách lớp học được phân công thành công')
   async getMyClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
     return await this.classService.getClassesForLecturer(currentUser.id, query)
   }
@@ -114,7 +114,7 @@ export class ClassController {
     description: 'The ID of the class',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  @ResponseMessage('Students retrieved successfully')
+  @ResponseMessage('Lấy danh sách học sinh thành công')
   async getStudentsByClassId(
     @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
     @Query() query: GetStudentsByClassQueryDto
@@ -141,7 +141,7 @@ export class ClassController {
     description: 'The ID of the class',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  @ResponseMessage('Modules retrieved successfully')
+  @ResponseMessage('Lấy danh sách module thành công')
   async getModulesByClassId(
     @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
     @Query() query: GetModulesByClassQueryDto
@@ -156,7 +156,7 @@ export class ClassController {
     description: 'The ID of the class',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  @ResponseMessage('Get Class detail successfully')
+  @ResponseMessage('Lấy chi tiết lớp học thành công')
   async getClassById(@Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string): Promise<ClassDetailDTO> {
     return await this.classService.getClassById(classId)
   }
@@ -183,7 +183,7 @@ export class ClassController {
       }
     }
   })
-  @ResponseMessage('Class updated successfully')
+  @ResponseMessage('Cập nhật lớp học thành công')
   async update(
     @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
     @Body() updateClassDto: UpdateClassDto
@@ -210,7 +210,7 @@ export class ClassController {
       }
     }
   })
-  @ResponseMessage('Lecturers assigned to class successfully')
+  @ResponseMessage('Phân công giảng viên vào lớp học thành công')
   async assignLecturers(
     @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
     @Body() assignLecturersDto: AssignLecturersDto
@@ -246,7 +246,7 @@ export class ClassController {
       }
     }
   })
-  @ResponseMessage('Students arranged into classes successfully')
+  @ResponseMessage('Sắp xếp học sinh vào lớp học thành công')
   async arrangeStudents(@Body() arrangeStudentsDto: ArrangeStudentsDto): Promise<ClassArrangementResultDto> {
     return await this.classService.arrangeStudents(arrangeStudentsDto)
   }
@@ -279,7 +279,7 @@ export class ClassController {
       }
     }
   })
-  @ResponseMessage('Students enrolled successfully')
+  @ResponseMessage('Đăng ký học sinh vào lớp học thành công')
   async manualEnrolStudents(
     @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
     @Body() body: { student_ids: string[] }
@@ -308,7 +308,7 @@ export class ClassController {
       }
     }
   })
-  @ResponseMessage('Students removed from class successfully')
+  @ResponseMessage('Xóa học sinh khỏi lớp học thành công')
   async removeStudentsFromClass(
     @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
     @Body() body: { student_ids: string[] }

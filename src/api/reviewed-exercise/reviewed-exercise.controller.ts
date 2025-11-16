@@ -44,7 +44,7 @@ export class ReviewedExerciseController {
       }
     }
   })
-  @ResponseMessage('Reviewed exercise created successfully')
+  @ResponseMessage('Tạo bài tập có chấm điểm thành công')
   async create(
     @Body() createDto: CreateReviewedExerciseDto,
     @CurrentUser() currentUser: User
@@ -77,7 +77,7 @@ export class ReviewedExerciseController {
       }
     }
   })
-  @ResponseMessage('Reviewed exercise started successfully')
+  @ResponseMessage('Bắt đầu bài tập có chấm điểm thành công')
   async startReviewedExercise(
     @Body('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string,
     @CurrentUser() currentUser: User
@@ -109,7 +109,7 @@ export class ReviewedExerciseController {
       }
     }
   })
-  @ResponseMessage('Reviewed exercise submitted successfully')
+  @ResponseMessage('Nộp bài tập có chấm điểm thành công')
   async submitReviewedExercise(
     @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string,
     @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
@@ -159,7 +159,7 @@ export class ReviewedExerciseController {
       }
     }
   })
-  @ResponseMessage('Reviewed exercise updated successfully')
+  @ResponseMessage('Cập nhật bài tập có chấm điểm thành công')
   async updateReviewedExercise(
     @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string,
     @Body() updateDto: UpdateReviewedExerciseDto,
@@ -171,7 +171,7 @@ export class ReviewedExerciseController {
   @Get()
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of reviewed exercises' })
-  @ResponseMessage('Reviewed exercises retrieved successfully')
+  @ResponseMessage('Lấy danh sách bài tập có chấm điểm thành công')
   async getReviewedExercises(@Query() query: GetReviewedExercisesQueryDto, @CurrentUser() currentUser?: User) {
     return await this.reviewedExerciseService.getReviewedExercises(query, currentUser)
   }
@@ -179,7 +179,7 @@ export class ReviewedExerciseController {
   @Get('latest/active/:lessonId')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Get the latest active reviewed exercise for a lesson' })
-  @ResponseMessage('Latest active reviewed exercise retrieved successfully')
+  @ResponseMessage('Lấy bài tập có chấm điểm đang hoạt động mới nhất thành công')
   async getLatestActiveReviewedExercise(
     @Param('lessonId', new ParseUUIDPipe({ version: '4' })) lessonId: string,
     @CurrentUser() currentUser: User
@@ -190,7 +190,7 @@ export class ReviewedExerciseController {
   @Get(':reviewedExerciseId/score-spectrum')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({ summary: 'Get score spectrum analysis for a reviewed exercise' })
-  @ResponseMessage('Score spectrum retrieved successfully')
+  @ResponseMessage('Lấy phổ điểm thành công')
   async getReviewedExerciseScoreSpectrum(
     @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string
   ): Promise<ReviewedExerciseScoreSpectrumDto> {
@@ -222,7 +222,7 @@ export class ReviewedExerciseController {
       - Pagination metadata
     `
   })
-  @ResponseMessage('Student grades retrieved successfully')
+  @ResponseMessage('Lấy điểm học sinh thành công')
   async getStudentGradeList(
     @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string,
     @Query() query: GetStudentGradesQueryDto,
@@ -234,7 +234,7 @@ export class ReviewedExerciseController {
   @Get(':reviewedExerciseId')
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get a single reviewed exercise by ID' })
-  @ResponseMessage('Reviewed exercise retrieved successfully')
+  @ResponseMessage('Lấy bài tập có chấm điểm thành công')
   async getReviewedExerciseById(
     @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string,
     @CurrentUser() currentUser?: User
@@ -245,7 +245,7 @@ export class ReviewedExerciseController {
   @Delete(':reviewedExerciseId')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({ summary: 'Soft delete a reviewed exercise' })
-  @ResponseMessage('Reviewed exercise deleted successfully')
+  @ResponseMessage('Xóa bài tập có chấm điểm thành công')
   async deleteReviewedExercise(
     @Param('reviewedExerciseId', new ParseUUIDPipe({ version: '4' })) reviewedExerciseId: string,
     @CurrentUser() currentUser: User

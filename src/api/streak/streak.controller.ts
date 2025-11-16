@@ -28,7 +28,7 @@ export class StreakController {
     summary: 'Get my streak',
     description: 'Get the current streak information for the authenticated student'
   })
-  @ResponseMessage('Streak retrieved successfully')
+  @ResponseMessage('Lấy chuỗi ngày học thành công')
   async getMyStreak(@CurrentUser() currentUser: User): Promise<StreakResponseDto> {
     return await this.streakService.getMyStreak(currentUser)
   }
@@ -44,7 +44,7 @@ export class StreakController {
     description: 'The ID of the student',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  @ResponseMessage('Streak retrieved successfully')
+  @ResponseMessage('Lấy chuỗi ngày học thành công')
   async getStreakByStudentId(
     @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string
   ): Promise<StreakResponseDto> {

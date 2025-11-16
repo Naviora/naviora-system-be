@@ -64,12 +64,12 @@ export class UserController {
   @Public()
   async create(@Body() createAccountDto: CreateAccountDto) {
     const account = await this.userService.create(createAccountDto)
-    return new ApiResponseSuccess().setCode(201).setData(account).setMessage('Create successfully.')
+    return new ApiResponseSuccess().setCode(201).setData(account).setMessage('Tạo tài khoản thành công')
   }
 
   @Get()
   @ApiOperation({ summary: 'Get Users', description: 'Get list of users with pagination, search and filters' })
-  @ResponseMessage('Get all users successfully')
+  @ResponseMessage('Lấy danh sách người dùng thành công')
   async getAll(@Query() query: GetUsersQueryDto) {
     return await this.userService.getAll(query)
   }
@@ -77,7 +77,7 @@ export class UserController {
   @ApiOperation({ summary: 'Get Lecturers', description: 'Get list of lecturers with pagination, search and filters' })
   @ApiBearerAuth()
   @Get('lecturers')
-  @ResponseMessage('Get Lecturers successfully')
+  @ResponseMessage('Lấy danh sách giảng viên thành công')
   async getLecturers(@Query() query: GetLecturersQueryDto): Promise<OffsetPaginatedDto<ProfileDTO>> {
     const { lecturers, meta } = await this.userService.getLecturers(query)
 
@@ -102,7 +102,7 @@ export class UserController {
 
     return new OffsetPaginatedDto<ProfileDTO>({
       statusCode: 200,
-      message: 'Get Lecturers successfully',
+      message: 'Lấy danh sách giảng viên thành công',
       data: mappedLecturers,
       meta
     })
@@ -116,13 +116,13 @@ export class UserController {
   async getProfile(@Req() req: unknown) {
     const idUser = (req as any).user.id
     const data = await this.userService.getProfile(idUser)
-    return new ApiResponseSuccess().setCode(200).setMessage('Get profile successfully').setData(data)
+    return new ApiResponseSuccess().setCode(200).setMessage('Lấy thông tin cá nhân thành công').setData(data)
   }
 
   @Get(':id')
   async findById(@Param('id') id: string) {
     const data = await this.userService.findById(id)
-    return new ApiResponseSuccess().setCode(200).setMessage('Get account by id successfully').setData(data)
+    return new ApiResponseSuccess().setCode(200).setMessage('Lấy tài khoản theo ID thành công').setData(data)
   }
 
   @Patch('/profile')
@@ -146,7 +146,7 @@ export class UserController {
   async update(@Req() req: any, @Body() updateProfileDto: UpdateProfileDto) {
     const id = req.user.id
     await this.userService.updateProfile(id, updateProfileDto)
-    return new ApiResponseSuccess().setCode(200).setMessage('Update profile successfully')
+    return new ApiResponseSuccess().setCode(200).setMessage('Cập nhật thông tin cá nhân thành công')
   }
 
   @Patch('/upload-avatar')
@@ -168,7 +168,7 @@ export class UserController {
   async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Req() req: any) {
     const id = req.user.id
     await this.userService.uploadAvatar(id, file)
-    return new ApiResponseSuccess().setCode(200).setMessage('Upload avatar successfully')
+    return new ApiResponseSuccess().setCode(200).setMessage('Tải lên avatar thành công')
   }
 
   @Post('admin/create')
@@ -188,7 +188,7 @@ export class UserController {
     }
   })
   @ApiResponse({ status: 201, description: 'Account created successfully', type: CreateAccountByAdminResponseDto })
-  @ResponseMessage('Account created successfully, credentials sent via email')
+  @ResponseMessage('Tạo tài khoản thành công, thông tin đăng nhập đã được gửi qua email')
   async createAccountByAdmin(@Body() createAccountDto: CreateAccountByAdminDto) {
     return await this.userService.createAccountByAdmin(createAccountDto)
   }
@@ -228,7 +228,7 @@ export class UserController {
     description: 'Bulk account creation completed',
     type: BulkCreateAccountByAdminResponseDto
   })
-  @ResponseMessage('Bulk account creation completed, emails will be sent in background')
+  @ResponseMessage('Tạo tài khoản hàng loạt hoàn tất, email sẽ được gửi trong nền')
   async bulkCreateAccountByAdmin(@Body() bulkCreateDto: BulkCreateAccountByAdminDto) {
     return await this.userService.bulkCreateAccountByAdmin(bulkCreateDto)
   }

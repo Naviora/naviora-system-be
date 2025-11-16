@@ -43,7 +43,7 @@ export class NotificationController {
 
     return new OffsetPaginatedDto<CreateNotifyResDto>({
       statusCode: 200,
-      message: 'Get all notifications successfully',
+      message: 'Lấy danh sách thông báo thành công',
       data: mappedNotifications,
       meta
     })
@@ -54,7 +54,7 @@ export class NotificationController {
   @SwaggerResponse({ status: 200, description: 'Notification deleted successfully' })
   async update(@Param('id') id: string): Promise<ApiResponse<void>> {
     await this.notificationService.update(id)
-    return new ApiResponse<void>().setCode(200).setMessage('Changed successfully')
+    return new ApiResponse<void>().setCode(200).setMessage('Thay đổi thành công')
   }
 
   @Delete(':id')
@@ -62,6 +62,6 @@ export class NotificationController {
   @SwaggerResponse({ status: 200, description: 'Notification deleted successfully' })
   async remove(@Param('id') id: string): Promise<ApiResponse<void>> {
     await this.notificationService.remove(id)
-    return new ApiResponse<void>().setCode(200).setMessage('Notification deleted successfully')
+    return new ApiResponse<void>().setCode(200).setMessage('Xóa thông báo thành công')
   }
 }

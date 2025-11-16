@@ -45,7 +45,7 @@ export class EntryTestController {
       }
     }
   })
-  @ResponseMessage('Entry test created successfully')
+  @ResponseMessage('Tạo bài kiểm tra đầu vào thành công')
   async create(@Body() createDto: CreateEntryTestDto, @CurrentUser() currentUser: User): Promise<EntryTestResponseDto> {
     return await this.entryTestService.create(createDto, currentUser)
   }
@@ -75,7 +75,7 @@ export class EntryTestController {
       }
     }
   })
-  @ResponseMessage('Entry test started successfully')
+  @ResponseMessage('Bắt đầu bài kiểm tra đầu vào thành công')
   async startEntryTest(
     @Body('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
     @CurrentUser() currentUser: User
@@ -139,7 +139,7 @@ export class EntryTestController {
       }
     }
   })
-  @ResponseMessage('Entry test submitted successfully')
+  @ResponseMessage('Nộp bài kiểm tra đầu vào thành công')
   async submitEntryTest(
     @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
     @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
@@ -186,7 +186,7 @@ export class EntryTestController {
       }
     }
   })
-  @ResponseMessage('Entry test updated successfully')
+  @ResponseMessage('Cập nhật bài kiểm tra đầu vào thành công')
   async updateEntryTest(
     @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
     @Body() updateDto: UpdateEntryTestDto,
@@ -198,7 +198,7 @@ export class EntryTestController {
   @Get()
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of entry tests' })
-  @ResponseMessage('Entry tests retrieved successfully')
+  @ResponseMessage('Lấy danh sách bài kiểm tra đầu vào thành công')
   async getEntryTests(@Query() query: GetEntryTestsQueryDto, @CurrentUser() currentUser?: User) {
     return await this.entryTestService.getEntryTests(query, currentUser)
   }
@@ -206,7 +206,7 @@ export class EntryTestController {
   @Get('latest/active')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Get the latest active entry test for student' })
-  @ResponseMessage('Latest active entry test retrieved successfully')
+  @ResponseMessage('Lấy bài kiểm tra đầu vào đang hoạt động mới nhất thành công')
   async getLatestActiveEntryTest(@CurrentUser() currentUser: User): Promise<EntryTestResponseDto | null> {
     return await this.entryTestService.getLatestActiveEntryTestForStudent(currentUser)
   }
@@ -214,7 +214,7 @@ export class EntryTestController {
   @Get(':entryTestId/score-spectrum')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({ summary: 'Get score spectrum analysis for an entry test' })
-  @ResponseMessage('Score spectrum retrieved successfully')
+  @ResponseMessage('Lấy phổ điểm thành công')
   async getEntryTestScoreSpectrum(
     @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string
   ): Promise<EntryTestScoreSpectrumDto> {
@@ -245,7 +245,7 @@ export class EntryTestController {
       - Pagination metadata
     `
   })
-  @ResponseMessage('Student grades retrieved successfully')
+  @ResponseMessage('Lấy điểm học sinh thành công')
   async getStudentGradeList(
     @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
     @Query() query: GetEntryTestStudentGradesQueryDto,
@@ -257,7 +257,7 @@ export class EntryTestController {
   @Get(':entryTestId')
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get a single entry test by ID' })
-  @ResponseMessage('Entry test retrieved successfully')
+  @ResponseMessage('Lấy bài kiểm tra đầu vào thành công')
   async getEntryTestById(
     @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
     @CurrentUser() currentUser?: User
@@ -268,7 +268,7 @@ export class EntryTestController {
   @Delete(':entryTestId')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({ summary: 'Soft delete an entry test' })
-  @ResponseMessage('Entry test deleted successfully')
+  @ResponseMessage('Xóa bài kiểm tra đầu vào thành công')
   async deleteEntryTest(
     @Param('entryTestId', new ParseUUIDPipe({ version: '4' })) entryTestId: string,
     @CurrentUser() currentUser: User

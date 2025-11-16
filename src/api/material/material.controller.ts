@@ -51,7 +51,7 @@ export class MaterialController {
       }
     }
   })
-  @ResponseMessage('Material created successfully')
+  @ResponseMessage('Tạo tài liệu thành công')
   async create(@Body() createMaterialDto: CreateMaterialDto, @CurrentUser() currentUser: User) {
     return await this.materialService.create({ ...createMaterialDto, lecturer_id: currentUser.id })
   }
@@ -85,7 +85,7 @@ export class MaterialController {
       required: ['file', 'material_name', 'material_type']
     }
   })
-  @ResponseMessage('File uploaded and material created successfully')
+  @ResponseMessage('Tải lên file và tạo tài liệu thành công')
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body('material_name') materialName: string,
@@ -134,7 +134,7 @@ export class MaterialController {
       required: ['file', 'material_name', 'material_type']
     }
   })
-  @ResponseMessage('File uploaded to folder and material created successfully')
+  @ResponseMessage('Tải lên file vào thư mục và tạo tài liệu thành công')
   async uploadFileToFolder(
     @UploadedFile() file: Express.Multer.File,
     @Body('material_name') materialName: string,
@@ -160,7 +160,7 @@ export class MaterialController {
     description: 'Material ID to delete',
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
-  @ResponseMessage('Material and file deleted successfully')
+  @ResponseMessage('Xóa tài liệu và file thành công')
   async deleteMaterial(@Param('id', new ParseUUIDPipe({ version: '4' })) materialId: string) {
     return await this.materialUploadService.deleteMaterialAndFile(materialId)
   }

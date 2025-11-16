@@ -16,14 +16,14 @@ export class MeetingEventsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create meeting event for a class' })
-  @ResponseMessage('Meeting event created successfully')
+  @ResponseMessage('Tạo sự kiện họp thành công')
   async create(@Body() dto: CreateMeetingEventDto) {
     return await this.meetingEventsService.create(dto)
   }
 
   @Get('weekly')
   @ApiOperation({ summary: 'Get weekly meeting events by role' })
-  @ResponseMessage('Get weekly meeting events successfully')
+  @ResponseMessage('Lấy danh sách sự kiện họp theo tuần thành công')
   async getWeekly(@Query() query: GetWeeklyMeetingEventsQueryDto, @CurrentUser() currentUser) {
     return await this.meetingEventsService.getWeekly(currentUser.id, currentUser.role, query)
   }
