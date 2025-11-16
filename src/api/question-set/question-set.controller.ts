@@ -23,7 +23,7 @@ export class QuestionSetController {
   @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Create a new question set (exam test set)' })
   @ApiBody({ description: 'Payload to create question set', type: CreateQuestionSetDto })
-  @ResponseMessage('Question set created successfully')
+  @ResponseMessage('Tạo bộ câu hỏi thành công')
   async create(@Body() dto: CreateQuestionSetDto, @CurrentUser() currentUser: User) {
     return await this.questionSetService.create(dto, currentUser)
   }
@@ -31,7 +31,7 @@ export class QuestionSetController {
   @Get()
   @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Get paginated list of question sets' })
-  @ResponseMessage('Question sets retrieved successfully')
+  @ResponseMessage('Lấy danh sách bộ câu hỏi thành công')
   async getQuestionSets(@Query() query: GetQuestionSetsQueryDto) {
     return await this.questionSetService.getQuestionSets(query)
   }
@@ -39,7 +39,7 @@ export class QuestionSetController {
   @Get(':questionSetId')
   @Roles(RoleInAccount.Student, RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Get a single question set by ID with full details' })
-  @ResponseMessage('Question set retrieved successfully')
+  @ResponseMessage('Lấy bộ câu hỏi thành công')
   async getQuestionSetById(
     @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string
   ): Promise<QuestionSetDetailResponseDto> {
@@ -50,7 +50,7 @@ export class QuestionSetController {
   @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Update a question set' })
   @ApiBody({ description: 'Payload to update question set', type: UpdateQuestionSetDto })
-  @ResponseMessage('Question set updated successfully')
+  @ResponseMessage('Cập nhật bộ câu hỏi thành công')
   async update(
     @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
     @Body() dto: UpdateQuestionSetDto,
@@ -62,7 +62,7 @@ export class QuestionSetController {
   @Delete(':questionSetId')
   @Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
   @ApiOperation({ summary: 'Soft delete a question set' })
-  @ResponseMessage('Question set deleted successfully')
+  @ResponseMessage('Xóa bộ câu hỏi thành công')
   async delete(
     @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
     @CurrentUser() currentUser: User

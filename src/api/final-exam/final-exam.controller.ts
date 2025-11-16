@@ -45,7 +45,7 @@ export class FinalExamController {
       }
     }
   })
-  @ResponseMessage('Final exam created successfully')
+  @ResponseMessage('Tạo bài thi cuối kỳ thành công')
   async create(@Body() createDto: CreateFinalExamDto, @CurrentUser() currentUser: User): Promise<FinalExamResponseDto> {
     return await this.finalExamService.create(createDto, currentUser)
   }
@@ -75,7 +75,7 @@ export class FinalExamController {
       }
     }
   })
-  @ResponseMessage('Final exam started successfully')
+  @ResponseMessage('Bắt đầu bài thi cuối kỳ thành công')
   async startFinalExam(
     @Body('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string,
     @CurrentUser() currentUser: User
@@ -139,7 +139,7 @@ export class FinalExamController {
       }
     }
   })
-  @ResponseMessage('Final exam submitted successfully')
+  @ResponseMessage('Nộp bài thi cuối kỳ thành công')
   async submitFinalExam(
     @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string,
     @Param('questionSetId', new ParseUUIDPipe({ version: '4' })) questionSetId: string,
@@ -186,7 +186,7 @@ export class FinalExamController {
       }
     }
   })
-  @ResponseMessage('Final exam updated successfully')
+  @ResponseMessage('Cập nhật bài thi cuối kỳ thành công')
   async updateFinalExam(
     @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string,
     @Body() updateDto: UpdateFinalExamDto,
@@ -198,7 +198,7 @@ export class FinalExamController {
   @Get()
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get paginated list of final exams' })
-  @ResponseMessage('Final exams retrieved successfully')
+  @ResponseMessage('Lấy danh sách bài thi cuối kỳ thành công')
   async getFinalExams(@Query() query: GetFinalExamsQueryDto) {
     return await this.finalExamService.getFinalExams(query)
   }
@@ -206,7 +206,7 @@ export class FinalExamController {
   @Get('latest/active')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Get the latest active final exam for student' })
-  @ResponseMessage('Latest active final exam retrieved successfully')
+  @ResponseMessage('Lấy bài thi cuối kỳ đang hoạt động mới nhất thành công')
   async getLatestActiveFinalExam(): Promise<FinalExamResponseDto | null> {
     return await this.finalExamService.getLatestActiveFinalExamForStudent()
   }
@@ -214,7 +214,7 @@ export class FinalExamController {
   @Get(':finalExamId/score-spectrum')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({ summary: 'Get score spectrum analysis for a final exam' })
-  @ResponseMessage('Score spectrum retrieved successfully')
+  @ResponseMessage('Lấy phổ điểm thành công')
   async getFinalExamScoreSpectrum(
     @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string
   ): Promise<FinalExamScoreSpectrumDto> {
@@ -245,7 +245,7 @@ export class FinalExamController {
       - Pagination metadata
     `
   })
-  @ResponseMessage('Student grades retrieved successfully')
+  @ResponseMessage('Lấy điểm học sinh thành công')
   async getStudentGradeList(
     @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string,
     @Query() query: GetFinalExamStudentGradesQueryDto,
@@ -257,7 +257,7 @@ export class FinalExamController {
   @Get(':finalExamId')
   @Roles(RoleInAccount.Lecturer, RoleInAccount.Principal, RoleInAccount.Admin, RoleInAccount.Student)
   @ApiOperation({ summary: 'Get a single final exam by ID' })
-  @ResponseMessage('Final exam retrieved successfully')
+  @ResponseMessage('Lấy bài thi cuối kỳ thành công')
   async getFinalExamById(
     @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string
   ): Promise<FinalExamResponseDto> {
@@ -267,7 +267,7 @@ export class FinalExamController {
   @Delete(':finalExamId')
   @Roles(RoleInAccount.Admin, RoleInAccount.Principal, RoleInAccount.Lecturer)
   @ApiOperation({ summary: 'Soft delete a final exam' })
-  @ResponseMessage('Final exam deleted successfully')
+  @ResponseMessage('Xóa bài thi cuối kỳ thành công')
   async deleteFinalExam(
     @Param('finalExamId', new ParseUUIDPipe({ version: '4' })) finalExamId: string,
     @CurrentUser() currentUser: User

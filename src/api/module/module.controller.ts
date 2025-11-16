@@ -75,7 +75,7 @@ export class ModulesController {
       required: ['module_code', 'module_name']
     }
   })
-  @ResponseMessage('Module created successfully')
+  @ResponseMessage('Tạo module thành công')
   async create(@Body() createModuleDto: CreateModuleDto, @UploadedFile() banner?: Express.Multer.File) {
     return await this.modulesService.create(createModuleDto, banner)
   }
@@ -90,7 +90,7 @@ export class ModulesController {
     `
   })
   @Get()
-  @ResponseMessage('Get Modules successfully')
+  @ResponseMessage('Lấy danh sách module thành công')
   async getModules(@Query() query: GetModulesQueryDto, @CurrentUser() currentUser: User) {
     return await this.modulesService.getModules(query, currentUser)
   }
@@ -102,7 +102,7 @@ export class ModulesController {
     description: 'The ID of the module to get detail',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  @ResponseMessage('Get Module Detail successfully')
+  @ResponseMessage('Lấy chi tiết module thành công')
   async getModuleDetail(
     @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string,
     @CurrentUser() currentUser: User
@@ -119,7 +119,7 @@ export class ModulesController {
     description: 'The ID of the class to get modules for',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  @ResponseMessage('Get Class Modules successfully')
+  @ResponseMessage('Lấy danh sách module của lớp học thành công')
   async getModulesOfClassForStudent(
     @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
     @Query() query: GetModulesQueryDto,
@@ -139,7 +139,7 @@ export class ModulesController {
     description: 'The ID of the module to get lessons',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  @ResponseMessage('Get Module with Lessons successfully')
+  @ResponseMessage('Lấy module kèm bài học thành công')
   async getModuleWithLessons(
     @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string,
     @CurrentUser() currentUser?: User
@@ -180,7 +180,7 @@ export class ModulesController {
       }
     }
   })
-  @ResponseMessage('Module updated successfully')
+  @ResponseMessage('Cập nhật module thành công')
   async update(
     @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string,
     @Body() updateModuleDto: UpdateModuleDto,
@@ -211,7 +211,7 @@ export class ModulesController {
       }
     }
   })
-  @ResponseMessage('Lecturers assigned to module successfully')
+  @ResponseMessage('Phân công giảng viên vào module thành công')
   async assignLecturersToModule(
     @Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string,
     @Body() assignLecturersDto: AssignLecturersToModuleDto
@@ -228,7 +228,7 @@ export class ModulesController {
     description: 'The ID of the module to soft delete',
     example: '550e8400-e29b-41d4-a716-446655440000'
   })
-  @ResponseMessage('Module deleted successfully')
+  @ResponseMessage('Xóa module thành công')
   async softDelete(@Param('moduleId', new ParseUUIDPipe({ version: '4' })) moduleId: string) {
     return await this.modulesService.softDelete(moduleId)
   }

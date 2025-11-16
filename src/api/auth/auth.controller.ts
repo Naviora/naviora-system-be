@@ -39,7 +39,7 @@ export class AuthController {
       example4: { summary: 'Principal Account', value: { email: 'principal@example.com', password: 'Principal@123' } }
     }
   })
-  @ResponseMessage('Login successfully')
+  @ResponseMessage('Đăng nhập thành công')
   async login(@Request() req: ExpressRequest & { user: { id: string; role?: string } }) {
     try {
       return await this.authService.login(req.user)
@@ -55,7 +55,7 @@ export class AuthController {
     type: RefreshReqDto,
     examples: { example1: { summary: 'Refresh token', value: { refresh_token: 'token' } } }
   })
-  @ResponseMessage('Get refresh token successfully')
+  @ResponseMessage('Lấy refresh token thành công')
   async refreshToken(@Body() dto: RefreshReqDto) {
     return await this.authService.refreshToken(dto.refresh_token)
   }
@@ -66,7 +66,7 @@ export class AuthController {
   })
   @Post('logout')
   @ApiBody({ description: 'Login Account' })
-  @ResponseMessage('Logout successfully')
+  @ResponseMessage('Đăng xuất thành công')
   async logout(@CurrentUser() userToken: JwtPayloadType) {
     console.log('user token', userToken)
     return await this.authService.logout(userToken)
@@ -88,7 +88,7 @@ export class AuthController {
   })
   async changePassword(@Request() req: ExpressRequest & { user: { id: string } }, @Body() data: ChangePasswordAuthDto) {
     await this.authService.changePassword(req.user.id, data)
-    return new ApiResponseSuccess().setCode(200).setMessage('Change password successfully')
+    return new ApiResponseSuccess().setCode(200).setMessage('Đổi mật khẩu thành công')
   }
 
   @Public()
@@ -112,7 +112,7 @@ export class AuthController {
   })
   async createOtp(@Body() payload: EmailDTO) {
     await this.authService.createOtp(payload)
-    return new ApiResponseSuccess().setCode(200).setMessage('Create OTP successfully')
+    return new ApiResponseSuccess().setCode(200).setMessage('Tạo OTP thành công')
   }
 
   @Public()
@@ -143,7 +143,7 @@ export class AuthController {
     try {
       const account = await this.authService.verifyOtp(payload)
       await this.authService.activeAccountOtp(account)
-      return new ApiResponseSuccess().setCode(204).setMessage('Account authentication successful')
+      return new ApiResponseSuccess().setCode(204).setMessage('Xác thực tài khoản thành công')
     } catch (error) {
       throw error
     }
@@ -176,7 +176,7 @@ export class AuthController {
   async verifyOtp(@Body() payload: VerifyOtpDTO) {
     try {
       await this.authService.verifyOtp(payload)
-      return new ApiResponseSuccess().setCode(200).setMessage('OTP is valid')
+      return new ApiResponseSuccess().setCode(200).setMessage('OTP hợp lệ')
     } catch (error) {
       throw error
     }
@@ -220,7 +220,7 @@ export class AuthController {
       const { email, otp, newPassword, confirmNewPassword } = payload
       const account = await this.authService.verifyOtp({ email, otp })
       await this.authService.forgotPassword({ id: account.id, email, otp, newPassword, confirmNewPassword })
-      return new ApiResponseSuccess().setCode(200).setMessage('Password reset successfully')
+      return new ApiResponseSuccess().setCode(200).setMessage('Đặt lại mật khẩu thành công')
     } catch (error) {
       throw error
     }

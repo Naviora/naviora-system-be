@@ -35,7 +35,7 @@ export class TeachingMaterialController {
       }
     }
   })
-  @ResponseMessage('Teaching material created successfully')
+  @ResponseMessage('Tạo tài liệu giảng dạy thành công')
   async create(@Body() createTeachingMaterialDto: CreateTeachingMaterialDto): Promise<TeachingMaterialResDto> {
     return await this.teachingMaterialService.create(createTeachingMaterialDto)
   }

@@ -38,14 +38,14 @@ export class LessonController {
       }
     }
   })
-  @ResponseMessage('Lesson created successfully')
+  @ResponseMessage('Tạo bài học thành công')
   async create(@Body() createLessonDto: CreateLessonDto) {
     return await this.lessonService.create(createLessonDto)
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all lessons' })
-  @ResponseMessage('Get all lessons successfully')
+  @ResponseMessage('Lấy danh sách bài học thành công')
   async findAll(@Query() reqDto: ListLessonReqDto) {
     return await this.lessonService.findAll(reqDto)
   }
@@ -58,7 +58,7 @@ export class LessonController {
     type: String,
     example: '123e4567-e89b-12d3-a456-426614174000'
   })
-  @ResponseMessage('Get lesson successfully')
+  @ResponseMessage('Lấy bài học thành công')
   async findOne(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @CurrentUser() currentUser: User) {
     return await this.lessonService.findOne(id, currentUser)
   }
@@ -66,7 +66,7 @@ export class LessonController {
   @Patch(':id/complete')
   @Roles(RoleInAccount.Student)
   @ApiOperation({ summary: 'Toggle lesson completion status' })
-  @ResponseMessage('Lesson completion status updated')
+  @ResponseMessage('Cập nhật trạng thái hoàn thành bài học thành công')
   async toggleCompletion(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @CurrentUser() currentUser: User
@@ -90,13 +90,13 @@ export class LessonController {
       }
     }
   })
-  @ResponseMessage('Lesson updated successfully')
+  @ResponseMessage('Cập nhật bài học thành công')
   async update(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @Body() updateLessonDto: UpdateLessonDto) {
     return await this.lessonService.update(id, updateLessonDto)
   }
 
   @Delete(':id')
-  @ResponseMessage('Lesson deleted successfully')
+  @ResponseMessage('Xóa bài học thành công')
   async remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return await this.lessonService.remove(id)
   }

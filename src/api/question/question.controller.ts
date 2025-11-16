@@ -28,7 +28,7 @@ export class QuestionController {
     description: 'Question created successfully',
     type: CreateQuestionResponseDto
   })
-  @ResponseMessage('Question created successfully')
+  @ResponseMessage('Tạo câu hỏi thành công')
   async create(@Body() createQuestionDto: CreateQuestionDto): Promise<CreateQuestionResponseDto> {
     return this.questionService.create(createQuestionDto)
   }
@@ -40,7 +40,7 @@ export class QuestionController {
     description: 'List of questions retrieved successfully',
     type: [QuestionResponseDto]
   })
-  @ResponseMessage('Get all questions successfully')
+  @ResponseMessage('Lấy danh sách câu hỏi thành công')
   async findAll(@Query() reqDto: ListQuestionReqDto) {
     return await this.questionService.findAll(reqDto)
   }
@@ -52,13 +52,13 @@ export class QuestionController {
     description: 'Question retrieved successfully',
     type: QuestionResponseDto
   })
-  @ResponseMessage('Get question successfully')
+  @ResponseMessage('Lấy câu hỏi thành công')
   async findOne(@Param('id') id: string): Promise<QuestionResponseDto> {
     return this.questionService.findOne(id)
   }
 
   @Patch(':id')
-  @ResponseMessage('Question updated successfully')
+  @ResponseMessage('Cập nhật câu hỏi thành công')
   @ApiResponse({
     status: 200,
     description: 'Question updated successfully',
@@ -78,7 +78,7 @@ export class QuestionController {
     description: 'Question deleted successfully',
     type: QuestionResponseDto
   })
-  @ResponseMessage('Question deleted successfully')
+  @ResponseMessage('Xóa câu hỏi thành công')
   async remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string): Promise<QuestionResponseDto> {
     return await this.questionService.remove(id)
   }
