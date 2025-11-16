@@ -196,7 +196,7 @@ export class ReviewedExerciseService {
     }
 
     // Update fields
-    if (updateDto.status !== undefined) {
+    if (updateDto.status !== undefined && updateDto.status !== reviewedExercise.status) {
       reviewedExercise.status = updateDto.status
     }
     if (updateDto.startTime !== undefined) {
