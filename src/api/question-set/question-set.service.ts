@@ -128,6 +128,7 @@ export class QuestionSetService {
         durationMinutes: q.config.general.duration_minutes,
         passingScore: q.config.general.passing_score,
         maxAttempts: q.config.general.max_attempts,
+        isInUse: q.isInUse,
         lecturer: {
           userId: q.lecturer.id,
           name: q.lecturer.name,
@@ -176,6 +177,7 @@ export class QuestionSetService {
       description: questionSet.description,
       questions: detailedQuestions,
       config: plainToInstance(ConfigDetailDto, questionSet.config),
+      isInUse: questionSet.isInUse,
       lecturer: {
         userId: questionSet.lecturer.id,
         name: questionSet.lecturer.name,

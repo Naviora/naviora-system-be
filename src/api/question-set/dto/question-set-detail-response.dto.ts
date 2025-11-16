@@ -125,6 +125,10 @@ export class QuestionSetDetailResponseDto {
   @Expose()
   config: ConfigDetailDto
 
+  @ApiProperty()
+  @Expose()
+  isInUse: boolean
+
   @ApiProperty({ type: LecturerDetailDto })
   @Expose()
   lecturer: LecturerDetailDto
