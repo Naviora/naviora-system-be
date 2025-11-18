@@ -103,7 +103,9 @@ export class AuthService {
         userId: account.id,
         hash
       })
+
       await this.sessionRepository.save(session)
+
       // TODO: Just find in user table for this version
       const user = await this.userService.findById(account.id)
       if (!user) {
