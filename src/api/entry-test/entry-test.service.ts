@@ -195,10 +195,22 @@ export class EntryTestService {
       }
       entryTest.status = updateDto.status
     }
+    if (updateDto.startTime !== undefined) {
+      const newStartTime = new Date(updateDto.startTime)
+      // Validate that end time is after start time
+      const endTimeToCheck = updateDto.endTime ? new Date(updateDto.endTime) : entryTest.endTime
+      if (endTimeToCheck <= newStartTime) {
+        throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+          { property: 'startTime', code: ErrorCode.V004 }
+        ])
+      }
+      entryTest.startTime = newStartTime
+    }
     if (updateDto.endTime !== undefined) {
       // Validate that end time is after start time
       const newEndTime = new Date(updateDto.endTime)
-      if (newEndTime <= entryTest.startTime) {
+      const startTimeToCheck = updateDto.startTime ? new Date(updateDto.startTime) : entryTest.startTime
+      if (newEndTime <= startTimeToCheck) {
         throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
           { property: 'endTime', code: ErrorCode.V004 }
         ])
