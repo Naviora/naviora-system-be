@@ -74,7 +74,7 @@ export class AuthService {
     try {
       const account = await this.userService.findByEmail(email)
       if (!account) {
-        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+        throw new ValidationException(ErrorCode.E004, 'Email không tồn tại', [
           {
             property: 'email',
             code: ErrorCode.E004
@@ -83,7 +83,7 @@ export class AuthService {
       }
       const isCheckedPassword = await compareString(pass, account.password)
       if (!isCheckedPassword) {
-        throw new ValidationException(ErrorCode.E005, 'Password not correct', [
+        throw new ValidationException(ErrorCode.E005, 'Mật khẩu không đúng', [
           {
             property: 'password',
             code: ErrorCode.E005
@@ -109,7 +109,7 @@ export class AuthService {
       // TODO: Just find in user table for this version
       const user = await this.userService.findById(account.id)
       if (!user) {
-        throw new ValidationException(ErrorCode.E004, 'User not found', [
+        throw new ValidationException(ErrorCode.E004, 'Không tìm thấy người dùng', [
           {
             property: 'user',
             code: ErrorCode.E004
@@ -118,7 +118,7 @@ export class AuthService {
       }
       const tokens = await this.generateTokens(account.id, account.role, hash, session.id)
       if (!tokens.access_token || !tokens.refresh_token) {
-        throw new Error('Login failed')
+        throw new Error('Đăng nhập thất bại')
       }
 
       let result: Token = {
@@ -204,7 +204,7 @@ export class AuthService {
     )
 
     if (isSessionBlacklisted) {
-      throw new UnauthorizedException('Access token is invalid or revoked')
+      throw new UnauthorizedException('Access token không hợp lệ hoặc đã bị thu hồi')
     }
 
     return payload
@@ -234,7 +234,7 @@ export class AuthService {
       const expired_otp = generateExpired(+this.configService.get<string>('OTP_EXPIRES_IN'))
       const account = await this.userService.findByEmail(payload.email)
       if (!account) {
-        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+        throw new ValidationException(ErrorCode.E004, 'Email không tồn tại', [
           {
             property: 'email',
             code: ErrorCode.E004
@@ -254,7 +254,7 @@ export class AuthService {
       const { email, otp } = payload
       const account = await this.userService.findByEmail(email)
       if (!account) {
-        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+        throw new ValidationException(ErrorCode.E004, 'Email không tồn tại', [
           {
             property: 'email',
             code: ErrorCode.E004
@@ -263,7 +263,7 @@ export class AuthService {
       }
       const otpRedis = await this.cacheManager.get(`otp:${account.id}`)
       if (!otpRedis) {
-        throw new ValidationException(ErrorCode.E007, 'OTP has expired', [
+        throw new ValidationException(ErrorCode.E007, 'OTP đã hết hạn', [
           {
             property: 'otp',
             code: ErrorCode.E007
@@ -271,7 +271,7 @@ export class AuthService {
         ])
       }
       if (otpRedis !== otp) {
-        throw new ValidationException(ErrorCode.E008, 'OTP not match', [
+        throw new ValidationException(ErrorCode.E008, 'OTP không chính xác', [
           {
             property: 'otp',
             code: ErrorCode.E008
@@ -296,7 +296,7 @@ export class AuthService {
     try {
       const { newPassword, confirmNewPassword } = payload
       if (newPassword !== confirmNewPassword) {
-        throw new BadRequestException('New password and confirm password do not match')
+        throw new BadRequestException('Mật khẩu mới và mật khẩu xác nhận không trùng khớp')
       }
       await this.userService.forgotPassword(payload)
     } catch (error) {

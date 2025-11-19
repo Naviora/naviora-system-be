@@ -29,7 +29,7 @@ export class QuestionSetService {
   async create(createDto: CreateQuestionSetDto, currentUser: User) {
     // Validate content is non-empty
     if (!Array.isArray(createDto.questions) || createDto.questions.length === 0) {
-      throw new ValidationException(ErrorCode.V004, 'Questions is required', [
+      throw new ValidationException(ErrorCode.V004, 'Danh sách câu hỏi là bắt buộc', [
         { property: 'questions', code: ErrorCode.V004 }
       ])
     }
@@ -43,7 +43,7 @@ export class QuestionSetService {
     const foundIds = new Set(found.map((q) => q.questionId))
     const missing = uniqueIds.filter((id) => !foundIds.has(id))
     if (missing.length > 0) {
-      throw new ValidationException(ErrorCode.Q001, 'Invalid question IDs', [
+      throw new ValidationException(ErrorCode.Q001, 'ID câu hỏi không hợp lệ', [
         { property: 'questions', code: ErrorCode.Q001, message: `Invalid question IDs: ${missing.join(', ')}` }
       ])
     }
@@ -53,7 +53,7 @@ export class QuestionSetService {
     const expectedQuestionCount = createDto.config.general.total_questions
 
     if (actualQuestionCount !== expectedQuestionCount) {
-      throw new ValidationException(ErrorCode.Q005, 'Question count mismatch', [
+      throw new ValidationException(ErrorCode.Q005, 'Số lượng câu hỏi không khớp', [
         {
           property: 'questions',
           code: ErrorCode.Q005,
@@ -72,7 +72,7 @@ export class QuestionSetService {
 
     const savedQuestionSet = await this.questionSetRepository.save(toSave)
     if (!savedQuestionSet) {
-      throw new ValidationException(ErrorCode.MODULE002, 'Failed to create question set')
+      throw new ValidationException(ErrorCode.MODULE002, 'Tạo bộ câu hỏi thất bại')
     }
 
     return savedQuestionSet
@@ -93,6 +93,11 @@ export class QuestionSetService {
     // Lecturer filter
     if (queryDto.lecturerId) {
       query.andWhere('question_set.lecturer_id = :lecturerId', { lecturerId: queryDto.lecturerId })
+    }
+
+    // isInUse filter
+    if (queryDto.isInUse !== undefined) {
+      query.andWhere('question_set.isInUse = :isInUse', { isInUse: queryDto.isInUse })
     }
 
     // Sorting
@@ -123,6 +128,7 @@ export class QuestionSetService {
         durationMinutes: q.config.general.duration_minutes,
         passingScore: q.config.general.passing_score,
         maxAttempts: q.config.general.max_attempts,
+        isInUse: q.isInUse,
         lecturer: {
           userId: q.lecturer.id,
           name: q.lecturer.name,
@@ -136,7 +142,7 @@ export class QuestionSetService {
 
     return {
       question_sets: mappedQuestionSets,
-      pagiantion: metaDto
+      pagination: metaDto
     }
   }
 
@@ -147,7 +153,7 @@ export class QuestionSetService {
     })
 
     if (!questionSet) {
-      throw new ValidationException(ErrorCode.Q001, 'Question set not found', [
+      throw new ValidationException(ErrorCode.Q001, 'Không tìm thấy bộ câu hỏi', [
         { property: 'questionSetId', code: ErrorCode.Q001 }
       ])
     }
@@ -171,6 +177,7 @@ export class QuestionSetService {
       description: questionSet.description,
       questions: detailedQuestions,
       config: plainToInstance(ConfigDetailDto, questionSet.config),
+      isInUse: questionSet.isInUse,
       lecturer: {
         userId: questionSet.lecturer.id,
         name: questionSet.lecturer.name,
@@ -190,7 +197,7 @@ export class QuestionSetService {
     })
 
     if (!questionSet) {
-      throw new ValidationException(ErrorCode.QUESTION_SET_004, 'Question set not found', [
+      throw new ValidationException(ErrorCode.QUESTION_SET_004, 'Không tìm thấy bộ câu hỏi', [
         { property: 'questionSetId', code: ErrorCode.QUESTION_SET_004 }
       ])
     }
@@ -201,7 +208,7 @@ export class QuestionSetService {
       if (updateDto.questions || updateDto.config) {
         throw new ValidationException(
           ErrorCode.QUESTION_SET_005,
-          'Cannot update questions or config when question set is in use',
+          'Không thể cập nhật câu hỏi hoặc cấu hình khi bộ câu hỏi đang được sử dụng',
           [
             { property: 'questions', code: ErrorCode.QUESTION_SET_005 },
             { property: 'config', code: ErrorCode.QUESTION_SET_005 }
@@ -213,7 +220,7 @@ export class QuestionSetService {
     // Validate questions if provided
     if (updateDto.questions) {
       if (!Array.isArray(updateDto.questions) || updateDto.questions.length === 0) {
-        throw new ValidationException(ErrorCode.V004, 'Questions is required', [
+        throw new ValidationException(ErrorCode.V004, 'Danh sách câu hỏi là bắt buộc', [
           { property: 'questions', code: ErrorCode.V004 }
         ])
       }
@@ -227,7 +234,7 @@ export class QuestionSetService {
       const foundIds = new Set(found.map((q) => q.questionId))
       const missing = uniqueIds.filter((id) => !foundIds.has(id))
       if (missing.length > 0) {
-        throw new ValidationException(ErrorCode.Q001, 'Invalid question IDs', [
+        throw new ValidationException(ErrorCode.Q001, 'ID câu hỏi không hợp lệ', [
           { property: 'questions', code: ErrorCode.Q001, message: `Invalid question IDs: ${missing.join(', ')}` }
         ])
       }
@@ -238,7 +245,7 @@ export class QuestionSetService {
         updateDto.config?.general?.total_questions || questionSet.config.general.total_questions
 
       if (actualQuestionCount !== expectedQuestionCount) {
-        throw new ValidationException(ErrorCode.Q005, 'Question count mismatch', [
+        throw new ValidationException(ErrorCode.Q005, 'Số lượng câu hỏi không khớp', [
           {
             property: 'questions',
             code: ErrorCode.Q005,
@@ -255,7 +262,7 @@ export class QuestionSetService {
       const expectedQuestionCount = updateDto.config.general?.total_questions
 
       if (expectedQuestionCount !== undefined && actualQuestionCount !== expectedQuestionCount) {
-        throw new ValidationException(ErrorCode.Q005, 'Config total_questions does not match the number of questions', [
+        throw new ValidationException(ErrorCode.Q005, 'Giá trị config total_questions không khớp với số câu hỏi', [
           {
             property: 'config.general.total_questions',
             code: ErrorCode.Q005,
@@ -302,14 +309,14 @@ export class QuestionSetService {
     })
 
     if (!questionSet) {
-      throw new ValidationException(ErrorCode.Q001, 'Question set not found', [
+      throw new ValidationException(ErrorCode.Q001, 'Không tìm thấy bộ câu hỏi', [
         { property: 'questionSetId', code: ErrorCode.Q001 }
       ])
     }
 
     // Check if question set is in use
     if (questionSet.isInUse) {
-      throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Cannot delete question set that is in use', [
+      throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Không thể xóa bộ câu hỏi đang được sử dụng', [
         { property: 'questionSetId', code: ErrorCode.QUESTION_SET_005 }
       ])
     }

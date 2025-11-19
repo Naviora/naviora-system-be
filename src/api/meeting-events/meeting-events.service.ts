@@ -30,12 +30,12 @@ export class MeetingEventsService {
     const start = new Date(start_time)
     const end = new Date(end_time)
     if (!(start < end)) {
-      throw new ValidationException(ErrorCode.MEETING001, 'Invalid time range')
+      throw new ValidationException(ErrorCode.MEETING001, 'Khoảng thời gian không hợp lệ')
     }
 
     const cls = await this.classRepo.findOne({ where: { classId: class_id } })
     if (!cls) {
-      throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+      throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
         { property: 'class_id', code: ErrorCode.CLASS003 }
       ])
     }
@@ -59,7 +59,7 @@ export class MeetingEventsService {
       const foundStudentIds = new Set(enrolments.map((e) => e.studentId))
       const invalid = invitee.filter((id) => !foundStudentIds.has(id))
       if (invalid.length > 0) {
-        throw new ValidationException(ErrorCode.MEETING003, 'Some invitees are not in the class', [
+        throw new ValidationException(ErrorCode.MEETING003, 'Một số người được mời không thuộc lớp', [
           { property: 'invitee', code: ErrorCode.MEETING003, message: `Invalid: ${invalid.join(', ')}` }
         ])
       }
@@ -101,7 +101,7 @@ export class MeetingEventsService {
   async getWeekly(userId: string, roleName: string | undefined, query: GetWeeklyMeetingEventsQueryDto) {
     const { start, end, class_id } = query
     if (!(start < end)) {
-      throw new ValidationException(ErrorCode.MEETING001, 'Invalid time range')
+      throw new ValidationException(ErrorCode.MEETING001, 'Khoảng thời gian không hợp lệ')
     }
 
     const qb = this.meetingEventsRepo

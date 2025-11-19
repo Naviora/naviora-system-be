@@ -46,6 +46,10 @@ export class QuestionSetResponseDto {
 
   @ApiProperty()
   @Expose()
+  isInUse: boolean
+
+  @ApiProperty()
+  @Expose()
   lecturer: LecturerInfoDto
 
   @ApiProperty()

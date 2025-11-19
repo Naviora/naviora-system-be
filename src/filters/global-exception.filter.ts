@@ -2,6 +2,7 @@ import { ErrorDetailDto } from '@common/dto/error-detail.dto'
 import { ErrorDto } from '@common/dto/error.dto'
 import { constraintErrors } from '@constants/constraint-errors'
 import { ErrorCode } from '@constants/error-code.constant'
+import { getErrorMessage, getHttpStatusMessage, translateText } from '@constants/error-message.constant'
 import { ValidationException } from '@exceptions/validation.exception'
 import {
   type ArgumentsHost,
@@ -14,7 +15,6 @@ import {
   ValidationError
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { STATUS_CODES } from 'http'
 import { EntityNotFoundError, QueryFailedError } from 'typeorm'
 
 @Catch()
@@ -64,8 +64,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const errorRes = {
       timestamp: new Date().toISOString(),
       statusCode,
-      error: STATUS_CODES[statusCode],
-      message: 'Validation failed',
+      error: getHttpStatusMessage(statusCode),
+      message: 'Xác thực dữ liệu thất bại',
       details: this.extractValidationErrorDetails(r.message)
     }
 
@@ -83,25 +83,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const statusCode = exception.getStatus()
 
+    const translatedMessage = translateText(r.message) || getErrorMessage(r.errorCode)
+
     const errorRes =
-      r.details?.length > 0
+      r.details && r.details.length > 0
         ? {
             timestamp: new Date().toISOString(),
             statusCode,
-            error: STATUS_CODES[statusCode] || 'Unknown Error',
-            message: r.message || r.errorCode,
+            error: getHttpStatusMessage(statusCode),
+            message: translatedMessage,
             errorCode: Object.keys(ErrorCode)[Object.values(ErrorCode).indexOf(r.errorCode)],
-            details: r.details?.map((detail) => ({
+            details: r.details.map((detail) => ({
               ...detail,
-              message: r.message
+              message: translateText(detail.message) || detail.message
             }))
           }
         : {
             timestamp: new Date().toISOString(),
-            error: STATUS_CODES[statusCode] || 'Unknown Error',
+            error: getHttpStatusMessage(statusCode),
             statusCode,
             errorCode: Object.keys(ErrorCode)[Object.values(ErrorCode).indexOf(r.errorCode)],
-            message: r.message || r.errorCode
+            message: translatedMessage
           }
 
     this.logger.debug(exception)
@@ -112,11 +114,26 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handleHttpException(exception: HttpException): ErrorDto {
     const statusCode = exception.getStatus()
 
+    const responseBody = exception.getResponse() as { message?: string | string[] }
+
+    let rawMessage: string | undefined
+    if (typeof responseBody === 'string') {
+      rawMessage = responseBody
+    } else if (Array.isArray(responseBody?.message)) {
+      rawMessage = responseBody.message.join(', ')
+    } else if (typeof responseBody?.message === 'string') {
+      rawMessage = responseBody.message
+    } else {
+      rawMessage = exception.message
+    }
+
+    const translatedMessage = translateText(rawMessage) || getHttpStatusMessage(statusCode)
+
     const errorRes = {
       timestamp: new Date().toISOString(),
       statusCode,
-      error: STATUS_CODES[statusCode],
-      message: exception.message
+      error: getHttpStatusMessage(statusCode),
+      message: translatedMessage
     }
 
     this.logger.debug(exception)
@@ -133,14 +150,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         }
       : {
           status: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'common.error.internal_server_error'
+          message: 'Lỗi máy chủ nội bộ'
         }
 
     const errorRes = {
       timestamp: new Date().toISOString(),
       statusCode: status,
-      error: STATUS_CODES[status],
-      message
+      error: getHttpStatusMessage(status),
+      message: translateText(message) || message
     }
 
     this.logger.error(error)
@@ -153,8 +170,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const errorRes = {
       timestamp: new Date().toISOString(),
       statusCode: status,
-      error: STATUS_CODES[status],
-      message: 'Entity not found'
+      error: getHttpStatusMessage(status),
+      message: 'Không tìm thấy dữ liệu'
     }
 
     this.logger.debug(error)
@@ -164,11 +181,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private handleError(error: Error): ErrorDto {
     const statusCode = HttpStatus.INTERNAL_SERVER_ERROR
+    const translatedMessage = translateText(error?.message) || getHttpStatusMessage(statusCode)
     const errorRes = {
       timestamp: new Date().toISOString(),
       statusCode,
-      error: STATUS_CODES[statusCode],
-      message: error?.message || 'An unexpected error occurred'
+      error: getHttpStatusMessage(statusCode),
+      message: translatedMessage
     }
 
     this.logger.error(error)
@@ -183,7 +201,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const currentErrors: ErrorDetailDto[] = Object.entries(error.constraints || {}).map(([code, message]) => ({
         property: propertyPath,
         code: constraintErrors[code] || code,
-        message
+        message: translateText(message) || message
       }))
 
       const childErrors: ErrorDetailDto[] =
