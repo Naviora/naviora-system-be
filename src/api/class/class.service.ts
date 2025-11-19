@@ -60,7 +60,7 @@ export class ClassService {
       const existingClass = await this.classRepository.findOne({ where: { classCode: class_code } })
 
       if (existingClass) {
-        throw new ValidationException(ErrorCode.CLASS001, 'Class code already exists')
+        throw new ValidationException(ErrorCode.CLASS001, 'Mã lớp đã tồn tại')
       }
 
       // Validate date range: startDate must be <= endDate
@@ -68,7 +68,7 @@ export class ClassService {
       const end = new Date(end_date)
 
       if (start > end) {
-        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
+        throw new ValidationException(ErrorCode.CLASS002, 'Ngày bắt đầu phải trước hoặc bằng ngày kết thúc')
       }
 
       const classEntity = this.classRepository.create({
@@ -151,7 +151,7 @@ export class ClassService {
     })
 
     if (!lecturer) {
-      throw new ValidationException(ErrorCode.USER001, 'Lecturer not found', [
+      throw new ValidationException(ErrorCode.USER001, 'Không tìm thấy giảng viên', [
         { property: 'lecturer_id', code: ErrorCode.USER001 }
       ])
     }
@@ -221,7 +221,7 @@ export class ClassService {
     })
 
     if (!classEntity) {
-      throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+      throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
         { property: 'classId', code: ErrorCode.CLASS003 }
       ])
     }
@@ -352,7 +352,7 @@ export class ClassService {
       const classEntity = await this.classRepository.findOne({ where: { classId } })
 
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học')
       }
 
       // Validate date range: start_date must be <= end_date
@@ -360,7 +360,7 @@ export class ClassService {
       const newEndDate = updateClassDto.end_date ? new Date(updateClassDto.end_date) : classEntity.endDate
 
       if (newStartDate && newEndDate && newStartDate > newEndDate) {
-        throw new ValidationException(ErrorCode.CLASS002, 'Start date must be before or equal to end date')
+        throw new ValidationException(ErrorCode.CLASS002, 'Ngày bắt đầu phải trước hoặc bằng ngày kết thúc')
       }
 
       // Update the class with provided fields (map snake_case to entity fields)
@@ -373,7 +373,7 @@ export class ClassService {
       const updatedClass = await this.classRepository.save(classEntity)
 
       if (!updatedClass) {
-        throw new ValidationException(ErrorCode.CLASS002, 'Failed to update class')
+        throw new ValidationException(ErrorCode.CLASS002, 'Cập nhật lớp thất bại')
       }
 
       return {
@@ -403,7 +403,7 @@ export class ClassService {
       })
 
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found')
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học')
       }
 
       // Check if all users exist and are lecturers
@@ -415,7 +415,7 @@ export class ClassService {
       if (lecturers.length !== lecturer_ids.length) {
         const foundIds = lecturers.map((l) => l.id)
         const notFoundIds = lecturer_ids.filter((id) => !foundIds.includes(id))
-        throw new ValidationException(ErrorCode.CLASS004, 'Some lecturers not found', [
+        throw new ValidationException(ErrorCode.CLASS004, 'Không tìm thấy một số giảng viên', [
           {
             property: 'lecturer_ids',
             code: ErrorCode.CLASS004,
@@ -428,7 +428,7 @@ export class ClassService {
       const nonLecturers = lecturers.filter((user) => user.role?.name !== RoleInAccount.Lecturer)
 
       if (nonLecturers.length > 0) {
-        throw new ValidationException(ErrorCode.CLASS005, 'Some users are not lecturers', [
+        throw new ValidationException(ErrorCode.CLASS005, 'Một số người dùng không phải giảng viên', [
           {
             property: 'lecturer_ids',
             code: ErrorCode.CLASS005,
@@ -449,7 +449,7 @@ export class ClassService {
 
       if (existingAssignments.length > 0) {
         const alreadyAssignedIds = existingAssignments.map((a) => a.lecturer.id)
-        throw new ValidationException(ErrorCode.CLASS007, 'Some lecturers are already assigned to this class', [
+        throw new ValidationException(ErrorCode.CLASS007, 'Một số giảng viên đã được phân công cho lớp này', [
           {
             property: 'lecturer_ids',
             code: ErrorCode.CLASS007,
@@ -470,7 +470,7 @@ export class ClassService {
       const savedAssignments = await this.teachingAssignmentRepository.save(teachingAssignments)
 
       if (!savedAssignments || savedAssignments.length === 0) {
-        throw new ValidationException(ErrorCode.CLASS006, 'Failed to assign lecturers to class')
+        throw new ValidationException(ErrorCode.CLASS006, 'Phân công giảng viên cho lớp thất bại')
       }
 
       return {
@@ -499,7 +499,7 @@ export class ClassService {
       })
 
       if (!entryTest) {
-        throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+        throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không tìm thấy bài kiểm tra đầu vào', [
           { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
         ])
       }
@@ -514,7 +514,7 @@ export class ClassService {
       if (classes.length !== classIds.length) {
         const foundIds = classes.map((c) => c.classId)
         const missingIds = classIds.filter((id) => !foundIds.includes(id))
-        throw new ValidationException(ErrorCode.CLASS001, 'Some classes not found', [
+        throw new ValidationException(ErrorCode.CLASS001, 'Không tìm thấy một số lớp', [
           {
             property: 'classDistribution',
             code: ErrorCode.CLASS001,
@@ -527,7 +527,7 @@ export class ClassService {
       const inactiveClasses = classes.filter((c) => !c.isActive)
       if (inactiveClasses.length > 0) {
         const inactiveIds = inactiveClasses.map((c) => c.classId)
-        throw new ValidationException(ErrorCode.CLASS001, 'Some classes are not active', [
+        throw new ValidationException(ErrorCode.CLASS001, 'Một số lớp chưa hoạt động', [
           {
             property: 'classDistribution',
             code: ErrorCode.CLASS001,
@@ -550,9 +550,11 @@ export class ClassService {
       })
 
       if (submissions.length === 0) {
-        throw new ValidationException(ErrorCode.ENTRY_TEST001, 'No submitted entries found for this entry test', [
-          { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
-        ])
+        throw new ValidationException(
+          ErrorCode.ENTRY_TEST001,
+          'Không có bài làm nào được nộp cho bài kiểm tra đầu vào này',
+          [{ property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }]
+        )
       }
 
       // 5. Check for existing enrollments to avoid duplicates
@@ -646,7 +648,7 @@ export class ClassService {
       // Validate class exists
       const classEntity = await this.classRepository.findOne({ where: { classId } })
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
           { property: 'classId', code: ErrorCode.CLASS003 }
         ])
       }
@@ -707,7 +709,7 @@ export class ClassService {
       // Validate class exists
       const classEntity = await this.classRepository.findOne({ where: { classId } })
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
           { property: 'classId', code: ErrorCode.CLASS003 }
         ])
       }
@@ -746,7 +748,7 @@ export class ClassService {
     // Check for duplicate ranges
     const uniqueRanges = new Set(ranges)
     if (uniqueRanges.size !== ranges.length) {
-      throw new ValidationException(ErrorCode.V004, 'Duplicate score ranges found', [
+      throw new ValidationException(ErrorCode.V004, 'Phát hiện trùng lặp khoảng điểm', [
         { property: 'classDistribution', code: ErrorCode.V004 }
       ])
     }
@@ -853,7 +855,7 @@ export class ClassService {
       })
 
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
           { property: 'classId', code: ErrorCode.CLASS003 }
         ])
       }
@@ -931,7 +933,7 @@ export class ClassService {
       })
 
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
           { property: 'classId', code: ErrorCode.CLASS003 }
         ])
       }

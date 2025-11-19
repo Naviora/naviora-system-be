@@ -55,12 +55,12 @@ export class LessonService {
     try {
       const existingLesson = await this.lessonRepository.findOne({ where: { lessonName: createLessonDto.lesson_name } })
       if (existingLesson) {
-        throw new ValidationException(ErrorCode.L001, 'Lesson name is already existed')
+        throw new ValidationException(ErrorCode.L001, 'Tên bài học đã tồn tại')
       }
 
       const module = await this.moduleRepository.findOne({ where: { moduleId: createLessonDto.module_id } })
       if (!module) {
-        throw new ValidationException(ErrorCode.MODULE001, 'Module not found')
+        throw new ValidationException(ErrorCode.MODULE001, 'Không tìm thấy học phần')
       }
 
       const lesson = this.lessonRepository.create({
@@ -105,7 +105,7 @@ export class LessonService {
         .where('lesson.lessonId = :id', { id })
         .getOne()
       if (!lesson) {
-        throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+        throw new ValidationException(ErrorCode.L001, 'Không tìm thấy bài học')
       }
 
       // Students can only access lessons belonging to their enrolled classes
@@ -114,7 +114,7 @@ export class LessonService {
           where: { classId: lesson.module.class.classId, studentId: currentUser.id }
         })
         if (!isEnrolled) {
-          throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+          throw new ValidationException(ErrorCode.V000, 'Sinh viên không thuộc lớp này', [
             { property: 'class_id', code: ErrorCode.V000 }
           ])
         }
@@ -255,13 +255,13 @@ export class LessonService {
       .getOne()
 
     if (!lesson) {
-      throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+      throw new ValidationException(ErrorCode.L001, 'Không tìm thấy bài học')
     }
 
     const userRole = extractUserRole(currentUser)
 
     if (userRole !== RoleInAccount.Student) {
-      throw new ValidationException(ErrorCode.V000, 'Only students can update lesson progress', [
+      throw new ValidationException(ErrorCode.V000, 'Chỉ sinh viên mới được cập nhật tiến độ bài học', [
         { property: 'role', code: ErrorCode.V000 }
       ])
     }
@@ -271,7 +271,7 @@ export class LessonService {
         where: { classId: lesson.module.class.classId, studentId: currentUser.id }
       })
       if (!isEnrolled) {
-        throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+        throw new ValidationException(ErrorCode.V000, 'Sinh viên không thuộc lớp này', [
           { property: 'class_id', code: ErrorCode.V000 }
         ])
       }
@@ -306,7 +306,7 @@ export class LessonService {
     try {
       const lesson = await this.lessonRepository.findOne({ where: { lessonId: id } })
       if (!lesson) {
-        throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+        throw new ValidationException(ErrorCode.L001, 'Không tìm thấy bài học')
       }
 
       // Check if materials exist and create teaching materials
@@ -346,7 +346,7 @@ export class LessonService {
       // Fetch the updated lesson
       const updatedLesson = await this.lessonRepository.findOne({ where: { lessonId: id } })
       if (!updatedLesson) {
-        throw new ValidationException(ErrorCode.L001, 'Lesson not found after update')
+        throw new ValidationException(ErrorCode.L001, 'Không tìm thấy bài học sau khi cập nhật')
       }
 
       // Get teaching materials with their related materials
@@ -379,7 +379,7 @@ export class LessonService {
     try {
       const lesson = await this.lessonRepository.findOne({ where: { lessonId: id } })
       if (!lesson) {
-        throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+        throw new ValidationException(ErrorCode.L001, 'Không tìm thấy bài học')
       }
       return this.lessonRepository.delete(id)
     } catch (error) {

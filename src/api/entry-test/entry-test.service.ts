@@ -59,7 +59,7 @@ export class EntryTestService {
     const missing = uniqueIds.filter((id) => !foundIds.has(id))
 
     if (missing.length > 0) {
-      throw new ValidationException(ErrorCode.Q001, 'Invalid question set IDs', [
+      throw new ValidationException(ErrorCode.Q001, 'ID bộ câu hỏi không hợp lệ', [
         { property: 'questionSets', code: ErrorCode.Q001, message: `Invalid question set IDs: ${missing.join(', ')}` }
       ])
     }
@@ -68,7 +68,7 @@ export class EntryTestService {
     const inUseQuestionSets = foundQuestionSets.filter((qs) => qs.isInUse)
     if (inUseQuestionSets.length > 0) {
       const inUseIds = inUseQuestionSets.map((qs) => qs.questionSetId)
-      throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Question sets are already in use', [
+      throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Bộ câu hỏi đang được sử dụng', [
         {
           property: 'questionSets',
           code: ErrorCode.QUESTION_SET_005,
@@ -82,7 +82,7 @@ export class EntryTestService {
     const endTime = new Date(createDto.endTime)
 
     if (endTime <= startTime) {
-      throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+      throw new ValidationException(ErrorCode.V004, 'Thời gian kết thúc phải sau thời gian bắt đầu', [
         { property: 'endTime', code: ErrorCode.V004 }
       ])
     }
@@ -104,7 +104,7 @@ export class EntryTestService {
     await this.questionSetRepository.update({ questionSetId: In(Array.from(foundIds)) }, { isInUse: true })
 
     if (!savedEntryTest) {
-      throw new ValidationException(ErrorCode.MODULE002, 'Failed to create entry test')
+      throw new ValidationException(ErrorCode.MODULE002, 'Tạo bài kiểm tra đầu vào thất bại')
     }
 
     // Reload entry test with full question set relations to get all fields
@@ -131,7 +131,7 @@ export class EntryTestService {
     })
 
     if (!entryTest) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không tìm thấy bài kiểm tra đầu vào', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
       ])
     }
@@ -147,7 +147,7 @@ export class EntryTestService {
       const missing = uniqueIds.filter((id) => !foundIds.has(id))
 
       if (missing.length > 0) {
-        throw new ValidationException(ErrorCode.QUESTION_SET_002, 'Invalid question set IDs', [
+        throw new ValidationException(ErrorCode.QUESTION_SET_002, 'ID bộ câu hỏi không hợp lệ', [
           {
             property: 'questionSets',
             code: ErrorCode.QUESTION_SET_002,
@@ -163,7 +163,7 @@ export class EntryTestService {
       )
       if (inUseQuestionSets.length > 0) {
         const inUseIds = inUseQuestionSets.map((qs) => qs.questionSetId)
-        throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Question sets are already in use', [
+        throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Bộ câu hỏi đang được sử dụng', [
           {
             property: 'questionSets',
             code: ErrorCode.QUESTION_SET_005,
@@ -188,7 +188,7 @@ export class EntryTestService {
         })
         // Exclude the current entry test from the check
         if (existingActiveEntryTest && existingActiveEntryTest.entryTestId !== entryTest.entryTestId) {
-          throw new ValidationException(ErrorCode.ENTRY_TEST005, 'There is already an active entry test', [
+          throw new ValidationException(ErrorCode.ENTRY_TEST005, 'Đã có bài kiểm tra đầu vào đang hoạt động', [
             { property: 'status', code: ErrorCode.ENTRY_TEST005 }
           ])
         }
@@ -200,7 +200,7 @@ export class EntryTestService {
       // Validate that end time is after start time
       const endTimeToCheck = updateDto.endTime ? new Date(updateDto.endTime) : entryTest.endTime
       if (endTimeToCheck <= newStartTime) {
-        throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+        throw new ValidationException(ErrorCode.V004, 'Thời gian kết thúc phải sau thời gian bắt đầu', [
           { property: 'startTime', code: ErrorCode.V004 }
         ])
       }
@@ -211,7 +211,7 @@ export class EntryTestService {
       const newEndTime = new Date(updateDto.endTime)
       const startTimeToCheck = updateDto.startTime ? new Date(updateDto.startTime) : entryTest.startTime
       if (newEndTime <= startTimeToCheck) {
-        throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+        throw new ValidationException(ErrorCode.V004, 'Thời gian kết thúc phải sau thời gian bắt đầu', [
           { property: 'endTime', code: ErrorCode.V004 }
         ])
       }
@@ -260,7 +260,7 @@ export class EntryTestService {
     const savedEntryTest = await this.entryTestRepository.save(entryTest)
 
     if (!savedEntryTest) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST004, 'Failed to update entry test', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST004, 'Cập nhật bài kiểm tra đầu vào thất bại', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST004 }
       ])
     }
@@ -285,14 +285,14 @@ export class EntryTestService {
     })
 
     if (!entryTest) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không tìm thấy bài kiểm tra đầu vào', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
       ])
     }
 
     // Check if entry test is active
     if (entryTest.status !== ExamStatus.ACTIVE) {
-      throw new ValidationException(ErrorCode.V004, 'Entry test is not active', [
+      throw new ValidationException(ErrorCode.V004, 'Bài kiểm tra đầu vào chưa kích hoạt', [
         { property: 'entryTestId', code: ErrorCode.V004 }
       ])
     }
@@ -306,7 +306,7 @@ export class EntryTestService {
     })
 
     if (existingSubmission) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST002, 'Student already has a submission for this entry test', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST002, 'Sinh viên đã có bài nộp cho bài kiểm tra đầu vào này', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST002 }
       ])
     }
@@ -314,7 +314,7 @@ export class EntryTestService {
     // Randomly select a question set from the entry test's question sets
     const availableQuestionSets = entryTest.questionSets
     if (availableQuestionSets.length === 0) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST003, 'No question sets available for this entry test', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST003, 'Không có bộ câu hỏi nào cho bài kiểm tra đầu vào này', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST003 }
       ])
     }
@@ -431,7 +431,7 @@ export class EntryTestService {
     })
 
     if (!entryTest) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không tìm thấy bài kiểm tra đầu vào', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
       ])
     }
@@ -522,7 +522,7 @@ export class EntryTestService {
     })
 
     if (!entryTest) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không tìm thấy bài kiểm tra đầu vào', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
       ])
     }
@@ -559,21 +559,21 @@ export class EntryTestService {
     })
 
     if (!submission) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Submission not found', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không tìm thấy bài nộp', [
         { property: 'submissionId', code: ErrorCode.ENTRY_TEST001 }
       ])
     }
 
     // Check if submission belongs to current user
     if (submission.studentId !== currentUser.id) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Unauthorized access to submission', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không có quyền truy cập bài nộp này', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
       ])
     }
 
     // Check if submission is still in progress
     if (submission.attemptStatus !== AttemptStatus.IN_PROGRESS) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Submission has already been completed', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Bài nộp đã hoàn thành', [
         { property: 'submissionId', code: ErrorCode.ENTRY_TEST001 }
       ])
     }
@@ -584,7 +584,7 @@ export class EntryTestService {
     const invalidQuestions = submittedQuestionIds.filter((id) => !questionIds.includes(id))
 
     if (invalidQuestions.length > 0) {
-      throw new ValidationException(ErrorCode.Q001, 'Invalid question IDs in submission', [
+      throw new ValidationException(ErrorCode.Q001, 'Trong bài nộp có câu hỏi không hợp lệ', [
         { property: 'answered', code: ErrorCode.Q001, message: `Invalid question IDs: ${invalidQuestions.join(', ')}` }
       ])
     }
@@ -600,7 +600,7 @@ export class EntryTestService {
     const missingAnswers = allAnswerIds.filter((id) => !foundAnswerIds.has(id))
 
     if (missingAnswers.length > 0) {
-      throw new ValidationException(ErrorCode.Q001, 'Invalid answer IDs in submission', [
+      throw new ValidationException(ErrorCode.Q001, 'Trong bài nộp có đáp án không hợp lệ', [
         { property: 'answered', code: ErrorCode.Q001, message: `Invalid answer IDs: ${missingAnswers.join(', ')}` }
       ])
     }
@@ -609,7 +609,7 @@ export class EntryTestService {
     for (const submittedAnswer of submitDto.answered) {
       const answer = answers.find((a) => a.answerId === submittedAnswer.answerId)
       if (answer && answer.question.questionId !== submittedAnswer.questionId) {
-        throw new ValidationException(ErrorCode.Q001, 'Answer does not belong to the specified question', [
+        throw new ValidationException(ErrorCode.Q001, 'Đáp án không thuộc câu hỏi tương ứng', [
           {
             property: 'answered',
             code: ErrorCode.Q001,
@@ -669,7 +669,7 @@ export class EntryTestService {
     })
 
     if (!entryTest) {
-      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Entry test not found', [
+      throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không tìm thấy bài kiểm tra đầu vào', [
         { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
       ])
     }
@@ -822,7 +822,7 @@ export class EntryTestService {
     })
 
     if (!entryTest) {
-      throw new ValidationException(ErrorCode.V004, 'Entry test not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài kiểm tra đầu vào', [
         { property: 'entryTestId', code: ErrorCode.V004 }
       ])
     }

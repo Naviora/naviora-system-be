@@ -27,7 +27,7 @@ export class TeachingMaterialService {
       // Check if lesson exists
       const lesson = await this.lessonRepository.findOne({ where: { lessonId: createTeachingMaterialDto.lesson_id } })
       if (!lesson) {
-        throw new ValidationException(ErrorCode.L002, 'Lesson not found')
+        throw new ValidationException(ErrorCode.L002, 'Không tìm thấy bài học')
       }
 
       // Check if material exists
@@ -35,7 +35,7 @@ export class TeachingMaterialService {
         where: { materialId: createTeachingMaterialDto.material_id }
       })
       if (!material) {
-        throw new ValidationException(ErrorCode.M001, 'Material not found')
+        throw new ValidationException(ErrorCode.M001, 'Không tìm thấy tài liệu')
       }
 
       const teachingMaterial = this.teachingMaterialRepository.create({

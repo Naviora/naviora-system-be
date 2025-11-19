@@ -31,7 +31,7 @@ export class QuestionService {
       // 1. TODO: Skip for new version if the lesson exists
       // const lesson = await this.lessonRepository.findOne({ where: { lessonId: createQuestionDto.lesson_id } })
       // if (!lesson) {
-      //   throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+      //   throw new ValidationException(ErrorCode.L001, 'Không tìm thấy bài học')
       // }
 
       const newQuestion = this.questionRepository.create({
@@ -49,13 +49,13 @@ export class QuestionService {
       // 2.1 Check if the question type is Multiple
       if (createQuestionDto.type === QuestionType.MULTI_CHOICE) {
         if (createQuestionDto.answers.length < 2) {
-          throw new ValidationException(ErrorCode.Q002, 'Multiple choice question must have 4 answers')
+          throw new ValidationException(ErrorCode.Q002, 'Câu hỏi trắc nghiệm phải có 4 đáp án')
         }
       }
 
       // 2.2 Check if more than 1 answer is correct
       if (createQuestionDto.answers.filter((answer) => answer.isCorrect).length > 1) {
-        throw new ValidationException(ErrorCode.Q003, 'Multiple choice question must have only 1 correct answer')
+        throw new ValidationException(ErrorCode.Q003, 'Câu hỏi trắc nghiệm chỉ được có 1 đáp án đúng')
       }
 
       // TODO: Check another question type in the future
@@ -66,10 +66,10 @@ export class QuestionService {
       for (const answer of createQuestionDto.answers) {
         const normalized = (answer.content || '').trim().toLowerCase()
         if (!normalized) {
-          throw new ValidationException(ErrorCode.V004, 'Answer content must not be empty')
+          throw new ValidationException(ErrorCode.V004, 'Nội dung đáp án không được để trống')
         }
         if (seenContents.has(normalized)) {
-          throw new ValidationException(ErrorCode.Q004, 'Answer content must be unique')
+          throw new ValidationException(ErrorCode.Q004, 'Nội dung đáp án phải là duy nhất')
         }
         seenContents.add(normalized)
 
@@ -134,7 +134,7 @@ export class QuestionService {
         relations: ['answers']
       })
       if (!question) {
-        throw new ValidationException(ErrorCode.Q001, 'Question not found')
+        throw new ValidationException(ErrorCode.Q001, 'Không tìm thấy câu hỏi')
       }
 
       return plainToInstance(QuestionResponseDto, question, {
@@ -153,14 +153,14 @@ export class QuestionService {
         relations: ['answers']
       })
       if (!question) {
-        throw new ValidationException(ErrorCode.Q001, 'Question not found')
+        throw new ValidationException(ErrorCode.Q001, 'Không tìm thấy câu hỏi')
       }
 
       // 2. TODO: Skip for new version if the lesson is not provided
       if (updateQuestionDto.lesson_id) {
         const lesson = await this.lessonRepository.findOne({ where: { lessonId: updateQuestionDto.lesson_id } })
         if (!lesson) {
-          throw new ValidationException(ErrorCode.L001, 'Lesson not found')
+          throw new ValidationException(ErrorCode.L001, 'Không tìm thấy bài học')
         }
       }
 
@@ -194,10 +194,10 @@ export class QuestionService {
         for (const [, content] of finalContentsById) {
           const normalized = (content || '').trim().toLowerCase()
           if (!normalized) {
-            throw new ValidationException(ErrorCode.V004, 'Answer content must not be empty')
+            throw new ValidationException(ErrorCode.V004, 'Nội dung đáp án không được để trống')
           }
           if (normalizedExisting.has(normalized)) {
-            throw new ValidationException(ErrorCode.Q004, 'Answer content must be unique')
+            throw new ValidationException(ErrorCode.Q004, 'Nội dung đáp án phải là duy nhất')
           }
           normalizedExisting.add(normalized)
         }
@@ -231,7 +231,7 @@ export class QuestionService {
         where: { questionId: id }
       })
       if (!question) {
-        throw new ValidationException(ErrorCode.Q001, 'Question not found')
+        throw new ValidationException(ErrorCode.Q001, 'Không tìm thấy câu hỏi')
       }
 
       await this.questionRepository.softDelete(question.questionId)

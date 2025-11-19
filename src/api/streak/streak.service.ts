@@ -35,13 +35,13 @@ export class StreakService {
     })
 
     if (!student) {
-      throw new ValidationException(ErrorCode.USER001, 'Student not found', [
+      throw new ValidationException(ErrorCode.USER001, 'Không tìm thấy sinh viên', [
         { property: 'student_id', code: ErrorCode.USER001 }
       ])
     }
 
     if (student.role?.name !== RoleInAccount.Student) {
-      throw new ValidationException(ErrorCode.USER002, 'User is not a student', [
+      throw new ValidationException(ErrorCode.USER002, 'Người dùng không phải sinh viên', [
         { property: 'student_id', code: ErrorCode.USER002 }
       ])
     }
@@ -114,7 +114,7 @@ export class StreakService {
    */
   async getMyStreak(currentUser: User): Promise<StreakResponseDto> {
     // if (currentUser.role?.name !== RoleInAccount.Student) {
-    //   throw new ValidationException(ErrorCode.USER002, 'Only students can view their streak', [
+    //   throw new ValidationException(ErrorCode.USER002, 'Chỉ sinh viên mới xem được streak của mình', [
     //     { property: 'role', code: ErrorCode.USER002 }
     //   ])
     // }

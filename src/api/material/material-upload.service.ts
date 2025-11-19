@@ -38,7 +38,7 @@ export class MaterialUploadService extends CloudinaryService {
       cloudinaryResult = await this.uploadFile(file)
 
       if (!cloudinaryResult.secure_url) {
-        throw new Error('Failed to upload file to Cloudinary')
+        throw new Error('Tải tệp lên Cloudinary thất bại')
       }
 
       // Create material record in database
@@ -71,7 +71,7 @@ export class MaterialUploadService extends CloudinaryService {
       cloudinaryResult = await this.uploadFileToFolder(file, folder)
 
       if (!cloudinaryResult.secure_url) {
-        throw new Error('Failed to upload file to Cloudinary')
+        throw new Error('Tải tệp lên Cloudinary thất bại')
       }
 
       // Create material record in database
@@ -111,7 +111,7 @@ export class MaterialUploadService extends CloudinaryService {
       // Get material to extract public_id from URL
       const material = await this.materialService.findById(materialId)
       if (!material) {
-        throw new Error('Material not found')
+        throw new Error('Không tìm thấy tài liệu')
       }
 
       // Delete all teaching materials associated with this material
