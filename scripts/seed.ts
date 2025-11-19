@@ -1,19 +1,33 @@
 import { DataSource } from 'typeorm'
-import { DatabaseSeederService } from '../src/database/seeds/database-seeder.service'
 import { AppDataSource } from '../src/database/data-source'
+
+type SeederServiceConstructor = new (dataSource: DataSource) => { seed(): Promise<void> }
+
+async function resolveSeeder(nodeEnv: string): Promise<SeederServiceConstructor> {
+  if (nodeEnv === 'production') {
+    const { DatabaseSeederService } = await import('@database-prod/database-seeder.service')
+    return DatabaseSeederService
+  }
+
+  const { DatabaseSeederService } = await import('@database/seeds/database-seeder.service')
+  return DatabaseSeederService
+}
 
 async function runSeeder() {
   let dataSource: DataSource | null = null
 
   try {
-    console.log('Initializing database connection...')
+    const nodeEnv = process.env.NODE_ENV ?? 'development'
+    console.log(`Seeder running with NODE_ENV=${nodeEnv}`)
+    console.log(`Initializing database connection...`)
     dataSource = AppDataSource
     await dataSource.initialize()
 
     console.log('Database connection established successfully!')
     console.log('Starting database seeding...\n')
 
-    const seederService = new DatabaseSeederService(dataSource)
+    const SeederService = await resolveSeeder(nodeEnv)
+    const seederService = new SeederService(dataSource)
     await seederService.seed()
 
     console.log('\n✅ Database seeding completed successfully!')
