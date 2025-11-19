@@ -19,6 +19,15 @@ export class UpdateEntryTestDto {
   status?: ExamStatus
 
   @ApiProperty({
+    description: 'Start time for the entry test',
+    example: '2024-12-31T23:59:59.000Z',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  startTime?: string
+
+  @ApiProperty({
     description: 'End time for the entry test',
     example: '2024-12-31T23:59:59.000Z',
     required: false

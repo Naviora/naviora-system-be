@@ -64,7 +64,7 @@ export class ReviewedExerciseService {
     })
 
     if (!lesson) {
-      throw new ValidationException(ErrorCode.V004, 'Lesson not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài học', [
         { property: 'lessonId', code: ErrorCode.V004 }
       ])
     }
@@ -79,7 +79,7 @@ export class ReviewedExerciseService {
     const missing = uniqueIds.filter((id) => !foundIds.has(id))
 
     if (missing.length > 0) {
-      throw new ValidationException(ErrorCode.Q001, 'Invalid question set IDs', [
+      throw new ValidationException(ErrorCode.Q001, 'ID bộ câu hỏi không hợp lệ', [
         { property: 'questionSets', code: ErrorCode.Q001, message: `Invalid question set IDs: ${missing.join(', ')}` }
       ])
     }
@@ -88,7 +88,7 @@ export class ReviewedExerciseService {
     const inUseQuestionSets = foundQuestionSets.filter((qs) => qs.isInUse)
     if (inUseQuestionSets.length > 0) {
       const inUseIds = inUseQuestionSets.map((qs) => qs.questionSetId)
-      throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Question sets are already in use', [
+      throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Bộ câu hỏi đang được sử dụng', [
         {
           property: 'questionSets',
           code: ErrorCode.QUESTION_SET_005,
@@ -102,7 +102,7 @@ export class ReviewedExerciseService {
     const endTime = new Date(createDto.endTime)
 
     if (endTime <= startTime) {
-      throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+      throw new ValidationException(ErrorCode.V004, 'Thời gian kết thúc phải sau thời gian bắt đầu', [
         { property: 'endTime', code: ErrorCode.V004 }
       ])
     }
@@ -124,7 +124,7 @@ export class ReviewedExerciseService {
     await this.questionSetRepository.update({ questionSetId: In(Array.from(foundIds)) }, { isInUse: true })
 
     if (!savedReviewedExercise) {
-      throw new ValidationException(ErrorCode.MODULE002, 'Failed to create reviewed exercise')
+      throw new ValidationException(ErrorCode.MODULE002, 'Tạo bài tập được chấm thất bại')
     }
 
     // Load relations for response
@@ -153,7 +153,7 @@ export class ReviewedExerciseService {
     })
 
     if (!reviewedExercise) {
-      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài tập được chấm', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -169,7 +169,7 @@ export class ReviewedExerciseService {
       const missing = uniqueIds.filter((id) => !foundIds.has(id))
 
       if (missing.length > 0) {
-        throw new ValidationException(ErrorCode.QUESTION_SET_002, 'Invalid question set IDs', [
+        throw new ValidationException(ErrorCode.QUESTION_SET_002, 'ID bộ câu hỏi không hợp lệ', [
           {
             property: 'questionSets',
             code: ErrorCode.QUESTION_SET_002,
@@ -185,7 +185,7 @@ export class ReviewedExerciseService {
       )
       if (inUseQuestionSets.length > 0) {
         const inUseIds = inUseQuestionSets.map((qs) => qs.questionSetId)
-        throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Question sets are already in use', [
+        throw new ValidationException(ErrorCode.QUESTION_SET_005, 'Bộ câu hỏi đang được sử dụng', [
           {
             property: 'questionSets',
             code: ErrorCode.QUESTION_SET_005,
@@ -203,7 +203,7 @@ export class ReviewedExerciseService {
       const newStartTime = new Date(updateDto.startTime)
       // Validate that end time is after start time
       if (reviewedExercise.endTime <= newStartTime) {
-        throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+        throw new ValidationException(ErrorCode.V004, 'Thời gian kết thúc phải sau thời gian bắt đầu', [
           { property: 'startTime', code: ErrorCode.V004 }
         ])
       }
@@ -213,7 +213,7 @@ export class ReviewedExerciseService {
       // Validate that end time is after start time
       const newEndTime = new Date(updateDto.endTime)
       if (newEndTime <= reviewedExercise.startTime) {
-        throw new ValidationException(ErrorCode.V004, 'End time must be after start time', [
+        throw new ValidationException(ErrorCode.V004, 'Thời gian kết thúc phải sau thời gian bắt đầu', [
           { property: 'endTime', code: ErrorCode.V004 }
         ])
       }
@@ -262,7 +262,7 @@ export class ReviewedExerciseService {
     const savedReviewedExercise = await this.reviewedExerciseRepository.save(reviewedExercise)
 
     if (!savedReviewedExercise) {
-      throw new ValidationException(ErrorCode.MODULE002, 'Failed to update reviewed exercise', [
+      throw new ValidationException(ErrorCode.MODULE002, 'Cập nhật bài tập được chấm thất bại', [
         { property: 'reviewedExerciseId', code: ErrorCode.MODULE002 }
       ])
     }
@@ -292,14 +292,14 @@ export class ReviewedExerciseService {
     })
 
     if (!reviewedExercise) {
-      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài tập được chấm', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
 
     // Check if reviewed exercise is active
     if (reviewedExercise.status !== ExamStatus.ACTIVE) {
-      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise is not active', [
+      throw new ValidationException(ErrorCode.V004, 'Bài tập được chấm chưa kích hoạt', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -307,7 +307,7 @@ export class ReviewedExerciseService {
     // Check if reviewed exercise is within time window
     const now = new Date()
     if (now < reviewedExercise.startTime || now > reviewedExercise.endTime) {
-      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise is not currently available', [
+      throw new ValidationException(ErrorCode.V004, 'Bài tập được chấm hiện không khả dụng', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -325,7 +325,7 @@ export class ReviewedExerciseService {
       if (existingSubmission.attemptStatus === AttemptStatus.IN_PROGRESS) {
         return plainToInstance(ReviewedExerciseSubmissionResponseDto, existingSubmission)
       }
-      throw new ValidationException(ErrorCode.V004, 'Student already has a submission for this reviewed exercise', [
+      throw new ValidationException(ErrorCode.V004, 'Sinh viên đã có bài nộp cho bài tập được chấm này', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -333,7 +333,7 @@ export class ReviewedExerciseService {
     // Randomly select a question set from the reviewed exercise's question sets
     const availableQuestionSets = reviewedExercise.questionSets
     if (availableQuestionSets.length === 0) {
-      throw new ValidationException(ErrorCode.V004, 'No question sets available for this reviewed exercise', [
+      throw new ValidationException(ErrorCode.V004, 'Không có bộ câu hỏi nào cho bài tập được chấm này', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -446,7 +446,7 @@ export class ReviewedExerciseService {
     })
 
     if (!reviewedExercise) {
-      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài tập được chấm', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -556,7 +556,7 @@ export class ReviewedExerciseService {
     })
 
     if (!reviewedExercise) {
-      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài tập được chấm', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -594,21 +594,21 @@ export class ReviewedExerciseService {
     })
 
     if (!submission) {
-      throw new ValidationException(ErrorCode.V004, 'Submission not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài nộp', [
         { property: 'submissionId', code: ErrorCode.V004 }
       ])
     }
 
     // Check if submission belongs to current user
     if (submission.studentId !== currentUser.id) {
-      throw new ValidationException(ErrorCode.V004, 'Unauthorized access to submission', [
+      throw new ValidationException(ErrorCode.V004, 'Không có quyền truy cập bài nộp này', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
 
     // Check if submission is still in progress
     if (submission.attemptStatus !== AttemptStatus.IN_PROGRESS) {
-      throw new ValidationException(ErrorCode.V004, 'Submission has already been completed', [
+      throw new ValidationException(ErrorCode.V004, 'Bài nộp đã hoàn thành', [
         { property: 'submissionId', code: ErrorCode.V004 }
       ])
     }
@@ -619,7 +619,7 @@ export class ReviewedExerciseService {
     const invalidQuestions = submittedQuestionIds.filter((id) => !questionIds.includes(id))
 
     if (invalidQuestions.length > 0) {
-      throw new ValidationException(ErrorCode.Q001, 'Invalid question IDs in submission', [
+      throw new ValidationException(ErrorCode.Q001, 'Trong bài nộp có câu hỏi không hợp lệ', [
         { property: 'answered', code: ErrorCode.Q001, message: `Invalid question IDs: ${invalidQuestions.join(', ')}` }
       ])
     }
@@ -635,7 +635,7 @@ export class ReviewedExerciseService {
     const missingAnswers = allAnswerIds.filter((id) => !foundAnswerIds.has(id))
 
     if (missingAnswers.length > 0) {
-      throw new ValidationException(ErrorCode.Q001, 'Invalid answer IDs in submission', [
+      throw new ValidationException(ErrorCode.Q001, 'Trong bài nộp có đáp án không hợp lệ', [
         { property: 'answered', code: ErrorCode.Q001, message: `Invalid answer IDs: ${missingAnswers.join(', ')}` }
       ])
     }
@@ -644,7 +644,7 @@ export class ReviewedExerciseService {
     for (const submittedAnswer of submitDto.answered) {
       const answer = answers.find((a) => a.answerId === submittedAnswer.answerId)
       if (answer && answer.question.questionId !== submittedAnswer.questionId) {
-        throw new ValidationException(ErrorCode.Q001, 'Answer does not belong to the specified question', [
+        throw new ValidationException(ErrorCode.Q001, 'Đáp án không thuộc câu hỏi tương ứng', [
           {
             property: 'answered',
             code: ErrorCode.Q001,
@@ -704,7 +704,7 @@ export class ReviewedExerciseService {
     })
 
     if (!reviewedExercise) {
-      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài tập được chấm', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -844,7 +844,7 @@ export class ReviewedExerciseService {
       .getOne()
 
     if (!reviewedExercise) {
-      throw new ValidationException(ErrorCode.V004, 'Reviewed exercise not found', [
+      throw new ValidationException(ErrorCode.V004, 'Không tìm thấy bài tập được chấm', [
         { property: 'reviewedExerciseId', code: ErrorCode.V004 }
       ])
     }
@@ -863,7 +863,7 @@ export class ReviewedExerciseService {
       const moduleId = reviewedExercise.lesson.module?.moduleId
 
       if (!moduleId) {
-        throw new ValidationException(ErrorCode.V004, 'Module not found for this reviewed exercise', [
+        throw new ValidationException(ErrorCode.V004, 'Không tìm thấy học phần cho bài tập được chấm này', [
           { property: 'reviewedExerciseId', code: ErrorCode.V004 }
         ])
       }
@@ -880,7 +880,7 @@ export class ReviewedExerciseService {
       if (!teachingModule) {
         throw new ValidationException(
           ErrorCode.V000,
-          'You are not assigned to teach this module. You can only view grades for students in your assigned modules.',
+          'Bạn không được phân công dạy học phần này. Bạn chỉ có thể xem điểm của sinh viên trong các học phần được giao.',
           [{ property: 'reviewedExerciseId', code: ErrorCode.V000 }]
         )
       }
@@ -889,7 +889,7 @@ export class ReviewedExerciseService {
       const classId = reviewedExercise.lesson.module?.class?.classId
 
       if (!classId) {
-        throw new ValidationException(ErrorCode.V004, 'Class not found for this module', [
+        throw new ValidationException(ErrorCode.V004, 'Không tìm thấy lớp cho học phần này', [
           { property: 'reviewedExerciseId', code: ErrorCode.V004 }
         ])
       }

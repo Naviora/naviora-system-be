@@ -54,7 +54,7 @@ export class ModulesService {
       const { module_code, class_id } = createModuleDto
       const existingModule = await this.moduleRepository.findOne({ where: { moduleCode: module_code } })
       if (existingModule) {
-        throw new ValidationException(ErrorCode.MODULE001, 'Module code already exists', [
+        throw new ValidationException(ErrorCode.MODULE001, 'Mã học phần đã tồn tại', [
           {
             property: 'module_code',
             code: ErrorCode.MODULE001
@@ -65,7 +65,7 @@ export class ModulesService {
       if (class_id !== null && class_id !== '') {
         existingClass = await this.classRepository.findOne({ where: { classId: class_id } })
         if (!existingClass) {
-          throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+          throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
             {
               property: 'class_id',
               code: ErrorCode.CLASS003
@@ -104,7 +104,7 @@ export class ModulesService {
       const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
 
       if (!moduleEntity) {
-        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+        throw new ValidationException(ErrorCode.MODULE003, 'Không tìm thấy học phần', [
           {
             property: 'module_id',
             code: ErrorCode.MODULE003
@@ -118,7 +118,7 @@ export class ModulesService {
           where: { moduleCode: updateModuleDto.module_code }
         })
         if (existingModule) {
-          throw new ValidationException(ErrorCode.MODULE001, 'Module code already exists', [
+          throw new ValidationException(ErrorCode.MODULE001, 'Mã học phần đã tồn tại', [
             {
               property: 'module_code',
               code: ErrorCode.MODULE001
@@ -144,7 +144,7 @@ export class ModulesService {
       const updatedModule = await this.moduleRepository.save(moduleEntity)
 
       if (!updatedModule) {
-        throw new ValidationException(ErrorCode.MODULE002, 'Failed to update module')
+        throw new ValidationException(ErrorCode.MODULE002, 'Cập nhật học phần thất bại')
       }
 
       return updatedModule
@@ -236,7 +236,7 @@ export class ModulesService {
       const module = await moduleQuery.getOne()
 
       if (!module) {
-        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+        throw new ValidationException(ErrorCode.MODULE003, 'Không tìm thấy học phần', [
           {
             property: 'module_id',
             code: ErrorCode.MODULE003
@@ -250,7 +250,7 @@ export class ModulesService {
           where: { classId: module.class.classId, studentId: currentUser.id }
         })
         if (!isEnrolled) {
-          throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+          throw new ValidationException(ErrorCode.V000, 'Sinh viên không thuộc lớp này', [
             { property: 'class_id', code: ErrorCode.V000 }
           ])
         }
@@ -354,7 +354,7 @@ export class ModulesService {
         .getOne()
 
       if (!module) {
-        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+        throw new ValidationException(ErrorCode.MODULE003, 'Không tìm thấy học phần', [
           {
             property: 'module_id',
             code: ErrorCode.MODULE003
@@ -417,7 +417,7 @@ export class ModulesService {
       .where('module.moduleId = :moduleId', { moduleId })
       .getOne()
     if (!module) {
-      throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+      throw new ValidationException(ErrorCode.MODULE003, 'Không tìm thấy học phần', [
         { property: 'module_id', code: ErrorCode.MODULE003 }
       ])
     }
@@ -426,7 +426,7 @@ export class ModulesService {
         where: { classId: module.class.classId, studentId: currentUser.id }
       })
       if (!isEnrolled) {
-        throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+        throw new ValidationException(ErrorCode.V000, 'Sinh viên không thuộc lớp này', [
           { property: 'class_id', code: ErrorCode.V000 }
         ])
       }
@@ -461,13 +461,13 @@ export class ModulesService {
       // Validate class exists
       const classEntity = await this.classRepository.findOne({ where: { classId } })
       if (!classEntity) {
-        throw new ValidationException(ErrorCode.CLASS003, 'Class not found', [
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
           { property: 'class_id', code: ErrorCode.CLASS003 }
         ])
       }
 
       if (extractUserRole(currentUser) !== RoleInAccount.Student) {
-        throw new ValidationException(ErrorCode.V000, 'Only students can access class modules', [
+        throw new ValidationException(ErrorCode.V000, 'Chỉ sinh viên mới được truy cập học phần của lớp', [
           { property: 'role', code: ErrorCode.V000 }
         ])
       }
@@ -477,7 +477,7 @@ export class ModulesService {
         where: { classId: classId, studentId: currentUser.id }
       })
       if (!enrolment) {
-        throw new ValidationException(ErrorCode.V000, 'Student is not enrolled in this class', [
+        throw new ValidationException(ErrorCode.V000, 'Sinh viên không thuộc lớp này', [
           { property: 'class_id', code: ErrorCode.V000 }
         ])
       }
@@ -488,7 +488,7 @@ export class ModulesService {
       })
 
       if (!hasCompletedEntryTest) {
-        throw new ValidationException(ErrorCode.V000, 'Student has not completed the entry test', [
+        throw new ValidationException(ErrorCode.V000, 'Sinh viên chưa hoàn thành bài kiểm tra đầu vào', [
           { property: 'entry_test', code: ErrorCode.V000 }
         ])
       }
@@ -566,7 +566,7 @@ export class ModulesService {
       // Check if module exists
       const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
       if (!moduleEntity) {
-        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+        throw new ValidationException(ErrorCode.MODULE003, 'Không tìm thấy học phần', [
           {
             property: 'module_id',
             code: ErrorCode.MODULE003
@@ -583,7 +583,7 @@ export class ModulesService {
       if (lecturers.length !== assignLecturersDto.lecturer_ids.length) {
         const foundIds = lecturers.map((l) => l.id)
         const missingIds = assignLecturersDto.lecturer_ids.filter((id) => !foundIds.includes(id))
-        throw new ValidationException(ErrorCode.USER001, 'Some lecturers not found', [
+        throw new ValidationException(ErrorCode.USER001, 'Không tìm thấy một số giảng viên', [
           {
             property: 'lecturer_ids',
             code: ErrorCode.USER001,
@@ -595,7 +595,7 @@ export class ModulesService {
       // Validate that all users are lecturers
       const nonLecturers = lecturers.filter((lecturer) => lecturer.role?.name !== RoleInAccount.Lecturer)
       if (nonLecturers.length > 0) {
-        throw new ValidationException(ErrorCode.USER002, 'Some users are not lecturers', [
+        throw new ValidationException(ErrorCode.USER002, 'Một số người dùng không phải giảng viên', [
           {
             property: 'lecturer_ids',
             code: ErrorCode.USER002,
@@ -615,7 +615,7 @@ export class ModulesService {
 
       if (existingAssignments.length > 0) {
         const alreadyAssignedIds = existingAssignments.map((a) => a.lecturer.id)
-        throw new ValidationException(ErrorCode.MODULE004, 'Some lecturers are already assigned to this module', [
+        throw new ValidationException(ErrorCode.MODULE004, 'Một số giảng viên đã được phân công cho học phần này', [
           {
             property: 'lecturer_ids',
             code: ErrorCode.MODULE004,
@@ -643,7 +643,7 @@ export class ModulesService {
       const savedAssignments = await this.teachingModuleRepository.save(teachingModules)
 
       if (!savedAssignments || savedAssignments.length === 0) {
-        throw new ValidationException(ErrorCode.MODULE005, 'Failed to assign lecturers to module')
+        throw new ValidationException(ErrorCode.MODULE005, 'Phân công giảng viên cho học phần thất bại')
       }
 
       return {
@@ -667,7 +667,7 @@ export class ModulesService {
     try {
       const moduleEntity = await this.moduleRepository.findOne({ where: { moduleId } })
       if (!moduleEntity) {
-        throw new ValidationException(ErrorCode.MODULE003, 'Module not found', [
+        throw new ValidationException(ErrorCode.MODULE003, 'Không tìm thấy học phần', [
           {
             property: 'module_id',
             code: ErrorCode.MODULE003

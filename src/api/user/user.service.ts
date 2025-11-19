@@ -60,7 +60,7 @@ export class UserService {
       const { email, password } = createAccountDto
 
       if (await this.isExist(email)) {
-        throw new ValidationException(ErrorCode.E003, 'Email already exists', [
+        throw new ValidationException(ErrorCode.E003, 'Email đã tồn tại', [
           {
             property: 'email',
             code: ErrorCode.E003
@@ -101,7 +101,7 @@ export class UserService {
   async findByEmail(email: string): Promise<User> {
     try {
       if (!email) {
-        throw new ValidationException(ErrorCode.E003, 'Email already exists', [
+        throw new ValidationException(ErrorCode.E003, 'Email đã tồn tại', [
           {
             property: 'email',
             code: 'user.validation.email_already_exists',
@@ -267,7 +267,7 @@ export class UserService {
       })
 
       if (accountPhone) {
-        throw new ValidationException(ErrorCode.E009, 'Phone number already exists', [
+        throw new ValidationException(ErrorCode.E009, 'Số điện thoại đã tồn tại', [
           {
             property: 'phone',
             code: ErrorCode.E009
@@ -327,7 +327,7 @@ export class UserService {
       }
 
       if (data.confirmPassword !== data.newPassword) {
-        throw new BadRequestException('New password and confirm password do not match')
+        throw new BadRequestException('Mật khẩu mới và mật khẩu xác nhận không trùng khớp')
       }
 
       const newPassword = await hashString(data.newPassword)
@@ -382,7 +382,7 @@ export class UserService {
     const { email, name, role_id, password } = createAccountDto
     try {
       if (await this.isExist(email)) {
-        throw new ValidationException(ErrorCode.E003, 'Email already exists')
+        throw new ValidationException(ErrorCode.E003, 'Email đã tồn tại')
       }
 
       // Validate role if provided
@@ -390,7 +390,7 @@ export class UserService {
       if (role_id) {
         role = await this.roleRepository.findOne({ where: { id: role_id } })
         if (!role) {
-          throw new ValidationException(ErrorCode.E002, 'Role not found', [
+          throw new ValidationException(ErrorCode.E002, 'Không tìm thấy vai trò', [
             {
               property: 'role_id',
               code: ErrorCode.E002
@@ -400,7 +400,7 @@ export class UserService {
 
         // Ensure role is below Admin level (Admin cannot be assigned)
         if (role.name === RoleInAccount.Admin) {
-          throw new ValidationException(ErrorCode.A001, 'Cannot create account with Admin role', [
+          throw new ValidationException(ErrorCode.A001, 'Không thể tạo tài khoản với vai trò Admin', [
             {
               property: 'role_id',
               code: ErrorCode.A001,
@@ -484,7 +484,7 @@ export class UserService {
         if (await this.isExist(email)) {
           results.failed.push({
             account: accountDto,
-            error: 'Email already exists'
+            error: 'Email đã tồn tại'
           })
           continue
         }
@@ -496,7 +496,7 @@ export class UserService {
           if (!role) {
             results.failed.push({
               account: accountDto,
-              error: 'Role not found'
+              error: 'Không tìm thấy vai trò'
             })
             continue
           }
@@ -505,7 +505,7 @@ export class UserService {
           if (role.name === RoleInAccount.Admin) {
             results.failed.push({
               account: accountDto,
-              error: 'Cannot create account with Admin role'
+              error: 'Không thể tạo tài khoản với vai trò Admin'
             })
             continue
           }
@@ -601,7 +601,7 @@ export class UserService {
 
   //     const worksheet = workbook.worksheets[0]
   //     if (!worksheet) {
-  //       throw new ValidationException(ErrorCode.A001, 'Excel file is empty or invalid')
+  //       throw new ValidationException(ErrorCode.A001, 'Tệp Excel trống hoặc không hợp lệ')
   //     }
 
   //     const results: BulkCreateAccountResultDto[] = []
@@ -674,7 +674,7 @@ export class UserService {
   //             name,
   //             role: roleName,
   //             success: false,
-  //             error: 'Cannot create account with Admin role'
+  //             error: 'Không thể tạo tài khoản với vai trò Admin'
   //           })
   //           failureCount++
   //           continue
@@ -687,7 +687,7 @@ export class UserService {
   //             name,
   //             role: roleName,
   //             success: false,
-  //             error: 'Email already exists'
+  //             error: 'Email đã tồn tại'
   //           })
   //           failureCount++
   //           continue
@@ -733,7 +733,7 @@ export class UserService {
   //     if (error instanceof ValidationException) {
   //       throw error
   //     }
-  //     throw new ValidationException(ErrorCode.A001, 'Failed to process Excel file', [
+  //     throw new ValidationException(ErrorCode.A001, 'Xử lý tệp Excel thất bại', [
   //       {
   //         property: 'file',
   //         code: ErrorCode.A001,
