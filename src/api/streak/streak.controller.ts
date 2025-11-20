@@ -2,14 +2,10 @@ import { Controller, Get, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import { StreakService } from './streak.service'
 import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
-import { RolesGuard } from '@guards/roles.guard'
-import { Roles } from '@decorators/roles.decorator'
-import { RoleInAccount } from '@common/enums/account-role.enum'
 import { ResponseMessage } from '@decorators/response-message.decorator'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { User } from '@api/user/entities/user.entity'
 import { StreakResponseDto } from './dto/streak-response.dto'
-import { Public } from '@decorators/auth.decorator'
 
 @ApiTags('Streaks')
 @Controller({
