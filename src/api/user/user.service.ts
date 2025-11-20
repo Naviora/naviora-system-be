@@ -32,6 +32,7 @@ import { IAccountInfoJob } from '@common/interfaces/job.interface'
 import * as ExcelJS from 'exceljs'
 import { BulkCreateAccountsResponseDto, BulkCreateAccountResultDto } from './dto/bulk-create-accounts-response.dto'
 import { StreakService } from '@api/streak/streak.service'
+import { Order } from '@constants/app.constant'
 
 @Injectable()
 export class UserService {
@@ -209,7 +210,8 @@ export class UserService {
     const sortBy = queryDto.sortBy || 'createdAt'
     const validSortFields = ['name', 'email', 'createdAt', 'updatedAt', 'dateOfBirth']
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
-    query.orderBy(`user.${sortField}`, queryDto.order)
+    const sortOrder = Order.DESC
+    query.orderBy(`user.${sortField}`, sortOrder)
 
     const [lecturers, metaDto] = await paginate(query, queryDto, {
       skipCount: false,
