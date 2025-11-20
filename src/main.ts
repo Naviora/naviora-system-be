@@ -48,8 +48,8 @@ async function bootstrap() {
     .then(() => console.log('Database connected!'))
     .catch((error) => console.error('Database connection error:', error))
 
-  // Run database seeds in development environment
-  if (process.env.NODE_ENV === 'development') {
+  const nodeEnv = process.env.NODE_ENV ?? 'development'
+  if (nodeEnv === 'development') {
     console.log('Development environment detected. Running database seeds...')
     try {
       const seederService = new DatabaseSeederService(AppDataSource)
@@ -58,8 +58,12 @@ async function bootstrap() {
     } catch (error) {
       console.error('Failed to seed database:', error)
     }
+  } else if (nodeEnv === 'production') {
+    console.log(
+      'Production environment detected. Automatic database seeding is disabled. Please run "npm run seed" manually when needed.'
+    )
   } else {
-    console.log('Non-development environment detected. Skipping database seeds.')
+    console.log(`${nodeEnv} environment detected. Skipping automatic database seeds.`)
   }
 
   const configService = app.get(ConfigService)
