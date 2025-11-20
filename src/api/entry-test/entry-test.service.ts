@@ -29,6 +29,7 @@ import { StreakService } from '@api/streak/streak.service'
 import { QuestionSetBasicInfoDto } from './dto/question-set-basic-info.dto'
 import { extractUserRole } from '@utils/common.util'
 import { RoleInAccount } from '@common/enums/account-role.enum'
+import { Order } from '@constants/app.constant'
 
 @Injectable()
 export class EntryTestService {
@@ -383,7 +384,8 @@ export class EntryTestService {
     const rawSort = queryDto.sort_by || 'created_at'
     const mappedSort = sortMapping[rawSort]
     const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
-    query.orderBy(`entry_test.${sortField}`, queryDto.order)
+    const sortOrder = Order.DESC
+    query.orderBy(`entry_test.${sortField}`, sortOrder)
 
     // Pagination
     const [entryTests, metaDto] = await paginate<EntryTestEntity>(query, queryDto, {

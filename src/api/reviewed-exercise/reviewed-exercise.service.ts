@@ -32,6 +32,7 @@ import { GetStudentGradesQueryDto } from './dto/get-student-grades-query.dto'
 import { extractUserRole } from '@utils/common.util'
 import { RoleInAccount } from '@common/enums/account-role.enum'
 import { StreakService } from '@api/streak/streak.service'
+import { Order } from '@constants/app.constant'
 
 @Injectable()
 export class ReviewedExerciseService {
@@ -395,7 +396,8 @@ export class ReviewedExerciseService {
     const rawSort = queryDto.sort_by || 'created_at'
     const mappedSort = sortMapping[rawSort]
     const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
-    query.orderBy(`reviewed_exercise.${sortField}`, queryDto.order)
+    const sortOrder = Order.DESC
+    query.orderBy(`reviewed_exercise.${sortField}`, sortOrder)
 
     // Pagination
     const [reviewedExercises, metaDto] = await paginate<ReviewedExerciseEntity>(query, queryDto, {
