@@ -13,15 +13,7 @@ import { AuthModule } from '@api/auth/auth.module'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      User,
-      ClassEnrolment,
-      Class,
-      ModuleEntity,
-      LessonProgress,
-      LessonEntity,
-      Streak
-    ]),
+    TypeOrmModule.forFeature([User, ClassEnrolment, Class, ModuleEntity, LessonProgress, LessonEntity, Streak]),
     AuthModule
   ],
   controllers: [StudentDashboardController],
@@ -29,4 +21,3 @@ import { AuthModule } from '@api/auth/auth.module'
   exports: [StudentDashboardService]
 })
 export class StudentDashboardModule {}
-

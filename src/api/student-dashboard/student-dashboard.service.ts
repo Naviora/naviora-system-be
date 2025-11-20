@@ -23,6 +23,7 @@ import { paginate } from '@utils/offset-pagination'
 import { PageOptionsDto } from '@common/dto/offset-pagination/page-options.dto'
 import { OffsetPaginationDto } from '@common/dto/offset-pagination/offset-pagination.dto'
 import { plainToInstance } from 'class-transformer'
+import { extractUserRole } from '@utils/common.util'
 
 @Injectable()
 export class StudentDashboardService {
@@ -66,7 +67,7 @@ export class StudentDashboardService {
     currentUser: User,
     period: 'month' | 'semester' | 'all' = 'month'
   ): Promise<StudentDashboardStatisticsResponseDto> {
-    await this.verifyStudentAccess(studentId, currentUser.id, currentUser.role?.name || '')
+    await this.verifyStudentAccess(studentId, currentUser.id, extractUserRole(currentUser))
 
     const now = new Date()
     let startDate: Date
@@ -126,7 +127,7 @@ export class StudentDashboardService {
    * Get learning hours data for the last N days
    */
   async getLearningHours(studentId: string, currentUser: User, days: number = 16): Promise<LearningHoursResponseDto> {
-    await this.verifyStudentAccess(studentId, currentUser.id, currentUser.role?.name || '')
+    await this.verifyStudentAccess(studentId, currentUser.id, extractUserRole(currentUser))
 
     const endDate = new Date()
     endDate.setHours(23, 59, 59, 999)
@@ -185,7 +186,7 @@ export class StudentDashboardService {
    * Get day streak data
    */
   async getDayStreak(studentId: string, currentUser: User): Promise<DayStreakResponseDto> {
-    await this.verifyStudentAccess(studentId, currentUser.id, currentUser.role?.name || '')
+    await this.verifyStudentAccess(studentId, currentUser.id, extractUserRole(currentUser))
 
     const streak = await this.streakRepository.findOne({
       where: { studentId }
@@ -219,7 +220,7 @@ export class StudentDashboardService {
     currentUser: User,
     query: StudentModulesQueryDto
   ): Promise<StudentModulesResponseDto> {
-    await this.verifyStudentAccess(studentId, currentUser.id, currentUser.role?.name || '')
+    await this.verifyStudentAccess(studentId, currentUser.id, extractUserRole(currentUser))
 
     const pageOptions = plainToInstance(PageOptionsDto, {
       page: query.page ?? 1,
@@ -245,7 +246,16 @@ export class StudentDashboardService {
     }
 
     // Sort
-    const sortField = query.sort_by === 'progress' ? 'module.moduleId' : `class.${query.sort_by}`
+    let sortField: string
+    if (query.sort_by === 'progress') {
+      sortField = 'module.moduleId'
+    } else {
+      const sortMapping: Record<string, string> = {
+        updated_at: 'class.updatedAt',
+        created_at: 'class.createdAt'
+      }
+      sortField = sortMapping[query.sort_by ?? 'updated_at'] ?? 'class.updatedAt'
+    }
     builder.orderBy(sortField, query.order || 'DESC')
 
     const [enrolments, pagination]: [ClassEnrolment[], OffsetPaginationDto] = await paginate(builder, pageOptions)
