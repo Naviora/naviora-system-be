@@ -29,8 +29,6 @@ import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { QueueName, JobName } from '@constants/job.constant'
 import { IAccountInfoJob } from '@common/interfaces/job.interface'
-import * as ExcelJS from 'exceljs'
-import { BulkCreateAccountsResponseDto, BulkCreateAccountResultDto } from './dto/bulk-create-accounts-response.dto'
 import { StreakService } from '@api/streak/streak.service'
 import { Order } from '@constants/app.constant'
 
