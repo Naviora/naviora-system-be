@@ -65,6 +65,7 @@ import { MeetingEventEntity } from '@api/meeting-events/entities/meeting-event.e
 import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 import { StreakModule } from './api/streak/streak.module'
 import { Streak } from '@api/streak/entities/streak.entity'
+import { AdminStatisticsModule } from './api/admin-statistics/admin-statistics.module'
 
 @Module({
   imports: [
@@ -185,7 +186,8 @@ import { Streak } from '@api/streak/entities/streak.entity'
     FinalExamModule,
     ReviewedExerciseModule,
     MeetingEventsModule,
-    StreakModule
+    StreakModule,
+    AdminStatisticsModule
   ],
   controllers: [AppController],
   providers: [
