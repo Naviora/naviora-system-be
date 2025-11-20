@@ -66,6 +66,9 @@ import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
 import { StreakModule } from './api/streak/streak.module'
 import { Streak } from '@api/streak/entities/streak.entity'
 import { AdminStatisticsModule } from './api/admin-statistics/admin-statistics.module'
+import { StudentDashboardModule } from './api/student-dashboard/student-dashboard.module'
+import { LecturerDashboardModule } from './api/lecturer-dashboard/lecturer-dashboard.module'
+import { PrincipalDashboardModule } from './api/principal-dashboard/principal-dashboard.module'
 
 @Module({
   imports: [
@@ -187,7 +190,10 @@ import { AdminStatisticsModule } from './api/admin-statistics/admin-statistics.m
     ReviewedExerciseModule,
     MeetingEventsModule,
     StreakModule,
-    AdminStatisticsModule
+    AdminStatisticsModule,
+    StudentDashboardModule,
+    LecturerDashboardModule,
+    PrincipalDashboardModule
   ],
   controllers: [AppController],
   providers: [
