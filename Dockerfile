@@ -15,6 +15,9 @@ CMD [ "npm", "run", "start:dev", "--watch" ]
 
 FROM node:22-alpine as production-build
 
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+
 WORKDIR /usr/src/app
 
 COPY package*.json ./
