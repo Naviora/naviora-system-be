@@ -22,7 +22,8 @@ export const accountStatuses = [
     email: 'student1@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Trần Văn Đức',
@@ -33,7 +34,8 @@ export const accountStatuses = [
     email: 'student2@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Lê Thị Hương',
@@ -44,7 +46,8 @@ export const accountStatuses = [
     email: 'student3@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Phạm Văn Hùng',
@@ -55,7 +58,8 @@ export const accountStatuses = [
     email: 'student4@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Hoàng Thị Linh',
@@ -66,7 +70,8 @@ export const accountStatuses = [
     email: 'student5@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Vũ Văn Nam',
@@ -77,7 +82,8 @@ export const accountStatuses = [
     email: 'student6@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Đặng Thị Oanh',
@@ -88,7 +94,8 @@ export const accountStatuses = [
     email: 'student7@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Bùi Văn Phúc',
@@ -99,7 +106,8 @@ export const accountStatuses = [
     email: 'student8@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Ngô Thị Quỳnh',
@@ -110,7 +118,8 @@ export const accountStatuses = [
     email: 'student9@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Dương Văn Sơn',
@@ -121,7 +130,8 @@ export const accountStatuses = [
     email: 'student10@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   // User account
   {
@@ -324,7 +334,8 @@ export const accountStatuses = [
     email: 'student11@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Trần Thị Bình',
@@ -335,7 +346,8 @@ export const accountStatuses = [
     email: 'student12@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Lê Văn Cường',
@@ -357,7 +369,8 @@ export const accountStatuses = [
     email: 'student14@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Hoàng Văn Em',
@@ -368,7 +381,8 @@ export const accountStatuses = [
     email: 'student15@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Vũ Thị Phương',
@@ -379,7 +393,8 @@ export const accountStatuses = [
     email: 'student16@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Đặng Văn Giang',
@@ -390,7 +405,8 @@ export const accountStatuses = [
     email: 'student17@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Bùi Thị Hoa',
@@ -401,7 +417,8 @@ export const accountStatuses = [
     email: 'student18@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Đỗ Văn Hùng',
@@ -412,7 +429,8 @@ export const accountStatuses = [
     email: 'student19@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Ngô Thị Lan',
@@ -434,7 +452,8 @@ export const accountStatuses = [
     email: 'student21@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Trương Thị Nga',
@@ -445,7 +464,8 @@ export const accountStatuses = [
     email: 'student22@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Lý Văn Oanh',
@@ -467,7 +487,8 @@ export const accountStatuses = [
     email: 'student24@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Võ Văn Quang',
@@ -522,7 +543,8 @@ export const accountStatuses = [
     email: 'student29@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Kiều Thị Uyên',
@@ -533,7 +555,8 @@ export const accountStatuses = [
     email: 'student30@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Nguyễn Văn Vinh',
@@ -544,7 +567,8 @@ export const accountStatuses = [
     email: 'student31@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Trần Thị Xuân',
@@ -555,7 +579,8 @@ export const accountStatuses = [
     email: 'student32@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Lê Văn Yên',
@@ -566,7 +591,8 @@ export const accountStatuses = [
     email: 'student33@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Phạm Thị Anh',
@@ -577,7 +603,8 @@ export const accountStatuses = [
     email: 'student34@example.com',
     role: RoleInAccount.Student,
     password: 'Student@123',
-    status: AccountStatus.Active
+    status: AccountStatus.Active,
+    hasParticipatedEntryTest: true
   },
   {
     name: 'Hoàng Văn Bảo',
