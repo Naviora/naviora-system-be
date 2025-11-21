@@ -68,8 +68,11 @@ docker-compose up -d postgres redis
 # Run migrations
 npm run migration:run
 
-# Seed initial data (optional)
-npm run seed:run
+# Seed comprehensive test data (optional but recommended)
+npm run seed
+
+# Validate seed data after seeding
+npm run seed:validate
 ```
 
 ### 4. Start Development
@@ -129,7 +132,7 @@ src/
 ├── database/               # Database setup
 │   ├── entities/          # TypeORM entities
 │   ├── migrations/        # Database migrations
-│   └── seeds/             # Seed data
+│   └── seeds/             # Seed data (see seeds/README.md)
 ├── decorators/             # Custom decorators
 ├── exceptions/             # Custom exceptions
 ├── filters/                # Exception filters
@@ -155,7 +158,8 @@ npm run start:prod         # Start in production mode
 npm run migration:generate # Generate new migration
 npm run migration:run      # Run pending migrations
 npm run migration:revert   # Revert last migration
-npm run seed:run           # Run seeders
+npm run seed               # Seed comprehensive test data
+npm run seed:validate      # Validate seed data counts
 
 # Testing
 npm run test               # Run unit tests
@@ -206,6 +210,66 @@ npm run test:e2e
 ```bash
 npm run test:cov
 ```
+
+## 📊 Test Data & Seeding
+
+This project includes comprehensive seed data for testing and development. The seed data is specifically designed for **Biology (Sinh học) for excellent high school students (học sinh giỏi cấp 3)**.
+
+### Seed Data Overview
+
+The seed data includes:
+
+- **50-60 Users**: Students, Lecturers, Principals, Admin (all with Vietnamese names)
+- **15-20 Classes**: Biology classes (SINH10, SINH11, SINH12) for competition levels
+- **20-30 Modules**: Biology modules covering all topics
+- **30-50 Lessons**: Biology lessons for excellent students
+- **80-120 Questions**: Multiple choice questions in Vietnamese
+- **15-25 Question Sets**: Various exam question sets
+- **40-50 Materials**: PDFs, videos, images for Biology content
+- **10 Entry Tests**: Pre-enrollment assessments
+- **10 Final Exams**: End-of-course exams
+- **15-25 Reviewed Exercises**: Practice exercises
+- **40 Streaks**: Student activity tracking
+- **15 Meeting Events**: Online/offline meetings
+- **81 Lesson Progress**: Student completion records
+
+### Running the Seeder
+
+```bash
+# Seed the database with comprehensive test data
+npm run seed
+
+# Validate seed data after seeding
+npm run seed:validate
+```
+
+### Test Credentials
+
+After seeding, you can use these accounts for testing:
+
+**Admin:**
+
+- Email: `admin@naviora.com`
+- Password: `Admin@123`
+
+**Lecturer:**
+
+- Email: `lecturer@example.com` (Thầy Nguyễn Văn Sinh)
+- Password: `Student@123`
+
+**Student:**
+
+- Email: `student1@example.com` (Nguyễn Thị Mai)
+- Password: `Student@123`
+
+### Seed Data Characteristics
+
+- **Purely Vietnamese**: All names, addresses, descriptions are in Vietnamese
+- **Biology-focused**: Only SINH10, SINH11, SINH12 classes for excellent student competitions
+- **Realistic**: Data follows Vietnamese educational system context and business logic
+- **Idempotent**: Safe to run multiple times - checks for existing records
+
+For detailed information about seed data structure, see [src/database/seeds/README.md](src/database/seeds/README.md).
 
 ## 🐳 Docker
 

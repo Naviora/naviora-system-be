@@ -7,9 +7,32 @@ import { User } from '@api/user/entities/user.entity'
 import { CloudinaryModule } from '@cloudinary/cloudinary.module'
 import { SessionEntity } from '@api/user/entities/session.entity'
 import { AuthModule } from '@api/auth/auth.module'
+import { Role } from '@api/role/entities/role.entity'
+import { MailModule } from '@mail/mail.module'
+import { EmailQueueModule } from '@background/queues/email-queue/email-queue.module'
+import { BullModule } from '@nestjs/bullmq'
+import { QueueName, QueuePrefix } from '@constants/job.constant'
+import { StreakModule } from '@api/streak/streak.module'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, SessionEntity]), JwtModule, CloudinaryModule, forwardRef(() => AuthModule)],
+  imports: [
+    TypeOrmModule.forFeature([User, SessionEntity, Role]),
+    JwtModule,
+    CloudinaryModule,
+    forwardRef(() => AuthModule),
+    MailModule,
+    EmailQueueModule,
+    StreakModule,
+    BullModule.registerQueue({
+      name: QueueName.EMAIL,
+      prefix: QueuePrefix.AUTH,
+      streams: {
+        events: {
+          maxLen: 1000
+        }
+      }
+    })
+  ],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService]

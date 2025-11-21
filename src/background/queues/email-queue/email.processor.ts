@@ -1,4 +1,4 @@
-import { IEmailJob, IVerifyEmailJob } from '@common/interfaces/job.interface'
+import { IAccountInfoJob, IEmailJob, IVerifyEmailJob } from '@common/interfaces/job.interface'
 import { JobName, QueueName } from '@constants/job.constant'
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
@@ -29,6 +29,8 @@ export class EmailProcessor extends WorkerHost {
     switch (job.name) {
       case JobName.EMAIL_VERIFICATION:
         return await this.emailQueueService.sendEmailVerification(job.data as unknown as IVerifyEmailJob)
+      case JobName.ACCOUNT_INFO:
+        return await this.emailQueueService.sendAccountInfo(job.data as unknown as IAccountInfoJob)
       default:
         throw new Error(`Unknown job name: ${job.name}`)
     }

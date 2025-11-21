@@ -4,15 +4,30 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install glob rimraf
-
-RUN npm install --only=development
+# Install the application dependencies
+RUN npm install
 
 COPY . .
 
 RUN npm run build
 
 CMD [ "npm", "run", "start:dev", "--watch" ]
+
+FROM node:22-alpine as production-build
+
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+# Install only production dependencies for optimized build
+RUN npm ci --omit=development --prefer-offline --no-audit
+
+COPY . .
+
+RUN npm run build:prod
 
 FROM node:22-alpine as production
 
@@ -23,10 +38,11 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
-RUN npm install --only=production
+# Install only production dependencies
+RUN npm ci --omit=development --prefer-offline --no-audit
 
 COPY . .
 
-COPY --from=development /usr/src/app/dist ./dist
+COPY --from=production-build /usr/src/app/dist ./dist
 
-CMD [ "node", "dist/main" ]
+CMD [ "npm", "run", "start:prod" ]

@@ -24,18 +24,58 @@ import appConfig from '@config/app.config'
 import { CloudinaryModule } from '@cloudinary/cloudinary.module'
 import cloudinaryConfig from '@cloudinary/config/cloudinary.config'
 import openaiConfig from '@api/openai/config/openai.config'
+import mailConfig from '@mail/config/mail-config'
 import { User } from '@api/user/entities/user.entity'
 import { Role } from '@api/role/entities/role.entity'
 import { HealthzModule } from '@api/heathz/healthz.module'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import { SessionEntity } from '@api/user/entities/session.entity'
+import { ClassModule } from '@api/class/class.module'
+import { ModulesModule } from '@api/module/module.module'
+import { Class } from '@api/class/entities/class.entity'
+import { ModuleEntity } from '@api/module/entities/module.entity'
+import { TeachingAssignment } from '@api/class/entities/teaching-assignment.entity'
+import { LessonModule } from './api/lesson/lesson.module'
+import { LessonEntity } from '@api/lesson/entities/lesson.entity'
+import { AnswerModule } from './api/answer/answer.module'
+import { TeachingModule } from '@api/module/entities/teaching-module.entity'
+
+import { QuestionModule } from './api/question/question.module'
+import { QuestionEntity } from '@api/question/entities/question.entity'
+import { AnswerEntity } from '@api/answer/entities/answer.entity'
+import { MaterialModule } from './api/material/material.module'
+import { MaterialEntity } from '@api/material/entities/material.entity'
+import { TeachingMaterialModule } from './api/teaching-material/teaching-material.module'
+import { TeachingMaterial } from '@api/teaching-material/entities/teaching-material.entity'
+import { QuestionSetEntity } from '@api/question-set/entities/question-set.entity'
+import { QuestionSetModule } from './api/question-set/question-set.module'
+import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
+import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
+import { EntryTestModule } from './api/entry-test/entry-test.module'
+import { FinalExamEntity } from '@api/final-exam/entities/final-exam.entity'
+import { FinalExamSubmissionEntity } from '@api/final-exam/entities/final-exam-submission.entity'
+import { FinalExamModule } from './api/final-exam/final-exam.module'
+import { ReviewedExerciseEntity } from '@api/reviewed-exercise/entities/reviewed-exercise.entity'
+import { ReviewedExerciseSubmissionEntity } from '@api/reviewed-exercise/entities/reviewed-exercise-submission.entity'
+import { ReviewedExerciseModule } from './api/reviewed-exercise/reviewed-exercise.module'
+import { ClassEnrolment } from '@api/class/entities/class-enrolment.entity'
+import { WebRTCModule } from './api/webrtc/webrtc.module'
+import { MeetingEventsModule } from './api/meeting-events/meeting-events.module'
+import { MeetingEventEntity } from '@api/meeting-events/entities/meeting-event.entity'
+import { LessonProgress } from '@api/lesson/entities/lesson-progress.entity'
+import { StreakModule } from './api/streak/streak.module'
+import { Streak } from '@api/streak/entities/streak.entity'
+import { AdminStatisticsModule } from './api/admin-statistics/admin-statistics.module'
+import { StudentDashboardModule } from './api/student-dashboard/student-dashboard.module'
+import { LecturerDashboardModule } from './api/lecturer-dashboard/lecturer-dashboard.module'
+import { PrincipalDashboardModule } from './api/principal-dashboard/principal-dashboard.module'
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: process.env.NODE_ENV?.trim() === 'development' ? '.env.dev' : '.env',
-      load: [databaseConfig, redisConfig, appConfig, openaiConfig, cloudinaryConfig],
+      load: [databaseConfig, redisConfig, appConfig, openaiConfig, cloudinaryConfig, mailConfig],
       cache: true,
       expandVariables: true
     }),
@@ -46,7 +86,31 @@ import { SessionEntity } from '@api/user/entities/session.entity'
         return {
           ...databaseEnv,
           autoLoadEntities: true,
-          entities: [User, Role, SessionEntity]
+          entities: [
+            User,
+            Role,
+            SessionEntity,
+            Class,
+            ModuleEntity,
+            TeachingAssignment,
+            ClassEnrolment,
+            LessonEntity,
+            LessonProgress,
+            TeachingModule,
+            QuestionEntity,
+            AnswerEntity,
+            MaterialEntity,
+            TeachingMaterial,
+            QuestionSetEntity,
+            EntryTestEntity,
+            EntryTestSubmissionEntity,
+            FinalExamEntity,
+            FinalExamSubmissionEntity,
+            ReviewedExerciseEntity,
+            ReviewedExerciseSubmissionEntity,
+            MeetingEventEntity,
+            Streak
+          ]
         }
       },
       inject: [ConfigService]
@@ -55,6 +119,8 @@ import { SessionEntity } from '@api/user/entities/session.entity'
     UserModule,
     RolesModule,
     MailModule,
+    ClassModule,
+    ModulesModule,
     CacheModule.registerAsync({
       inject: [ConfigService],
       isGlobal: true,
@@ -111,7 +177,23 @@ import { SessionEntity } from '@api/user/entities/session.entity'
         ttl: 60000,
         limit: 100
       }
-    ])
+    ]),
+    LessonModule,
+    AnswerModule,
+    QuestionModule,
+    MaterialModule,
+    TeachingMaterialModule,
+    QuestionSetModule,
+    EntryTestModule,
+    WebRTCModule,
+    FinalExamModule,
+    ReviewedExerciseModule,
+    MeetingEventsModule,
+    StreakModule,
+    AdminStatisticsModule,
+    StudentDashboardModule,
+    LecturerDashboardModule,
+    PrincipalDashboardModule
   ],
   controllers: [AppController],
   providers: [

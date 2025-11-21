@@ -1,13 +1,15 @@
-import { BadRequestException, Inject, Injectable, UploadedFile } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger, UploadedFile } from '@nestjs/common'
 import { CreateAccountDto } from './dto/create-account.dto'
 import { UpdateProfileDto } from './dto/update-profile.dto'
+import { GetLecturersQueryDto } from './dto/get-lecturers-query.dto'
+import { GetUsersQueryDto } from './dto/get-users-query.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { plainToInstance } from 'class-transformer'
 import { convertToSeconds, hashString } from '@utils/auth.util'
 import { ChangePasswordAuthDto, ForgotPasswordDTO } from '@api/auth/dto/change-password-auth'
 import { compareString } from '@utils/auth.util'
-import { AccountStatus } from '@common/enums/account-role.enum'
+import { AccountStatus, RoleInAccount } from '@common/enums/account-role.enum'
 import { User } from '@api/user/entities/user.entity'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
@@ -17,15 +19,34 @@ import { ErrorCode } from '@constants/error-code.constant'
 import { ProfileDTO } from './dto/profile-dto'
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service'
 import { getDefaultPublicIdAvatar, getPublicIdAvatar } from '@utils/common.util'
+import { paginate } from '@utils/offset-pagination'
+import { MailService } from '@mail/mail.service'
+import { Role } from '@api/role/entities/role.entity'
+import { CreateAccountByAdminDto } from './dto/create-account-by-admin.dto'
+import { CreateAccountByAdminResponseDto } from './dto/create-account-by-admin.res.dto'
+import { BulkCreateAccountByAdminDto } from './dto/bulk-create-account-by-admin.dto'
+import { InjectQueue } from '@nestjs/bullmq'
+import { Queue } from 'bullmq'
+import { QueueName, JobName } from '@constants/job.constant'
+import { IAccountInfoJob } from '@common/interfaces/job.interface'
+import { StreakService } from '@api/streak/streak.service'
+import { Order } from '@constants/app.constant'
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name)
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private readonly cloudinaryService: CloudinaryService
+    private readonly cloudinaryService: CloudinaryService,
+    private readonly mailService: MailService,
+    @InjectQueue(QueueName.EMAIL)
+    private readonly emailQueue: Queue,
+    private readonly streakService: StreakService
   ) {}
 
   isExist = async (email: string): Promise<boolean> => {
@@ -38,7 +59,7 @@ export class UserService {
       const { email, password } = createAccountDto
 
       if (await this.isExist(email)) {
-        throw new ValidationException(ErrorCode.E003, 'Email already exists', [
+        throw new ValidationException(ErrorCode.E003, 'Email đã tồn tại', [
           {
             property: 'email',
             code: ErrorCode.E003
@@ -53,7 +74,24 @@ export class UserService {
       if (!newAccount) {
         throw new ValidationException(ErrorCode.A001)
       }
-      return newAccount
+
+      // Load role relation to check if user is a student
+      const accountWithRole = await this.userRepository.findOne({
+        where: { id: newAccount.id },
+        relations: ['role']
+      })
+
+      // Create streak for student accounts
+      if (accountWithRole?.role?.name === RoleInAccount.Student) {
+        try {
+          await this.streakService.updateStreak(newAccount.id)
+        } catch (error) {
+          // Log error but don't fail user creation
+          this.logger.error(`Failed to create streak for student ${newAccount.id}:`, error)
+        }
+      }
+
+      return accountWithRole || newAccount
     } catch (error) {
       throw error
     }
@@ -62,7 +100,7 @@ export class UserService {
   async findByEmail(email: string): Promise<User> {
     try {
       if (!email) {
-        throw new ValidationException(ErrorCode.E003, 'Email already exists', [
+        throw new ValidationException(ErrorCode.E003, 'Email đã tồn tại', [
           {
             property: 'email',
             code: 'user.validation.email_already_exists',
@@ -99,11 +137,89 @@ export class UserService {
     }
   }
 
-  async getAll() {
-    const response = await this.userRepository.find({ relations: ['role'] })
-    // response = plainToInstance(User, response)
-    // const response = 'Get all accounts successfully'
-    return response
+  async getAll(queryDto: GetUsersQueryDto) {
+    const query = this.userRepository.createQueryBuilder('user').leftJoinAndSelect('user.role', 'role')
+
+    // Apply search query if provided (search in name, email, username, phone)
+    if (queryDto.q) {
+      query.andWhere(
+        '(user.name ILIKE :search OR user.email ILIKE :search OR user.username ILIKE :search OR user.phone ILIKE :search)',
+        { search: `%${queryDto.q}%` }
+      )
+    }
+
+    // Apply role filter
+    if (queryDto.role) {
+      query.andWhere('role.name = :roleName', { roleName: queryDto.role })
+    }
+
+    // Apply gender filter
+    if (queryDto.gender) {
+      query.andWhere('user.gender = :gender', { gender: queryDto.gender })
+    }
+
+    // Apply status filter
+    if (queryDto.status) {
+      query.andWhere('user.status = :status', { status: queryDto.status })
+    }
+
+    // Apply sorting
+    const sortBy = queryDto.sortBy || 'createdAt'
+    const validSortFields = ['name', 'email', 'createdAt', 'updatedAt', 'dateOfBirth']
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    query.orderBy(`user.${sortField}`, queryDto.order)
+
+    const [users, metaDto] = await paginate(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      users,
+      pagination: metaDto
+    }
+  }
+
+  async getLecturers(queryDto: GetLecturersQueryDto) {
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('role.name = :roleName', { roleName: RoleInAccount.Lecturer })
+
+    // Apply search query if provided (search in name, email, username, phone)
+    if (queryDto.q) {
+      query.andWhere(
+        '(user.name ILIKE :search OR user.email ILIKE :search OR user.username ILIKE :search OR user.phone ILIKE :search)',
+        { search: `%${queryDto.q}%` }
+      )
+    }
+
+    // Apply gender filter
+    if (queryDto.gender) {
+      query.andWhere('user.gender = :gender', { gender: queryDto.gender })
+    }
+
+    // Apply status filter
+    if (queryDto.status) {
+      query.andWhere('user.status = :status', { status: queryDto.status })
+    }
+
+    // Apply sorting
+    const sortBy = queryDto.sortBy || 'createdAt'
+    const validSortFields = ['name', 'email', 'createdAt', 'updatedAt', 'dateOfBirth']
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    const sortOrder = Order.DESC
+    query.orderBy(`user.${sortField}`, sortOrder)
+
+    const [lecturers, metaDto] = await paginate(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    return {
+      lecturers,
+      meta: metaDto
+    }
   }
 
   async getProfile(idUser: string): Promise<ProfileDTO> {
@@ -118,16 +234,20 @@ export class UserService {
       }
 
       return plainToInstance(ProfileDTO, {
-        accountId: user.id,
+        account_id: user.id,
         name: user.name,
         email: user.email,
+        staff_id: user.id, // Assuming staff_id maps to the same as account_id
         avatar: user.avatar,
         phone: user.phone,
         address: user.address,
         gender: user.gender,
-        dateOfBirth: user.dateOfBirth,
+        date_of_birth: user.dateOfBirth,
         status: user.status,
-        role: user.role?.name
+        department: '', // Add default values for missing fields
+        rank: '',
+        role: user.role?.name,
+        salary: 0
       })
     } catch (error) {
       throw error
@@ -147,7 +267,7 @@ export class UserService {
       })
 
       if (accountPhone) {
-        throw new ValidationException(ErrorCode.E009, 'Phone number already exists', [
+        throw new ValidationException(ErrorCode.E009, 'Số điện thoại đã tồn tại', [
           {
             property: 'phone',
             code: ErrorCode.E009
@@ -207,7 +327,7 @@ export class UserService {
       }
 
       if (data.confirmPassword !== data.newPassword) {
-        throw new BadRequestException('New password and confirm password do not match')
+        throw new BadRequestException('Mật khẩu mới và mật khẩu xác nhận không trùng khớp')
       }
 
       const newPassword = await hashString(data.newPassword)
@@ -257,4 +377,370 @@ export class UserService {
       throw error
     }
   }
+
+  async createAccountByAdmin(createAccountDto: CreateAccountByAdminDto) {
+    const { email, name, role_id, password } = createAccountDto
+    try {
+      if (await this.isExist(email)) {
+        throw new ValidationException(ErrorCode.E003, 'Email đã tồn tại')
+      }
+
+      // Validate role if provided
+      let role: Role | null = null
+      if (role_id) {
+        role = await this.roleRepository.findOne({ where: { id: role_id } })
+        if (!role) {
+          throw new ValidationException(ErrorCode.E002, 'Không tìm thấy vai trò', [
+            {
+              property: 'role_id',
+              code: ErrorCode.E002
+            }
+          ])
+        }
+
+        // Ensure role is below Admin level (Admin cannot be assigned)
+        if (role.name === RoleInAccount.Admin) {
+          throw new ValidationException(ErrorCode.A001, 'Không thể tạo tài khoản với vai trò Admin', [
+            {
+              property: 'role_id',
+              code: ErrorCode.A001,
+              message: 'Admin role cannot be assigned through this endpoint'
+            }
+          ])
+        }
+      }
+
+      // Hash password for storage
+      const hashPass = await hashString(password)
+
+      // Create user
+      const user = this.userRepository.create({
+        name,
+        email,
+        password: hashPass,
+        role: role || null,
+        status: AccountStatus.Active
+      })
+
+      const newAccount = await this.userRepository.save(user)
+      if (!newAccount) {
+        throw new ValidationException(ErrorCode.A001)
+      }
+
+      // Load role relation for response
+      const accountWithRole = await this.userRepository.findOne({
+        where: { id: newAccount.id },
+        relations: ['role']
+      })
+
+      // Create streak for student accounts
+      if (accountWithRole?.role?.name === RoleInAccount.Student) {
+        try {
+          await this.streakService.updateStreak(newAccount.id)
+        } catch (error) {
+          // Log error but don't fail user creation
+          this.logger.error(`Failed to create streak for student ${newAccount.id}:`, error)
+        }
+      }
+
+      // Send email with account info (email and plain password)
+      // === Can be move to background job ===
+      try {
+        await this.mailService.sendAccountInfo(email, {
+          name,
+          email,
+          password
+        })
+        this.logger.log(`Account info email sent successfully to ${email}`)
+      } catch (mailError) {
+        this.logger.error(`Failed to send account info email to ${email}:`, mailError)
+        // Don't throw - account is already created, email failure is non-critical
+      }
+
+      return plainToInstance(CreateAccountByAdminResponseDto, accountWithRole || newAccount, {
+        excludeExtraneousValues: true
+      })
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async bulkCreateAccountByAdmin(bulkCreateDto: BulkCreateAccountByAdminDto) {
+    const { accounts } = bulkCreateDto
+    const results: {
+      success: CreateAccountByAdminResponseDto[]
+      failed: Array<{ account: CreateAccountByAdminDto; error: string }>
+    } = {
+      success: [],
+      failed: []
+    }
+
+    // Process accounts sequentially to avoid race conditions
+    for (const accountDto of accounts) {
+      try {
+        const { email, name, role_id, password } = accountDto
+
+        // Check if email already exists
+        if (await this.isExist(email)) {
+          results.failed.push({
+            account: accountDto,
+            error: 'Email đã tồn tại'
+          })
+          continue
+        }
+
+        // Validate role if provided
+        let role: Role | null = null
+        if (role_id) {
+          role = await this.roleRepository.findOne({ where: { id: role_id } })
+          if (!role) {
+            results.failed.push({
+              account: accountDto,
+              error: 'Không tìm thấy vai trò'
+            })
+            continue
+          }
+
+          // Ensure role is below Admin level
+          if (role.name === RoleInAccount.Admin) {
+            results.failed.push({
+              account: accountDto,
+              error: 'Không thể tạo tài khoản với vai trò Admin'
+            })
+            continue
+          }
+        }
+
+        // Hash password for storage
+        const hashPass = await hashString(password)
+
+        // Create user
+        const user = this.userRepository.create({
+          name,
+          email,
+          password: hashPass,
+          role: role || null,
+          // ==== Temporary active account for first create
+          status: AccountStatus.Active
+        })
+
+        const newAccount = await this.userRepository.save(user)
+        if (!newAccount) {
+          results.failed.push({
+            account: accountDto,
+            error: 'Failed to create account'
+          })
+          continue
+        }
+
+        // Load role relation for response
+        const accountWithRole = await this.userRepository.findOne({
+          where: { id: newAccount.id },
+          relations: ['role']
+        })
+
+        // Create streak for student accounts
+        if (accountWithRole?.role?.name === RoleInAccount.Student) {
+          try {
+            await this.streakService.updateStreak(newAccount.id)
+          } catch (error) {
+            // Log error but don't fail user creation
+            this.logger.error(`Failed to create streak for student ${newAccount.id}:`, error)
+          }
+        }
+
+        // Add email job to background queue
+        try {
+          await this.emailQueue.add(
+            JobName.ACCOUNT_INFO,
+            {
+              email,
+              name,
+              password
+            } as IAccountInfoJob,
+            {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 2000
+              }
+            }
+          )
+          this.logger.log(`Account info email job queued for ${email}`)
+        } catch (queueError) {
+          this.logger.error(`Failed to queue email job for ${email}:`, queueError)
+          // Don't fail the account creation if queue fails
+        }
+
+        const responseDto = plainToInstance(CreateAccountByAdminResponseDto, accountWithRole || newAccount, {
+          excludeExtraneousValues: true
+        })
+
+        results.success.push(responseDto)
+      } catch (error) {
+        this.logger.error(`Error creating account for ${accountDto.email}:`, error)
+        results.failed.push({
+          account: accountDto,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
+      }
+    }
+
+    return results
+  }
+
+  // async bulkCreateAccountsFromExcel(file: Express.Multer.File): Promise<BulkCreateAccountsResponseDto> {
+  //   try {
+  //     const workbook = new ExcelJS.Workbook()
+  //     // Convert Multer buffer to Node.js Buffer for ExcelJS compatibility
+  //     const buffer = Buffer.from(new Uint8Array(file.buffer))
+  //     // TypeScript type incompatibility between Buffer types - safe to ignore at runtime
+  //     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  //     // @ts-ignore
+  //     await workbook.xlsx.load(buffer)
+
+  //     const worksheet = workbook.worksheets[0]
+  //     if (!worksheet) {
+  //       throw new ValidationException(ErrorCode.A001, 'Tệp Excel trống hoặc không hợp lệ')
+  //     }
+
+  //     const results: BulkCreateAccountResultDto[] = []
+  //     let successCount = 0
+  //     let failureCount = 0
+
+  //     // Skip header row (row 1) and process from row 2
+  //     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
+  //       const row = worksheet.getRow(rowNumber)
+
+  //       // Get values from columns (assuming: A=name, B=email, C=role)
+  //       const name = row.getCell(1).value?.toString()?.trim()
+  //       const email = row.getCell(2).value?.toString()?.trim()
+  //       const roleName = row.getCell(3).value?.toString()?.trim()
+
+  //       // Skip empty rows
+  //       if (!name && !email && !roleName) {
+  //         continue
+  //       }
+
+  //       // Validate required fields
+  //       if (!name || !email || !roleName) {
+  //         results.push({
+  //           email: email || '',
+  //           name: name || '',
+  //           role: roleName || '',
+  //           success: false,
+  //           error: 'Missing required fields: name, email, or role'
+  //         })
+  //         failureCount++
+  //         continue
+  //       }
+
+  //       // Validate email format
+  //       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  //       if (!emailRegex.test(email)) {
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: false,
+  //           error: 'Invalid email format'
+  //         })
+  //         failureCount++
+  //         continue
+  //       }
+
+  //       try {
+  //         // Find role by name
+  //         const role = await this.roleRepository.findOne({
+  //           where: { name: roleName }
+  //         })
+
+  //         if (!role) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: `Role "${roleName}" not found`
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Check if Admin role is being assigned
+  //         if (role.name === RoleInAccount.Admin) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: 'Không thể tạo tài khoản với vai trò Admin'
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Check if email already exists
+  //         if (await this.isExist(email)) {
+  //           results.push({
+  //             email,
+  //             name,
+  //             role: roleName,
+  //             success: false,
+  //             error: 'Email đã tồn tại'
+  //           })
+  //           failureCount++
+  //           continue
+  //         }
+
+  //         // Create account
+  //         const createAccountDto: CreateAccountByAdminDto = {
+  //           name,
+  //           email,
+  //           role_id: role.id,
+  //         }
+
+  //         await this.createAccountByAdmin(createAccountDto)
+
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: true
+  //         })
+  //         successCount++
+  //       } catch (error) {
+  //         this.logger.error(`Error creating account for ${email} at row ${rowNumber}:`, error)
+  //         results.push({
+  //           email,
+  //           name,
+  //           role: roleName,
+  //           success: false,
+  //           error: error instanceof ValidationException ? error.message : 'Failed to create account'
+  //         })
+  //         failureCount++
+  //       }
+  //     }
+
+  //     return {
+  //       total: results.length,
+  //       successCount,
+  //       failureCount,
+  //       results
+  //     }
+  //   } catch (error) {
+  //     this.logger.error('Error processing Excel file:', error)
+  //     if (error instanceof ValidationException) {
+  //       throw error
+  //     }
+  //     throw new ValidationException(ErrorCode.A001, 'Xử lý tệp Excel thất bại', [
+  //       {
+  //         property: 'file',
+  //         code: ErrorCode.A001,
+  //         message: error instanceof Error ? error.message : 'Unknown error occurred'
+  //       }
+  //     ])
+  // }
+
+  // }
 }

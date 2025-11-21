@@ -1,0 +1,1007 @@
+import { Inject, Injectable } from '@nestjs/common'
+import { Class } from './entities/class.entity'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Cache } from 'cache-manager'
+import { InjectRepository } from '@nestjs/typeorm'
+import { ConfigService } from '@nestjs/config'
+import { Repository, In } from 'typeorm'
+import { CloudinaryService } from '@cloudinary/cloudinary.service'
+import { CreateClassDto } from './dto/create-class.dto'
+import { UpdateClassDto } from './dto/update-class.dto'
+import { ValidationException } from '@exceptions/validation.exception'
+import { ErrorCode } from '@constants/error-code.constant'
+import { GetClassesQueryDto } from './dto/get-classes-query.dto'
+import { paginate } from '@utils/offset-pagination'
+import { AssignLecturersDto } from './dto/assign-lecturers-to-class.dto'
+import { TeachingAssignment } from './entities/teaching-assignment.entity'
+import { User } from '@api/user/entities/user.entity'
+import { RoleInAccount } from '@common/enums/account-role.enum'
+import { plainToInstance } from 'class-transformer'
+import { ClassDTO } from './dto/class.dto'
+import { ArrangeStudentsDto, ClassArrangementResultDto } from './dto/arrange-students.dto'
+import { EntryTestSubmissionEntity } from '@api/entry-test/entities/entry-test-submission.entity'
+import { EntryTestEntity } from '@api/entry-test/entities/entry-test.entity'
+import { AttemptStatus } from '@common/enums/attempt-status.enum'
+import { ClassEnrolment } from './entities/class-enrolment.entity'
+import { ManualEnrolStudentsDto } from './dto/manual-enrol-students.dto'
+import { GetStudentsByClassQueryDto } from './dto/get-students-by-class-query.dto'
+import { StudentListResponseDto, StudentListItemDto } from './dto/student-list-response.dto'
+import { ModuleEntity } from '@api/module/entities/module.entity'
+import { ModuleDTO } from '@api/module/dto/module.dto'
+import { GetModulesByClassQueryDto } from './dto/get-modules-by-class-query.dto'
+import { Order } from '@constants/app.constant'
+
+@Injectable()
+export class ClassService {
+  constructor(
+    @InjectRepository(Class)
+    private readonly classRepository: Repository<Class>,
+    @InjectRepository(TeachingAssignment)
+    private readonly teachingAssignmentRepository: Repository<TeachingAssignment>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(EntryTestSubmissionEntity)
+    private readonly entryTestSubmissionRepository: Repository<EntryTestSubmissionEntity>,
+    @InjectRepository(EntryTestEntity)
+    private readonly entryTestRepository: Repository<EntryTestEntity>,
+    @InjectRepository(ClassEnrolment)
+    private readonly classEnrolmentRepository: Repository<ClassEnrolment>,
+    @InjectRepository(ModuleEntity)
+    private readonly moduleRepository: Repository<ModuleEntity>,
+    private configService: ConfigService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly cloudinaryService: CloudinaryService
+  ) {}
+
+  async create(createClassDto: CreateClassDto) {
+    try {
+      const { class_code, start_date, end_date } = createClassDto
+
+      const existingClass = await this.classRepository.findOne({ where: { classCode: class_code } })
+
+      if (existingClass) {
+        throw new ValidationException(ErrorCode.CLASS001, 'Mã lớp đã tồn tại')
+      }
+
+      // Validate date range: startDate must be <= endDate
+      const start = new Date(start_date)
+      const end = new Date(end_date)
+
+      if (start > end) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Ngày bắt đầu phải trước hoặc bằng ngày kết thúc')
+      }
+
+      const classEntity = this.classRepository.create({
+        classCode: createClassDto.class_code,
+        className: createClassDto.class_name,
+        classType: createClassDto.class_type,
+        startDate: createClassDto.start_date,
+        endDate: createClassDto.end_date
+      })
+
+      const newClass = await this.classRepository.save(classEntity)
+      if (!newClass) {
+        throw new ValidationException(ErrorCode.CLASS002)
+      }
+      return newClass
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getClasses(queryDto: GetClassesQueryDto) {
+    const query = this.classRepository.createQueryBuilder('class')
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(class.className ILIKE :search OR class.classCode ILIKE :search)', { search: `%${queryDto.q}%` })
+    }
+
+    // Class type filter
+    if (queryDto.class_type) {
+      query.andWhere('class.classType = :classType', { classType: queryDto.class_type })
+    }
+
+    // Sorting
+    const validSortFields = ['className', 'classCode', 'createdAt', 'updatedAt', 'startDate', 'endDate']
+    const sortMapping: Record<string, string> = {
+      class_name: 'className',
+      class_code: 'classCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt',
+      start_date: 'startDate',
+      end_date: 'endDate'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    const sortOrder = Order.DESC
+    query.orderBy(`class.${sortField}`, sortOrder)
+
+    // Pagination
+    const [classes, metaDto] = await paginate<Class>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+    const mappedClasses = classes.map((c) =>
+      plainToInstance(ClassDTO, {
+        class_id: c.classId,
+        class_code: c.classCode,
+        class_name: c.className,
+        class_type: c.classType,
+        start_date: c.startDate,
+        end_date: c.endDate,
+        is_active: c.isActive,
+        created_at: c.createdAt,
+        updated_at: c.updatedAt
+      })
+    )
+
+    return {
+      classes: mappedClasses,
+      pagination: metaDto
+    }
+  }
+
+  async getClassesForLecturer(lecturerId: string, queryDto: GetClassesQueryDto) {
+    // Verify user is a lecturer
+    const lecturer = await this.userRepository.findOne({
+      where: { id: lecturerId },
+      relations: ['role']
+    })
+
+    if (!lecturer) {
+      throw new ValidationException(ErrorCode.USER001, 'Không tìm thấy giảng viên', [
+        { property: 'lecturer_id', code: ErrorCode.USER001 }
+      ])
+    }
+
+    // Query classes through teaching assignments
+    const query = this.classRepository
+      .createQueryBuilder('class')
+      .innerJoin('class.teachingAssignments', 'teachingAssignment')
+      .where('teachingAssignment.lecturer.id = :lecturerId', { lecturerId })
+      .andWhere('teachingAssignment.isActive = :isActive', { isActive: true })
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(class.className ILIKE :search OR class.classCode ILIKE :search)', { search: `%${queryDto.q}%` })
+    }
+
+    // Class type filter
+    if (queryDto.class_type) {
+      query.andWhere('class.classType = :classType', { classType: queryDto.class_type })
+    }
+
+    // Sorting
+    const validSortFields = ['className', 'classCode', 'createdAt', 'updatedAt', 'startDate', 'endDate']
+    const sortMapping: Record<string, string> = {
+      class_name: 'className',
+      class_code: 'classCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt',
+      start_date: 'startDate',
+      end_date: 'endDate'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    query.orderBy(`class.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [classes, metaDto] = await paginate<Class>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    const mappedClasses = classes.map((c) =>
+      plainToInstance(ClassDTO, {
+        class_id: c.classId,
+        class_code: c.classCode,
+        class_name: c.className,
+        class_type: c.classType,
+        start_date: c.startDate,
+        end_date: c.endDate,
+        is_active: c.isActive,
+        created_at: c.createdAt,
+        updated_at: c.updatedAt
+      })
+    )
+
+    return {
+      classes: mappedClasses,
+      pagination: metaDto
+    }
+  }
+
+  async getClassById(classId: string) {
+    const classEntity = await this.classRepository.findOne({
+      where: { classId },
+      relations: ['teachingAssignments', 'teachingAssignments.lecturer']
+    })
+
+    if (!classEntity) {
+      throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
+        { property: 'classId', code: ErrorCode.CLASS003 }
+      ])
+    }
+
+    // Map lecturers from active teaching assignments
+    const lecturers =
+      classEntity.teachingAssignments
+        ?.filter((assignment) => assignment.isActive)
+        .map((assignment) => ({
+          id: assignment.lecturer.id,
+          name: assignment.lecturer.name,
+          email: assignment.lecturer.email,
+          avatar: assignment.lecturer.avatar,
+          phone: assignment.lecturer.phone
+        })) || []
+
+    // Fetch enrolled students
+    const enrollments = await this.classEnrolmentRepository.find({
+      where: { classId },
+      relations: ['student'],
+      select: ['student', 'enrolmentDate']
+    })
+
+    // Map students from enrollments
+    const students = enrollments.map((enrollment) => ({
+      id: enrollment.student.id,
+      name: enrollment.student.name,
+      email: enrollment.student.email,
+      avatar: enrollment.student.avatar,
+      phone: enrollment.student.phone,
+      enrolment_date: enrollment.enrolmentDate
+    }))
+
+    return {
+      class_id: classEntity.classId,
+      class_code: classEntity.classCode,
+      class_name: classEntity.className,
+      class_type: classEntity.classType,
+      start_date: classEntity.startDate,
+      end_date: classEntity.endDate,
+      is_active: classEntity.isActive,
+      lecturers,
+      students,
+      created_at: classEntity.createdAt,
+      updated_at: classEntity.updatedAt
+    }
+  }
+
+  async getClassesForStudent(studentId: string, queryDto: GetClassesQueryDto) {
+    // Get enrolled class IDs for student
+    const enrolments = await this.classEnrolmentRepository.find({
+      where: { studentId },
+      select: ['classId']
+    })
+
+    const classIds = enrolments.map((e) => e.classId)
+
+    if (classIds.length === 0) {
+      return {
+        classes: [],
+        pagination: {
+          page: queryDto.page,
+          limit: queryDto.limit,
+          total_count: 0,
+          total_pages: 0
+        }
+      }
+    }
+
+    const query = this.classRepository
+      .createQueryBuilder('class')
+      .where('class.classId IN (:...classIds)', { classIds })
+
+    // Search filter
+    if (queryDto.q) {
+      query.andWhere('(class.className ILIKE :search OR class.classCode ILIKE :search)', { search: `%${queryDto.q}%` })
+    }
+
+    // Class type filter
+    if (queryDto.class_type) {
+      query.andWhere('class.classType = :classType', { classType: queryDto.class_type })
+    }
+
+    // Sorting
+    const validSortFields = ['className', 'classCode', 'createdAt', 'updatedAt', 'startDate', 'endDate']
+    const sortMapping: Record<string, string> = {
+      class_name: 'className',
+      class_code: 'classCode',
+      created_at: 'createdAt',
+      updated_at: 'updatedAt',
+      start_date: 'startDate',
+      end_date: 'endDate'
+    }
+    const rawSort = queryDto.sort_by || 'created_at'
+    const mappedSort = sortMapping[rawSort]
+    const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+    query.orderBy(`class.${sortField}`, queryDto.order)
+
+    // Pagination
+    const [classes, metaDto] = await paginate<Class>(query, queryDto, {
+      skipCount: false,
+      takeAll: false
+    })
+
+    const mappedClasses = classes.map((c) =>
+      plainToInstance(ClassDTO, {
+        class_id: c.classId,
+        class_code: c.classCode,
+        class_name: c.className,
+        class_type: c.classType,
+        start_date: c.startDate,
+        end_date: c.endDate,
+        is_active: c.isActive,
+        created_at: c.createdAt,
+        updated_at: c.updatedAt
+      })
+    )
+
+    return {
+      classes: mappedClasses,
+      pagination: metaDto
+    }
+  }
+
+  async update(classId: string, updateClassDto: UpdateClassDto) {
+    try {
+      // Check if class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học')
+      }
+
+      // Validate date range: start_date must be <= end_date
+      const newStartDate = updateClassDto.start_date ? new Date(updateClassDto.start_date) : classEntity.startDate
+      const newEndDate = updateClassDto.end_date ? new Date(updateClassDto.end_date) : classEntity.endDate
+
+      if (newStartDate && newEndDate && newStartDate > newEndDate) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Ngày bắt đầu phải trước hoặc bằng ngày kết thúc')
+      }
+
+      // Update the class with provided fields (map snake_case to entity fields)
+      if (updateClassDto.class_name !== undefined) classEntity.className = updateClassDto.class_name
+      if (updateClassDto.class_type !== undefined) classEntity.classType = updateClassDto.class_type
+      if (updateClassDto.start_date !== undefined) classEntity.startDate = updateClassDto.start_date as unknown as Date
+      if (updateClassDto.end_date !== undefined) classEntity.endDate = updateClassDto.end_date as unknown as Date
+      if (updateClassDto.is_active !== undefined) classEntity.isActive = updateClassDto.is_active
+
+      const updatedClass = await this.classRepository.save(classEntity)
+
+      if (!updatedClass) {
+        throw new ValidationException(ErrorCode.CLASS002, 'Cập nhật lớp thất bại')
+      }
+
+      return {
+        class_id: updatedClass.classId,
+        class_code: updatedClass.classCode,
+        class_name: updatedClass.className,
+        class_type: updatedClass.classType,
+        start_date: updatedClass.startDate,
+        end_date: updatedClass.endDate,
+        is_active: updatedClass.isActive,
+        created_at: updatedClass.createdAt,
+        updated_at: updatedClass.updatedAt
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async assignLecturers(classId: string, assignLecturersDto: AssignLecturersDto) {
+    try {
+      const { lecturer_ids } = assignLecturersDto
+
+      // Check if class exists
+      const classEntity = await this.classRepository.findOne({
+        where: { classId },
+        relations: ['teachingAssignments', 'teachingAssignments.lecturer']
+      })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học')
+      }
+
+      // Check if all users exist and are lecturers
+      const lecturers = await this.userRepository.find({
+        where: { id: In(lecturer_ids) },
+        relations: ['role']
+      })
+
+      if (lecturers.length !== lecturer_ids.length) {
+        const foundIds = lecturers.map((l) => l.id)
+        const notFoundIds = lecturer_ids.filter((id) => !foundIds.includes(id))
+        throw new ValidationException(ErrorCode.CLASS004, 'Không tìm thấy một số giảng viên', [
+          {
+            property: 'lecturer_ids',
+            code: ErrorCode.CLASS004,
+            message: `Lecturers not found: ${notFoundIds.join(', ')}`
+          }
+        ])
+      }
+
+      // Verify all users are lecturers
+      const nonLecturers = lecturers.filter((user) => user.role?.name !== RoleInAccount.Lecturer)
+
+      if (nonLecturers.length > 0) {
+        throw new ValidationException(ErrorCode.CLASS005, 'Một số người dùng không phải giảng viên', [
+          {
+            property: 'lecturer_ids',
+            code: ErrorCode.CLASS005,
+            message: `Users are not lecturers: ${nonLecturers.map((u) => u.id).join(', ')}`
+          }
+        ])
+      }
+
+      // Check for existing active assignments
+      const existingAssignments = await this.teachingAssignmentRepository.find({
+        where: {
+          class: { classId },
+          lecturer: { id: In(lecturer_ids) },
+          isActive: true
+        },
+        relations: ['lecturer']
+      })
+
+      if (existingAssignments.length > 0) {
+        const alreadyAssignedIds = existingAssignments.map((a) => a.lecturer.id)
+        throw new ValidationException(ErrorCode.CLASS007, 'Một số giảng viên đã được phân công cho lớp này', [
+          {
+            property: 'lecturer_ids',
+            code: ErrorCode.CLASS007,
+            message: `Lecturers already assigned: ${alreadyAssignedIds.join(', ')}`
+          }
+        ])
+      }
+
+      // Create teaching assignments
+      const teachingAssignments = lecturers.map((lecturer) => {
+        return this.teachingAssignmentRepository.create({
+          lecturer,
+          class: classEntity,
+          isActive: true
+        })
+      })
+
+      const savedAssignments = await this.teachingAssignmentRepository.save(teachingAssignments)
+
+      if (!savedAssignments || savedAssignments.length === 0) {
+        throw new ValidationException(ErrorCode.CLASS006, 'Phân công giảng viên cho lớp thất bại')
+      }
+
+      return {
+        classId: classEntity.classId,
+        classCode: classEntity.classCode,
+        className: classEntity.className,
+        assignedLecturers: lecturers.map((lecturer) => ({
+          id: lecturer.id,
+          name: lecturer.name,
+          email: lecturer.email
+        }))
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async arrangeStudents(arrangeStudentsDto: ArrangeStudentsDto): Promise<ClassArrangementResultDto> {
+    try {
+      const { entryTestId, classDistribution } = arrangeStudentsDto
+
+      // 1. Validate entry test exists
+      const entryTest = await this.entryTestRepository.findOne({
+        where: { entryTestId },
+        select: ['entryTestId', 'title']
+      })
+
+      if (!entryTest) {
+        throw new ValidationException(ErrorCode.ENTRY_TEST001, 'Không tìm thấy bài kiểm tra đầu vào', [
+          { property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }
+        ])
+      }
+
+      // 2. Validate all classes exist and are active
+      const classIds = classDistribution.map((dist) => dist.classId)
+      const classes = await this.classRepository.find({
+        where: { classId: In(classIds) },
+        select: ['classId', 'className', 'isActive']
+      })
+
+      if (classes.length !== classIds.length) {
+        const foundIds = classes.map((c) => c.classId)
+        const missingIds = classIds.filter((id) => !foundIds.includes(id))
+        throw new ValidationException(ErrorCode.CLASS001, 'Không tìm thấy một số lớp', [
+          {
+            property: 'classDistribution',
+            code: ErrorCode.CLASS001,
+            message: `Missing classes: ${missingIds.join(', ')}`
+          }
+        ])
+      }
+
+      // Check if all classes are active
+      const inactiveClasses = classes.filter((c) => !c.isActive)
+      if (inactiveClasses.length > 0) {
+        const inactiveIds = inactiveClasses.map((c) => c.classId)
+        throw new ValidationException(ErrorCode.CLASS001, 'Một số lớp chưa hoạt động', [
+          {
+            property: 'classDistribution',
+            code: ErrorCode.CLASS001,
+            message: `Inactive classes: ${inactiveIds.join(', ')}`
+          }
+        ])
+      }
+
+      // 3. Validate score ranges don't overlap
+      this.validateScoreRanges(classDistribution)
+
+      // 4. Get all submitted entry test submissions with scores
+      const submissions = await this.entryTestSubmissionRepository.find({
+        where: {
+          entryTestId,
+          attemptStatus: AttemptStatus.SUBMITTED
+        },
+        relations: ['student'],
+        select: ['studentId', 'score', 'student']
+      })
+
+      if (submissions.length === 0) {
+        throw new ValidationException(
+          ErrorCode.ENTRY_TEST001,
+          'Không có bài làm nào được nộp cho bài kiểm tra đầu vào này',
+          [{ property: 'entryTestId', code: ErrorCode.ENTRY_TEST001 }]
+        )
+      }
+
+      // 5. Check for existing enrollments to avoid duplicates
+      const studentIds = submissions.map((s) => s.studentId)
+      const existingEnrollments = await this.classEnrolmentRepository.find({
+        where: {
+          studentId: In(studentIds),
+          classId: In(classIds)
+        },
+        select: ['studentId', 'classId']
+      })
+
+      // Create a set of existing enrollments for quick lookup
+      const existingEnrollmentSet = new Set(existingEnrollments.map((e) => `${e.studentId}-${e.classId}`))
+
+      // 6. Process student assignments and create enrollments
+      const enrollmentsToCreate: Partial<ClassEnrolment>[] = []
+      const classDistributionSummary: Record<string, { count: number; classId: string; className: string }> = {}
+      const enrolmentDate = new Date()
+
+      // Initialize summary counters
+      classDistribution.forEach((dist) => {
+        const classInfo = classes.find((c) => c.classId === dist.classId)
+        classDistributionSummary[dist.range] = {
+          count: 0,
+          classId: dist.classId,
+          className: classInfo?.className || ''
+        }
+      })
+
+      let enrolledCount = 0
+      let unenrolledCount = 0
+
+      for (const submission of submissions) {
+        const student = submission.student
+        const score = submission.score
+
+        if (score === null) {
+          unenrolledCount++
+          continue
+        }
+
+        const assignment = this.findClassForScore(score, classDistribution, classes)
+
+        if (assignment) {
+          // Check if enrollment already exists
+          const enrollmentKey = `${student.id}-${assignment.classId}`
+          if (!existingEnrollmentSet.has(enrollmentKey)) {
+            enrollmentsToCreate.push({
+              studentId: student.id,
+              classId: assignment.classId,
+              enrolmentDate: enrolmentDate
+            })
+            classDistributionSummary[assignment.range].count++
+            enrolledCount++
+          } else {
+            // Student already enrolled in this class
+            enrolledCount++
+          }
+        } else {
+          unenrolledCount++
+        }
+      }
+
+      // 7. Save enrollments to database in batch
+      if (enrollmentsToCreate.length > 0) {
+        await this.classEnrolmentRepository.save(enrollmentsToCreate)
+      }
+
+      // 8. Return result
+      return {
+        entryTestId: entryTest.entryTestId,
+        entryTestTitle: entryTest.title,
+        totalStudents: submissions.length,
+        enrolledStudents: enrolledCount,
+        unenrolledCount: unenrolledCount,
+        classDistributionSummary,
+        summary: {
+          success: true,
+          message: `Successfully enrolled ${enrolledCount} students into classes`,
+          enrolmentDate: enrolmentDate.toISOString()
+        }
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async manualEnrolStudents(classId: string, dto: ManualEnrolStudentsDto) {
+    try {
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
+          { property: 'classId', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      const studentIds = dto.student_ids || []
+      if (studentIds.length === 0) {
+        return {
+          class_id: classEntity.classId,
+          enrolled_count: 0,
+          enrolled_students: [],
+          duplicates: [],
+          not_found_students: []
+        }
+      }
+
+      // Load users
+      const users = await this.userRepository.find({ where: { id: In(studentIds) } })
+      const foundIds = new Set(users.map((u) => u.id))
+      const notFoundStudents = studentIds.filter((id) => !foundIds.has(id))
+
+      // Check existing enrollments to avoid duplicates
+      const existingEnrollments = await this.classEnrolmentRepository.find({
+        where: { studentId: In(studentIds), classId },
+        select: ['studentId']
+      })
+      const duplicateIds = new Set(existingEnrollments.map((e) => e.studentId))
+
+      const enrolmentsToCreate: Partial<ClassEnrolment>[] = []
+      const now = new Date()
+
+      for (const user of users) {
+        if (duplicateIds.has(user.id)) continue
+        enrolmentsToCreate.push({
+          classId: classEntity.classId,
+          studentId: user.id,
+          enrolmentDate: now
+        })
+      }
+
+      if (enrolmentsToCreate.length > 0) {
+        await this.classEnrolmentRepository.save(enrolmentsToCreate)
+      }
+
+      return {
+        class_id: classEntity.classId,
+        enrolled_count: enrolmentsToCreate.length,
+        enrolled_students: enrolmentsToCreate.map((e) => e.studentId),
+        duplicates: Array.from(duplicateIds),
+        not_found_students: notFoundStudents
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async removeStudentsFromClass(classId: string, studentIds: string[]) {
+    try {
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({ where: { classId } })
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
+          { property: 'classId', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      const ids = studentIds || []
+      if (ids.length === 0) {
+        return { class_id: classId, removed_count: 0, removed_students: [], not_enrolled: [] }
+      }
+
+      // Find existing enrollments for provided students
+      const existing = await this.classEnrolmentRepository.find({
+        where: { classId, studentId: In(ids) },
+        select: ['studentId']
+      })
+      const existingIds = existing.map((e) => e.studentId)
+      const notEnrolled = ids.filter((id) => !existingIds.includes(id))
+
+      if (existingIds.length > 0) {
+        await this.classEnrolmentRepository.delete({ classId, studentId: In(existingIds) })
+      }
+
+      return {
+        class_id: classId,
+        removed_count: existingIds.length,
+        removed_students: existingIds,
+        not_enrolled: notEnrolled
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  private validateScoreRanges(classDistribution: { range: string; classId: string }[]): void {
+    const ranges = classDistribution.map((dist) => dist.range)
+
+    // Check for duplicate ranges
+    const uniqueRanges = new Set(ranges)
+    if (uniqueRanges.size !== ranges.length) {
+      throw new ValidationException(ErrorCode.V004, 'Phát hiện trùng lặp khoảng điểm', [
+        { property: 'classDistribution', code: ErrorCode.V004 }
+      ])
+    }
+
+    // Parse and validate ranges
+    const parsedRanges: { min: number; max: number; range: string }[] = []
+
+    for (const range of ranges) {
+      const parsed = this.parseScoreRange(range)
+      if (!parsed) {
+        throw new ValidationException(ErrorCode.V004, `Invalid score range format: ${range}`, [
+          { property: 'classDistribution', code: ErrorCode.V004 }
+        ])
+      }
+      parsedRanges.push({ ...parsed, range })
+    }
+
+    // Check for overlapping ranges
+    for (let i = 0; i < parsedRanges.length; i++) {
+      for (let j = i + 1; j < parsedRanges.length; j++) {
+        const range1 = parsedRanges[i]
+        const range2 = parsedRanges[j]
+
+        if (this.rangesOverlap(range1, range2)) {
+          throw new ValidationException(
+            ErrorCode.V004,
+            `Overlapping score ranges: ${range1.range} and ${range2.range}`,
+            [{ property: 'classDistribution', code: ErrorCode.V004 }]
+          )
+        }
+      }
+    }
+  }
+
+  private parseScoreRange(range: string): { min: number; max: number } | null {
+    // Handle different range formats: "0-5", ">8", "<5", "5-10"
+    if (range.includes('-')) {
+      const [minStr, maxStr] = range.split('-')
+      const min = parseFloat(minStr.trim())
+      const max = parseFloat(maxStr.trim())
+
+      if (isNaN(min) || isNaN(max) || min >= max) {
+        return null
+      }
+
+      return { min, max }
+    } else if (range.startsWith('>')) {
+      const min = parseFloat(range.substring(1).trim())
+      if (isNaN(min)) return null
+      return { min, max: 10 } // Assuming 10 is max score
+    } else if (range.startsWith('<')) {
+      const max = parseFloat(range.substring(1).trim())
+      if (isNaN(max)) return null
+      return { min: 0, max } // Assuming 0 is min score
+    }
+
+    return null
+  }
+
+  private rangesOverlap(range1: { min: number; max: number }, range2: { min: number; max: number }): boolean {
+    return range1.min < range2.max && range2.min < range1.max
+  }
+
+  private findClassForScore(
+    score: number,
+    classDistribution: { range: string; classId: string }[],
+    classes: { classId: string; className: string }[]
+  ): { classId: string; className: string; range: string } | null {
+    for (const dist of classDistribution) {
+      const parsed = this.parseScoreRange(dist.range)
+      if (!parsed) continue
+
+      if (score >= parsed.min && score <= parsed.max) {
+        const classInfo = classes.find((c) => c.classId === dist.classId)
+        if (classInfo) {
+          return {
+            classId: classInfo.classId,
+            className: classInfo.className,
+            range: dist.range
+          }
+        }
+      }
+    }
+
+    return null
+  }
+
+  async getStudentsByClassId(classId: string, queryDto: GetStudentsByClassQueryDto | undefined) {
+    try {
+      // Ensure queryDto has default values if not provided
+      const paginationDto: GetStudentsByClassQueryDto = queryDto
+        ? Object.assign(new GetStudentsByClassQueryDto(), {
+            limit: queryDto.limit || 10,
+            page: queryDto.page || 1,
+            order: queryDto.order || 'ASC',
+            q: queryDto.q,
+            sort_by: queryDto.sort_by
+          })
+        : new GetStudentsByClassQueryDto()
+
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({
+        where: { classId }
+      })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
+          { property: 'classId', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      // Build query with search and filters
+      const query = this.classEnrolmentRepository
+        .createQueryBuilder('enrolment')
+        .leftJoinAndSelect('enrolment.student', 'student')
+        .leftJoinAndSelect('student.role', 'role')
+        .where('enrolment.classId = :classId', { classId })
+        .andWhere('role.name = :roleName', { roleName: RoleInAccount.Student })
+
+      // Search filter
+      if (paginationDto.q) {
+        query.andWhere('(student.name ILIKE :search OR student.email ILIKE :search)', {
+          search: `%${paginationDto.q}%`
+        })
+      }
+
+      // Sorting
+      const validSortFields = ['name', 'email', 'enrolmentDate']
+      const sortMapping: Record<string, string> = {
+        name: 'student.name',
+        email: 'student.email',
+        enrolment_date: 'enrolment.enrolmentDate'
+      }
+      const rawSort = paginationDto.sort_by || 'name'
+      const mappedSort = sortMapping[rawSort]
+      const sortField = validSortFields.includes(rawSort) ? mappedSort : 'student.name'
+      query.orderBy(sortField, paginationDto.order || 'ASC')
+
+      // Pagination
+      const [enrollments, metaDto] = await paginate<ClassEnrolment>(query, paginationDto, {
+        skipCount: false,
+        takeAll: false
+      })
+
+      // Transform to DTO
+      const studentDTOs: StudentListItemDto[] = enrollments.map((enrollment) =>
+        plainToInstance(StudentListItemDto, {
+          id: enrollment.student.id,
+          name: enrollment.student.name,
+          email: enrollment.student.email,
+          avatar: enrollment.student.avatar,
+          phone: enrollment.student.phone,
+          enrolment_date: enrollment.enrolmentDate
+        })
+      )
+
+      return plainToInstance(StudentListResponseDto, {
+        class_id: classId,
+        students: studentDTOs,
+        pagination: metaDto
+      })
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async getModulesByClassId(classId: string, queryDto: GetModulesByClassQueryDto | undefined) {
+    try {
+      // Ensure queryDto has default values if not provided
+      const paginationDto: GetModulesByClassQueryDto = queryDto
+        ? Object.assign(new GetModulesByClassQueryDto(), {
+            limit: queryDto.limit || 10,
+            page: queryDto.page || 1,
+            order: queryDto.order || 'ASC',
+            q: queryDto.q
+          })
+        : new GetModulesByClassQueryDto()
+
+      // Validate class exists
+      const classEntity = await this.classRepository.findOne({
+        where: { classId }
+      })
+
+      if (!classEntity) {
+        throw new ValidationException(ErrorCode.CLASS003, 'Không tìm thấy lớp học', [
+          { property: 'classId', code: ErrorCode.CLASS003 }
+        ])
+      }
+
+      // Build query with search and filters
+      const query = this.moduleRepository
+        .createQueryBuilder('module')
+        .leftJoin('module.class', 'class')
+        .leftJoinAndSelect('module.teachingModules', 'teachingModule', 'teachingModule.isActive = :isActive', {
+          isActive: true
+        })
+        .leftJoinAndSelect('teachingModule.lecturer', 'lecturer')
+        .where('class.classId = :classId', { classId })
+
+      // Search filter
+      if (paginationDto.q) {
+        query.andWhere(
+          '(module.moduleName ILIKE :search OR module.moduleCode ILIKE :search OR module.moduleDescription ILIKE :search)',
+          { search: `%${paginationDto.q}%` }
+        )
+      }
+
+      // Sorting
+      const validSortFields = ['moduleName', 'moduleCode', 'createdAt', 'updatedAt']
+      const sortMapping: Record<string, string> = {
+        module_name: 'moduleName',
+        module_code: 'moduleCode',
+        created_at: 'createdAt',
+        updated_at: 'updatedAt'
+      }
+      const rawSort = paginationDto.sort_by || 'created_at'
+      const mappedSort = sortMapping[rawSort]
+      const sortField = validSortFields.includes(mappedSort) ? mappedSort : 'createdAt'
+      query.orderBy(`module.${sortField}`, paginationDto.order || 'ASC')
+
+      // Pagination
+      const [modules, metaDto] = await paginate<ModuleEntity>(query, paginationDto, {
+        skipCount: false,
+        takeAll: false
+      })
+
+      // Transform to DTO
+      const moduleDTOs: ModuleDTO[] = modules.map((module) => {
+        // Extract lecturer IDs from active teaching modules
+        const lecturerIds =
+          module.teachingModules
+            ?.filter((tm) => tm.isActive)
+            .map((tm) => tm.lecturer?.id)
+            .filter((id) => id !== undefined) || []
+
+        return plainToInstance(ModuleDTO, {
+          module_id: module.moduleId,
+          module_code: module.moduleCode,
+          module_name: module.moduleName,
+          module_description: module.moduleDescription || '',
+          banner: module.banner || '',
+          lecturer_ids: lecturerIds,
+          created_at: module.createdAt,
+          updated_at: module.updatedAt
+        })
+      })
+
+      return {
+        modules: moduleDTOs,
+        pagination: metaDto
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+}

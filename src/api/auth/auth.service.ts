@@ -8,6 +8,7 @@ import { VerifyOtpDTO } from './dto/verify-otp-payload'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Cache } from 'cache-manager'
 import { ValidationException } from '@exceptions/validation.exception'
+import { IGoogleUser } from '@common/interfaces/google-user.interface'
 import { ErrorCode } from '@constants/error-code.constant'
 import { User } from '@api/user/entities/user.entity'
 import { MailService } from '@mail/mail.service'
@@ -21,11 +22,14 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { SessionEntity } from '@api/user/entities/session.entity'
 import { Repository } from 'typeorm'
 import { JwtRefreshPayloadType } from '@api/auth/types/jwt-refresh-payload.type'
+import { RoleInAccount } from '@common/enums/account-role.enum'
 type PayLoadAuth = { id?: string; role?: string }
 type Token = {
-  accessToken: string
-  refreshToken: string
-  tokenExpires: number
+  access_token: string
+  refresh_token: string
+  expires_in: number
+  role: string
+  hasParticipatedEntryTest?: boolean
 }
 @Injectable()
 export class AuthService {
@@ -63,14 +67,14 @@ export class AuthService {
       )
     ])
 
-    return { accessToken, refreshToken, tokenExpires } as Token
+    return { access_token: accessToken, refresh_token: refreshToken, expires_in: tokenExpires, role: role } as Token
   }
 
   async validateAccount(email: string, pass: string): Promise<User> {
     try {
       const account = await this.userService.findByEmail(email)
       if (!account) {
-        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+        throw new ValidationException(ErrorCode.E004, 'Email không tồn tại', [
           {
             property: 'email',
             code: ErrorCode.E004
@@ -79,7 +83,7 @@ export class AuthService {
       }
       const isCheckedPassword = await compareString(pass, account.password)
       if (!isCheckedPassword) {
-        throw new ValidationException(ErrorCode.E005, 'Password not correct', [
+        throw new ValidationException(ErrorCode.E005, 'Mật khẩu không đúng', [
           {
             property: 'password',
             code: ErrorCode.E005
@@ -99,17 +103,56 @@ export class AuthService {
         userId: account.id,
         hash
       })
+
       await this.sessionRepository.save(session)
+
+      // TODO: Just find in user table for this version
+      const user = await this.userService.findById(account.id)
+      if (!user) {
+        throw new ValidationException(ErrorCode.E004, 'Không tìm thấy người dùng', [
+          {
+            property: 'user',
+            code: ErrorCode.E004
+          }
+        ])
+      }
       const tokens = await this.generateTokens(account.id, account.role, hash, session.id)
-      if (!tokens.accessToken || !tokens.refreshToken) {
-        throw new Error('Login failed')
+      if (!tokens.access_token || !tokens.refresh_token) {
+        throw new Error('Đăng nhập thất bại')
       }
 
-      return {
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-        expires_in: tokens.tokenExpires
+      let result: Token = {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_in: tokens.expires_in,
+        role: tokens.role
       }
+
+      if (account.role === RoleInAccount.Student) {
+        result = {
+          ...result,
+          hasParticipatedEntryTest: user.hasParticipatedEntryTest
+        }
+      }
+
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async googleLogin(req: { user: IGoogleUser }) {
+    try {
+      const account = await this.userService.findByEmail(req.user.email)
+      if (!account) {
+        const newAccount = await this.userService.create({
+          email: req.user.email,
+          name: `${req.user.firstName} ${req.user.lastName}`,
+          password: randomStringGenerator()
+        })
+        return newAccount
+      }
+      return account
     } catch (error) {
       throw error
     }
@@ -161,7 +204,7 @@ export class AuthService {
     )
 
     if (isSessionBlacklisted) {
-      throw new UnauthorizedException('Access token is invalid or revoked')
+      throw new UnauthorizedException('Access token không hợp lệ hoặc đã bị thu hồi')
     }
 
     return payload
@@ -191,7 +234,7 @@ export class AuthService {
       const expired_otp = generateExpired(+this.configService.get<string>('OTP_EXPIRES_IN'))
       const account = await this.userService.findByEmail(payload.email)
       if (!account) {
-        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+        throw new ValidationException(ErrorCode.E004, 'Email không tồn tại', [
           {
             property: 'email',
             code: ErrorCode.E004
@@ -211,7 +254,7 @@ export class AuthService {
       const { email, otp } = payload
       const account = await this.userService.findByEmail(email)
       if (!account) {
-        throw new ValidationException(ErrorCode.E004, 'Email not exists', [
+        throw new ValidationException(ErrorCode.E004, 'Email không tồn tại', [
           {
             property: 'email',
             code: ErrorCode.E004
@@ -220,7 +263,7 @@ export class AuthService {
       }
       const otpRedis = await this.cacheManager.get(`otp:${account.id}`)
       if (!otpRedis) {
-        throw new ValidationException(ErrorCode.E007, 'OTP has expired', [
+        throw new ValidationException(ErrorCode.E007, 'OTP đã hết hạn', [
           {
             property: 'otp',
             code: ErrorCode.E007
@@ -228,7 +271,7 @@ export class AuthService {
         ])
       }
       if (otpRedis !== otp) {
-        throw new ValidationException(ErrorCode.E008, 'OTP not match', [
+        throw new ValidationException(ErrorCode.E008, 'OTP không chính xác', [
           {
             property: 'otp',
             code: ErrorCode.E008
@@ -253,7 +296,7 @@ export class AuthService {
     try {
       const { newPassword, confirmNewPassword } = payload
       if (newPassword !== confirmNewPassword) {
-        throw new BadRequestException('New password and confirm password do not match')
+        throw new BadRequestException('Mật khẩu mới và mật khẩu xác nhận không trùng khớp')
       }
       await this.userService.forgotPassword(payload)
     } catch (error) {

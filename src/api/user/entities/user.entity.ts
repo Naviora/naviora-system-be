@@ -4,6 +4,8 @@ import { Exclude } from 'class-transformer'
 import { AccountStatus, Gender } from '@common/enums/account-role.enum'
 import { AbstractEntity } from '@database/entities/base.entity'
 import { SessionEntity } from '@api/user/entities/session.entity'
+import { TeachingAssignment } from '@api/class/entities/teaching-assignment.entity'
+import { TeachingModule } from '@api/module/entities/teaching-module.entity'
 
 @Entity('user')
 export class User extends AbstractEntity {
@@ -47,6 +49,12 @@ export class User extends AbstractEntity {
   @OneToMany(() => SessionEntity, (session) => session.user)
   sessions?: SessionEntity[]
 
+  @OneToMany(() => TeachingAssignment, (teachingAssignment) => teachingAssignment.lecturer)
+  teachingAssignments?: TeachingAssignment[]
+
+  @OneToMany(() => TeachingModule, (teachingModule) => teachingModule.lecturer)
+  teachingModules?: TeachingModule[]
+
   @Column({
     type: 'enum',
     enum: AccountStatus,
@@ -54,4 +62,16 @@ export class User extends AbstractEntity {
     nullable: false
   })
   status: AccountStatus
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  officePhoneNumber: string
+
+  @Column({ type: 'int', nullable: true })
+  point: number
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  username: string
+
+  @Column({ type: 'boolean', nullable: false, default: false })
+  hasParticipatedEntryTest: boolean
 }

@@ -30,6 +30,7 @@
       "@guards/*": ["src/guards/*"],
       "@decorators/*": ["src/decorators/*"],
       "@database/*": ["src/database/*"],
+      "@database-prod/*": ["src/database/database-prod/*"],
       "@constants/*": ["src/constants/*"],
       "@mail/*": ["src/mail/*"],
       "@background/*": ["src/background/*"],

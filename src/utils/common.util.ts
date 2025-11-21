@@ -1,3 +1,4 @@
+import { User } from '@api/user/entities/user.entity'
 import dayjs from 'dayjs'
 import * as dotenv from 'dotenv'
 
@@ -21,4 +22,9 @@ export const getDefaultPublicIdAvatar = (): string => {
 export const getPublicIdAvatar = (url: string): string => {
   const result = 'avatar/' + url.split('/').pop()?.split('.')[0]
   return result
+}
+
+export const extractUserRole = (currentUser: User) => {
+  const userRole = typeof currentUser.role === 'string' ? currentUser.role : currentUser.role?.name
+  return userRole
 }

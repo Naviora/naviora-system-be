@@ -1,4 +1,4 @@
-name: Naviora BE CI Pipeline
+name: Naviora BE CI/CD Pipeline
 
 on:
   push:
@@ -97,6 +97,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: production
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
   # Non-Production Docker Build and Push Job (runs on all other branches)
   docker-build-dev:
@@ -139,3 +141,78 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: development
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+  # Production Deployment Job
+  deploy-prod:
+    name: Deploy (Production)
+    runs-on: ubuntu-24.04
+    needs: docker-build-prod
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && github.base_ref == 'main')
+
+    steps:
+      - name: SSH and deploy to production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            docker pull ${{ env.PROD_IMAGE_NAME }}:latest
+            cd naviora-prod
+            docker compose up -d
+
+  # Development Deployment Job
+  deploy-dev:
+    name: Deploy (Development)
+    runs-on: ubuntu-24.04
+    needs: docker-build-dev
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'pull_request' && github.base_ref == 'develop')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect entity changes
+        id: detect-entity-changes
+        run: |
+          PREV_SHA=$(git rev-parse HEAD^ || echo "")
+          if [ -z "$PREV_SHA" ]; then
+            echo "entity_changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only "$PREV_SHA" HEAD || true)
+          if echo "$CHANGED" | grep -E '^src/.+\\.entity\\.ts$' >/dev/null 2>&1; then
+            echo "entity_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "entity_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set Docker image tag
+        id: set-tag
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]] && \
+             [[ "${{ github.base_ref }}" == "develop" ]]; then
+            echo "TAG_BE=pr-${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+          else
+            echo "TAG_BE=develop" >> $GITHUB_ENV
+          fi
+
+      - name: SSH and deploy to development
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            docker pull ${{ env.NON_PROD_IMAGE_NAME }}:${{ env.TAG_BE }}
+            cd be-non-prod
+            if [[ "${{ steps.detect-entity-changes.outputs.entity_changed }}" == "true" ]]; then
+                docker rm -f postgres_container || true
+            fi
+            TAG_BE=${{ env.TAG_BE }} docker compose up -d

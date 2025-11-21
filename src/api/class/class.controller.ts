@@ -1,0 +1,318 @@
+import { AccessTokenGuard } from '@api/auth/passport/accessToken.guard'
+import { RolesGuard } from '@guards/roles.guard'
+import { Body, Controller, Get, Post, Patch, Query, UseGuards, Param, ParseUUIDPipe, Delete } from '@nestjs/common'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger'
+import { ClassService } from './class.service'
+import { CreateClassDto } from './dto/create-class.dto'
+import { UpdateClassDto } from './dto/update-class.dto'
+import { ResponseMessage } from '@decorators/response-message.decorator'
+import { RoleInAccount } from '@common/enums/account-role.enum'
+import { Roles } from '@decorators/roles.decorator'
+import { GetClassesQueryDto } from './dto/get-classes-query.dto'
+import { AssignLecturersDto } from './dto/assign-lecturers-to-class.dto'
+import { ClassDetailDTO } from './dto/class-detail.dto'
+import { ArrangeStudentsDto, ClassArrangementResultDto } from './dto/arrange-students.dto'
+import { CurrentUser } from '@decorators/current-user.decorator'
+import { User } from '@api/user/entities/user.entity'
+import { GetStudentsByClassQueryDto } from './dto/get-students-by-class-query.dto'
+import { StudentListResponseDto } from './dto/student-list-response.dto'
+import { GetModulesByClassQueryDto } from './dto/get-modules-by-class-query.dto'
+
+@ApiTags('Classes')
+@Controller({
+  path: 'classes',
+  version: '1'
+})
+@ApiBearerAuth('Authorization')
+@Roles(RoleInAccount.Admin, RoleInAccount.Lecturer, RoleInAccount.Principal)
+@UseGuards(AccessTokenGuard, RolesGuard)
+export class ClassController {
+  constructor(private readonly classService: ClassService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new class' })
+  @ApiBody({
+    description: 'Data create class',
+    type: CreateClassDto,
+    examples: {
+      example1: {
+        summary: 'Create a new class',
+        value: {
+          class_code: 'BIO-25-001',
+          class_name: 'Biology Class 1',
+          class_type: 'city',
+          start_date: '2025-01-01',
+          end_date: '2025-01-01'
+        }
+      }
+    }
+  })
+  @ResponseMessage('Tạo lớp học thành công')
+  async create(@Body() createClassDto: CreateClassDto) {
+    const created = await this.classService.create(createClassDto)
+    return {
+      class_id: created.classId,
+      class_code: created.classCode,
+      class_name: created.className,
+      class_type: created.classType,
+      start_date: created.startDate,
+      end_date: created.endDate,
+      is_active: created.isActive,
+      created_at: created.createdAt,
+      updated_at: created.updatedAt
+    }
+  }
+
+  @ApiOperation({ summary: 'Get Classes', description: 'Get list of classes with pagination, search and filters' })
+  @ApiBearerAuth()
+  @Get()
+  @ResponseMessage('Lấy danh sách lớp học thành công')
+  async getClasses(@Query() query: GetClassesQueryDto) {
+    return await this.classService.getClasses(query)
+  }
+
+  @Get('enrolled-classes')
+  @Roles(RoleInAccount.Student)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @ApiOperation({
+    summary: 'Get my enrolled classes',
+    description: 'Get list of classes in which the current student is enrolled with pagination, search and filters'
+  })
+  @ResponseMessage('Lấy danh sách lớp học đã đăng ký thành công')
+  async getMyEnrolledClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
+    return await this.classService.getClassesForStudent(currentUser.id, query)
+  }
+
+  @Get('assigned-classes')
+  @Roles(RoleInAccount.Lecturer)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @ApiOperation({
+    summary: 'Get my assigned classes',
+    description: 'Get list of classes assigned to the current lecturer with pagination, search and filters'
+  })
+  @ResponseMessage('Lấy danh sách lớp học được phân công thành công')
+  async getMyClasses(@Query() query: GetClassesQueryDto, @CurrentUser() currentUser: User) {
+    return await this.classService.getClassesForLecturer(currentUser.id, query)
+  }
+
+  @Get(':classId/students')
+  @ApiOperation({
+    summary: 'Get students by class ID',
+    description: `
+      Get paginated list of students enrolled in a specific class. Available for Admin, Principal, and Lecturer roles.
+      
+      **Query Parameters:**
+      - \`page\`: Page number (default: 1)
+      - \`limit\`: Number of items per page (default: 10)
+      - \`q\`: Search by student name or email (optional)
+      - \`order\`: Sort order - ASC or DESC (default: ASC)
+      - \`sort_by\`: Sort field - name, email, enrolment_date (default: name)
+    `
+  })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Lấy danh sách học sinh thành công')
+  async getStudentsByClassId(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Query() query: GetStudentsByClassQueryDto
+  ): Promise<StudentListResponseDto> {
+    return await this.classService.getStudentsByClassId(classId, query)
+  }
+
+  @Get(':classId/modules')
+  @ApiOperation({
+    summary: 'Get modules by class ID',
+    description: `
+      Get paginated list of modules associated with a specific class. Available for Admin, Principal, and Lecturer roles.
+      
+      **Query Parameters:**
+      - \`page\`: Page number (default: 1)
+      - \`limit\`: Number of items per page (default: 10)
+      - \`q\`: Search by module name, code, or description (optional)
+      - \`order\`: Sort order - ASC or DESC (default: ASC)
+      - \`sort_by\`: Sort field - module_name, module_code, created_at, updated_at (default: created_at)
+    `
+  })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Lấy danh sách module thành công')
+  async getModulesByClassId(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Query() query: GetModulesByClassQueryDto
+  ) {
+    return await this.classService.getModulesByClassId(classId, query)
+  }
+
+  @Get(':classId')
+  @ApiOperation({ summary: 'Get Class Detail', description: 'Get detailed information about a specific class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ResponseMessage('Lấy chi tiết lớp học thành công')
+  async getClassById(@Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string): Promise<ClassDetailDTO> {
+    return await this.classService.getClassById(classId)
+  }
+
+  @Patch(':classId')
+  @ApiOperation({ summary: 'Update a class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class to update',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'Data to update class',
+    type: UpdateClassDto,
+    examples: {
+      example1: {
+        summary: 'Update class information',
+        value: {
+          class_name: 'Updated Biology Class 1',
+          class_type: 'national',
+          end_date: '2025-12-31',
+          is_active: true
+        }
+      }
+    }
+  })
+  @ResponseMessage('Cập nhật lớp học thành công')
+  async update(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() updateClassDto: UpdateClassDto
+  ) {
+    return await this.classService.update(classId, updateClassDto)
+  }
+
+  @Post(':classId/assign-lecturers')
+  @ApiOperation({ summary: 'Assign lecturers to a class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'List of lecturer IDs to assign',
+    type: AssignLecturersDto,
+    examples: {
+      example1: {
+        summary: 'Assign lecturers to class',
+        value: {
+          lecturer_ids: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']
+        }
+      }
+    }
+  })
+  @ResponseMessage('Phân công giảng viên vào lớp học thành công')
+  async assignLecturers(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() assignLecturersDto: AssignLecturersDto
+  ) {
+    return await this.classService.assignLecturers(classId, assignLecturersDto)
+  }
+
+  @Post('arrange-students')
+  @ApiOperation({ summary: 'Arrange students into classes based on entry test scores' })
+  @ApiBody({
+    description: 'Entry test ID and class distribution mapping',
+    type: ArrangeStudentsDto,
+    examples: {
+      example1: {
+        summary: 'Arrange students by score ranges',
+        value: {
+          entryTestId: '123e4567-e89b-12d3-a456-426614174000',
+          classDistribution: [
+            {
+              range: '0-5',
+              classId: '550e8400-e29b-41d4-a716-446655440000'
+            },
+            {
+              range: '5-7',
+              classId: '550e8400-e29b-41d4-a716-446655440001'
+            },
+            {
+              range: '7-10',
+              classId: '550e8400-e29b-41d4-a716-446655440002'
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ResponseMessage('Sắp xếp học sinh vào lớp học thành công')
+  async arrangeStudents(@Body() arrangeStudentsDto: ArrangeStudentsDto): Promise<ClassArrangementResultDto> {
+    return await this.classService.arrangeStudents(arrangeStudentsDto)
+  }
+
+  @Post(':classId/enrol-students')
+  @ApiOperation({ summary: 'Manually enrol students into a class' })
+  @ApiParam({
+    name: 'classId',
+    description: 'The ID of the class',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @ApiBody({
+    description: 'List of student IDs to enrol into the class',
+    schema: {
+      type: 'object',
+      properties: {
+        student_ids: {
+          type: 'array',
+          items: { type: 'string', format: 'uuid' }
+        }
+      },
+      required: ['student_ids']
+    },
+    examples: {
+      example1: {
+        summary: 'Enrol students',
+        value: {
+          student_ids: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001']
+        }
+      }
+    }
+  })
+  @ResponseMessage('Đăng ký học sinh vào lớp học thành công')
+  async manualEnrolStudents(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() body: { student_ids: string[] }
+  ) {
+    return await this.classService.manualEnrolStudents(classId, { class_id: classId, student_ids: body.student_ids })
+  }
+
+  @Delete(':classId/remove-students')
+  @ApiOperation({ summary: 'Remove multiple students from a class' })
+  @ApiParam({ name: 'classId', description: 'The ID of the class', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiBody({
+    description: 'List of student IDs to remove from the class',
+    schema: {
+      type: 'object',
+      properties: {
+        student_ids: { type: 'array', items: { type: 'string', format: 'uuid' } }
+      },
+      required: ['student_ids']
+    },
+    examples: {
+      example1: {
+        summary: 'Remove students',
+        value: {
+          student_ids: ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440111']
+        }
+      }
+    }
+  })
+  @ResponseMessage('Xóa học sinh khỏi lớp học thành công')
+  async removeStudentsFromClass(
+    @Param('classId', new ParseUUIDPipe({ version: '4' })) classId: string,
+    @Body() body: { student_ids: string[] }
+  ) {
+    return await this.classService.removeStudentsFromClass(classId, body.student_ids)
+  }
+}

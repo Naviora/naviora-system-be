@@ -3,13 +3,13 @@ services:
     image: postgres:16
     container_name: postgres_container
     env_file:
-      - .env.dev
+      - .env.docker
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
     ports:
-      - "${DATABASE_PORT}:${DATABASE_PORT}"
+      - '${DATABASE_PORT}:${DATABASE_PORT}'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
@@ -21,7 +21,7 @@ services:
     container_name: redis_container
     restart: always
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     networks:
@@ -36,9 +36,12 @@ services:
     command: npm run start:dev
     depends_on:
       - postgres
+    env_file:
+      - .env.docker
+
     ports:
-      - "${APP_PORT}:${APP_PORT}" # port app
-      - "${SOCKET_PORT}:${SOCKET_PORT}" # port socket
+      - '${APP_PORT}:${APP_PORT}' # port app
+      - '${SOCKET_PORT}:${SOCKET_PORT}' # port socket
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules

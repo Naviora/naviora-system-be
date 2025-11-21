@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
+import { Request as ExpressRequest } from 'express'
 import { LoginDTO } from './dto/login-auth.dto'
 import { LocalAuthGuard } from './passport/local-auth.guard'
-import { RefreshTokenGuard } from './passport/refreshToken.guard'
 import { ChangePasswordAuthDto, EmailDTO, ForgotPasswordDTO } from './dto/change-password-auth'
 import { AccessTokenGuard } from './passport/accessToken.guard'
 import { VerifyOtpDTO } from './dto/verify-otp-payload'
@@ -13,6 +13,8 @@ import { ResponseMessage } from '@decorators/response-message.decorator'
 import { CurrentUser } from '@decorators/current-user.decorator'
 import { JwtPayloadType } from '@api/auth/types/jwt-payload.type'
 import { RefreshReqDto } from '@api/auth/dto/refresh.req.dto'
+import { GoogleOAuthGuard } from '@api/auth/passport/google-oauth.guard'
+import { IGoogleUser } from '@common/interfaces/google-user.interface'
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -31,11 +33,14 @@ export class AuthController {
     description: 'Login Account',
     type: LoginDTO,
     examples: {
-      example1: { summary: 'Login Account', value: { email: 'thang09052004@gmail.com', password: 'Login123@' } }
+      example1: { summary: 'Admin Account', value: { email: 'admin@naviora.com', password: 'Admin@123' } },
+      example2: { summary: 'Lecturer Account', value: { email: 'lecturer@example.com', password: 'Lecturer@123' } },
+      example3: { summary: 'Student Account', value: { email: 'student1@example.com', password: 'Student@123' } },
+      example4: { summary: 'Principal Account', value: { email: 'principal@example.com', password: 'Principal@123' } }
     }
   })
-  @ResponseMessage('Login successfully')
-  async login(@Request() req: any) {
+  @ResponseMessage('Đăng nhập thành công')
+  async login(@Request() req: ExpressRequest & { user: { id: string; role?: string } }) {
     try {
       return await this.authService.login(req.user)
     } catch (error) {
@@ -50,9 +55,9 @@ export class AuthController {
     type: RefreshReqDto,
     examples: { example1: { summary: 'Refresh token', value: { refresh_token: 'token' } } }
   })
+  @ResponseMessage('Lấy refresh token thành công')
   async refreshToken(@Body() dto: RefreshReqDto) {
-    const response = await this.authService.refreshToken(dto.refresh_token)
-    return new ApiResponseSuccess().setCode(200).setMessage('Get refresh token successfully').setData(response)
+    return await this.authService.refreshToken(dto.refresh_token)
   }
 
   @ApiOperation({
@@ -61,7 +66,7 @@ export class AuthController {
   })
   @Post('logout')
   @ApiBody({ description: 'Login Account' })
-  @ResponseMessage('Logout successfully')
+  @ResponseMessage('Đăng xuất thành công')
   async logout(@CurrentUser() userToken: JwtPayloadType) {
     console.log('user token', userToken)
     return await this.authService.logout(userToken)
@@ -81,9 +86,9 @@ export class AuthController {
       }
     }
   })
-  async changePassword(@Request() req: any, @Body() data: ChangePasswordAuthDto) {
+  async changePassword(@Request() req: ExpressRequest & { user: { id: string } }, @Body() data: ChangePasswordAuthDto) {
     await this.authService.changePassword(req.user.id, data)
-    return new ApiResponseSuccess().setCode(200).setMessage('Change password successfully')
+    return new ApiResponseSuccess().setCode(200).setMessage('Đổi mật khẩu thành công')
   }
 
   @Public()
@@ -107,7 +112,7 @@ export class AuthController {
   })
   async createOtp(@Body() payload: EmailDTO) {
     await this.authService.createOtp(payload)
-    return new ApiResponseSuccess().setCode(200).setMessage('Create OTP successfully')
+    return new ApiResponseSuccess().setCode(200).setMessage('Tạo OTP thành công')
   }
 
   @Public()
@@ -138,7 +143,7 @@ export class AuthController {
     try {
       const account = await this.authService.verifyOtp(payload)
       await this.authService.activeAccountOtp(account)
-      return new ApiResponseSuccess().setCode(204).setMessage('Account authentication successful')
+      return new ApiResponseSuccess().setCode(204).setMessage('Xác thực tài khoản thành công')
     } catch (error) {
       throw error
     }
@@ -171,7 +176,7 @@ export class AuthController {
   async verifyOtp(@Body() payload: VerifyOtpDTO) {
     try {
       await this.authService.verifyOtp(payload)
-      return new ApiResponseSuccess().setCode(200).setMessage('OTP is valid')
+      return new ApiResponseSuccess().setCode(200).setMessage('OTP hợp lệ')
     } catch (error) {
       throw error
     }
@@ -215,9 +220,19 @@ export class AuthController {
       const { email, otp, newPassword, confirmNewPassword } = payload
       const account = await this.authService.verifyOtp({ email, otp })
       await this.authService.forgotPassword({ id: account.id, email, otp, newPassword, confirmNewPassword })
-      return new ApiResponseSuccess().setCode(200).setMessage('Password reset successfully')
+      return new ApiResponseSuccess().setCode(200).setMessage('Đặt lại mật khẩu thành công')
     } catch (error) {
       throw error
     }
+  }
+
+  @Get('google')
+  @UseGuards(GoogleOAuthGuard)
+  async googleAuth(@Request() _req) {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleOAuthGuard)
+  async googleAuthRedirect(@Request() req: ExpressRequest & { user: IGoogleUser }) {
+    return await this.authService.googleLogin(req)
   }
 }
