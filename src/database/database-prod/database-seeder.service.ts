@@ -178,7 +178,8 @@ export class DatabaseSeederService {
           gender: userData.gender,
           dateOfBirth: userData.dateOfBirth ? new Date(userData.dateOfBirth) : null,
           role: role,
-          status: userData.status
+          status: userData.status,
+          hasParticipatedEntryTest: userData.hasParticipatedEntryTest
         })
 
         await this.dataSource.getRepository(User).save(user)
@@ -303,7 +304,8 @@ export class DatabaseSeederService {
         const lesson = this.dataSource.getRepository(LessonEntity).create({
           moduleId: targetModule.moduleId,
           lessonName: lessonData.lessonName,
-          lessonDescription: lessonData.lessonDescription
+          lessonDescription: lessonData.lessonDescription,
+          lessonContent: lessonData.lessonContent
         })
 
         await this.dataSource.getRepository(LessonEntity).save(lesson)

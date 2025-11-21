@@ -14,7 +14,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 70
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -44,7 +44,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 80
+        passing_score: 8
       },
       behavior: {
         show_correct_after_submit: false,
@@ -74,7 +74,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 85
+        passing_score: 9
       },
       behavior: {
         show_correct_after_submit: false,
@@ -91,7 +91,7 @@ export const questionSetSeedData = [
     }
   },
   {
-    title: 'Bộ đề cho việc testing dev',
+    title: 'Bộ đề cho bài kiểm tra đầu vào lần 1',
     description: 'Phục vụ cho việc testing in development',
     questions: [], // Will be populated with actual question IDs
     config: {
@@ -121,7 +121,7 @@ export const questionSetSeedData = [
     }
   },
   {
-    title: 'Bộ đề testing dev - Ngẫu nhiên 1',
+    title: 'Bộ đề cho bài kiểm tra đầu vào lần 2',
     description: 'Bộ câu hỏi 10 câu phục vụ test tính năng trong development',
     questions: [],
     config: {
@@ -225,7 +225,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 70
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -256,7 +256,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 65
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -287,7 +287,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 75
+        passing_score: 8
       },
       behavior: {
         show_correct_after_submit: true,
@@ -318,7 +318,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 75
+        passing_score: 8
       },
       behavior: {
         show_correct_after_submit: false,
@@ -349,7 +349,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 70
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -380,7 +380,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 70
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -411,7 +411,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 72
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -442,7 +442,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 80
+        passing_score: 8
       },
       behavior: {
         show_correct_after_submit: false,
@@ -473,7 +473,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 85
+        passing_score: 9
       },
       behavior: {
         show_correct_after_submit: false,
@@ -504,7 +504,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 90
+        passing_score: 9
       },
       behavior: {
         show_correct_after_submit: false,
@@ -535,7 +535,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 75
+        passing_score: 8
       },
       behavior: {
         show_correct_after_submit: true,
@@ -566,7 +566,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 70
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -597,7 +597,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 72
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -628,7 +628,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 73
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -659,7 +659,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 75
+        passing_score: 8
       },
       behavior: {
         show_correct_after_submit: true,
@@ -690,7 +690,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 70
+        passing_score: 7
       },
       behavior: {
         show_correct_after_submit: true,
@@ -721,7 +721,7 @@ export const questionSetSeedData = [
       },
       scoring: {
         per_question: true,
-        passing_score: 95
+        passing_score: 10
       },
       behavior: {
         show_correct_after_submit: false,
